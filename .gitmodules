@@ -1,3 +1,3 @@
 [submodule "caffe-heatmap"]
 	path = caffe-heatmap
-	url = https://github.com/tpfister/caffe-heatmap
+	url = https://github.com/dukebw/caffe-heatmap
