@@ -3,8 +3,8 @@ P=read_frame
 
 OBJECTS=
 STD_FLAGS=c99
-CFLAGS=-ggdb3 -std=$(STD_FLAGS) -Wall -Wextra -Werror -O0 -I/usr/include/ffmpeg
-LDLIBS=-lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale
+CFLAGS=-ggdb3 -std=$(STD_FLAGS) -Wall -Wextra -Werror -O0 -I/usr/local/include
+LDLIBS=-L/usr/local/lib -lavformat -lavcodec -lswscale -lavutil -lswresample -lm -lz -pthread -ldl
 CC=gcc
 CXX=g++
 

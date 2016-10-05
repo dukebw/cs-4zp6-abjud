@@ -2,15 +2,10 @@
 #include <stdbool.h>
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
 
 #define READ_FRAME_SUCCESS 0
 #define READ_FRAME_ERROR (-1)
-
-static inline bool
-is_video_stream(AVStream *av_stream)
-{
-	return (av_stream->codec->codec_type == AVMEDIA_TYPE_VIDEO);
-}
 
 /**
  * Opens up format_context, finds and prints AV stream info for filename.
@@ -18,7 +13,7 @@ is_video_stream(AVStream *av_stream)
  * @param format_context AV format context to be opened.
  * @param in_filename    Filename to read AV streams from.
  *
- * @note On success, must call avformat_close_input on format_context.
+ * @warning On success, must call avformat_close_input on format_context.
  *
  * @return READ_FRAME_SUCCESS on success, READ_FRAME_ERROR on failure.
  */
@@ -45,73 +40,73 @@ open_av_stream_print_info(AVFormatContext **format_context, char *in_filename)
 
 /**
  * Finds a video stream for the AV format context and returns the associated
- * video codec contex.
+ * stream index.
  *
  * @param format_context AV format where video streams should be searched for.
  *
- * @return Codec context for first video stream in format_contex on success,
- * NULL on failure.
+ * @return Index of video stream on success, negative error code on failure.
  */
-static AVCodecContext *
-find_video_codec_context(AVFormatContext *format_context)
+static int32_t
+find_video_stream_index(AVFormatContext *format_context)
 {
 	AVStream *video_stream;
 	uint32_t stream_index;
+
 	for (stream_index = 0;
 	     stream_index < format_context->nb_streams;
 	     ++stream_index) {
 		video_stream = format_context->streams[stream_index];
 
-		if (is_video_stream(video_stream))
+		if (video_stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
 			break;
 	}
 
 	if (stream_index >= format_context->nb_streams)
-		return NULL;
+		return READ_FRAME_ERROR;
 
-	return video_stream->codec;
+	return stream_index;
 }
 
 /**
- * Allocates a copy of codec_context, and opens the copy. The copy is needed
- * because we cannot call avcodec_open2 on an av_stream's codec context
- * directly.
+ * Allocates a codec context for video_stream, and opens it.  We cannot call
+ * avcodec_open2 on an av_stream's codec context directly.
  *
- * @param codec_context An AV stream's codec context.
+ * @param video_stream Video stream to open codec context for.
  *
- * @note If successful, codec_ctx_copy must be freed with avcodec_free_context,
- * and closed with avcodec_close.
+ * @warning If successful, codec_context must be freed with
+ * avcodec_free_context, and closed with avcodec_close.
  *
  * @return Opened copy of codec_context on success, NULL on failure.
  */
 AVCodecContext *
-open_codec_ctx_copy(AVCodecContext *codec_context)
+open_video_codec_ctx(AVStream *video_stream)
 {
 	int32_t status;
-	AVCodecContext *codec_ctx_copy;
+	AVCodecContext *codec_context;
 	AVCodec *video_codec;
 
-	video_codec = avcodec_find_decoder(codec_context->codec_id);
+	video_codec = avcodec_find_decoder(video_stream->codecpar->codec_id);
 	if (video_codec == NULL)
 		return NULL;
 
-	codec_ctx_copy = avcodec_alloc_context3(video_codec);
-	if (codec_ctx_copy == NULL)
+	codec_context = avcodec_alloc_context3(video_codec);
+	if (codec_context == NULL)
 		return NULL;
 
-	status = avcodec_copy_context(codec_ctx_copy, codec_context);
+	status = avcodec_parameters_to_context(codec_context,
+					       video_stream->codecpar);
 	if (status != 0) {
-		avcodec_free_context(&codec_ctx_copy);
+		avcodec_free_context(&codec_context);
 		return NULL;
 	}
 
-	status = avcodec_open2(codec_ctx_copy, video_codec, NULL);
+	status = avcodec_open2(codec_context, video_codec, NULL);
 	if (status != 0) {
-		avcodec_free_context(&codec_ctx_copy);
+		avcodec_free_context(&codec_context);
 		return NULL;
 	}
 
-	return codec_ctx_copy;
+	return codec_context;
 }
 
 int main(int32_t argc, char **argv)
@@ -128,14 +123,15 @@ int main(int32_t argc, char **argv)
 	if (status != READ_FRAME_SUCCESS)
 		return status;
 
-	AVCodecContext *codec_context = find_video_codec_context(format_context);
-	if (codec_context == NULL) {
-		status = EXIT_FAILURE;
+	int32_t video_stream_index = find_video_stream_index(format_context);
+	if (video_stream_index < 0) {
+		status = video_stream_index;
 		goto clean_up_input;
 	}
 
-	AVCodecContext *codec_ctx_copy = open_codec_ctx_copy(codec_context);
-	if (codec_ctx_copy == NULL) {
+	AVCodecContext *codec_context =
+		open_video_codec_ctx(format_context->streams[video_stream_index]);
+	if (codec_context == NULL) {
 		status = EXIT_FAILURE;
 		goto clean_up_input;
 	}
@@ -152,27 +148,68 @@ int main(int32_t argc, char **argv)
 		goto clean_up_frame;
 	}
 
-	frame_rgb->format = codec_ctx_copy->pix_fmt;
-	frame_rgb->width = codec_ctx_copy->width;
-	frame_rgb->height = codec_ctx_copy->height;
+	frame_rgb->format = codec_context->pix_fmt;
+	frame_rgb->width = codec_context->width;
+	frame_rgb->height = codec_context->height;
 
 	status = av_image_alloc(frame_rgb->data,
-				frame->linesize,
-				codec_ctx_copy->width,
-				codec_ctx_copy->height,
-				codec_ctx_copy->pix_fmt,
+				frame_rgb->linesize,
+				codec_context->width,
+				codec_context->height,
+				codec_context->pix_fmt,
 				32);
 	if (status < 0)
 		goto clean_up_frame_rgb;
 
+	struct SwsContext *sws_context = sws_getContext(codec_context->width,
+							codec_context->height,
+							codec_context->pix_fmt,
+							codec_context->width,
+							codec_context->height,
+							AV_PIX_FMT_RGB24,
+							SWS_BILINEAR,
+							NULL,
+							NULL,
+							NULL);
+	if (sws_context == NULL) {
+		status = EXIT_FAILURE;
+		goto clean_up_frame_rgb_data;
+	}
+
+	AVPacket packet;
+	while (av_read_frame(format_context, &packet) == 0) {
+		if (packet.stream_index == video_stream_index) {
+			status = avcodec_send_packet(codec_context, &packet);
+			if (status != 0) {
+				av_packet_unref(&packet);
+				goto clean_up_sws_context;
+			}
+
+			sws_scale(sws_context,
+				  (const uint8_t * const *)frame->data,
+				  frame->linesize,
+				  0,
+				  frame->height,
+				  frame_rgb->data,
+				  frame_rgb->linesize);
+
+			av_frame_unref(frame);
+		}
+
+		av_packet_unref(&packet);
+	}
+
+clean_up_sws_context:
+	sws_freeContext(sws_context);
+clean_up_frame_rgb_data:
 	av_freep(frame_rgb->data);
 clean_up_frame_rgb:
 	av_frame_free(&frame_rgb);
 clean_up_frame:
 	av_frame_free(&frame);
 clean_up_codec_ctx_copy:
-	avcodec_close(codec_ctx_copy);
-	avcodec_free_context(&codec_ctx_copy);
+	avcodec_close(codec_context);
+	avcodec_free_context(&codec_context);
 clean_up_input:
 	avformat_close_input(&format_context);
 
