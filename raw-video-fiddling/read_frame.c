@@ -148,7 +148,7 @@ int main(int32_t argc, char **argv)
 		goto clean_up_frame;
 	}
 
-	frame_rgb->format = codec_context->pix_fmt;
+	frame_rgb->format = AV_PIX_FMT_RGB24;
 	frame_rgb->width = codec_context->width;
 	frame_rgb->height = codec_context->height;
 
@@ -156,7 +156,7 @@ int main(int32_t argc, char **argv)
 				frame_rgb->linesize,
 				codec_context->width,
 				codec_context->height,
-				codec_context->pix_fmt,
+				AV_PIX_FMT_RGB24,
 				32);
 	if (status < 0)
 		goto clean_up_frame_rgb;
@@ -177,6 +177,7 @@ int main(int32_t argc, char **argv)
 	}
 
 	AVPacket packet;
+	int32_t frame_number = 0;
 	while (av_read_frame(format_context, &packet) == 0) {
 		if (packet.stream_index == video_stream_index) {
 			status = avcodec_send_packet(codec_context, &packet);
@@ -186,23 +187,50 @@ int main(int32_t argc, char **argv)
 			}
 
 			status = avcodec_receive_frame(codec_context, frame);
-			if ((status != 0) && (status != AVERROR(EAGAIN))) {
-				av_packet_unref(&packet);
-				goto clean_up_sws_context;
+			if (status != AVERROR(EAGAIN)) {
+				if (status != 0) {
+					av_packet_unref(&packet);
+					goto clean_up_sws_context;
+				}
+
+				sws_scale(sws_context,
+					  (const uint8_t * const *)frame->data,
+					  frame->linesize,
+					  0,
+					  codec_context->height,
+					  frame_rgb->data,
+					  frame_rgb->linesize);
+
+				char saved_filename[32];
+				sprintf(saved_filename, "frame%.6d.ppm", frame_number);
+
+				FILE *frame_file = fopen(saved_filename, "wb");
+				if (frame_file == NULL)
+					goto clean_up_sws_context;
+
+				fprintf(frame_file,
+					"P6\n%d %d\n255\n",
+					codec_context->width,
+					codec_context->height);
+
+				for (int32_t row_index = 0;
+				     row_index < codec_context->height;
+				     ++row_index) {
+					fwrite(frame_rgb->data[0] + row_index*frame_rgb->linesize[0],
+					       1,
+					       3*codec_context->width,
+					       frame_file);
+				}
+
+				fclose(frame_file);
+
+				av_frame_unref(frame);
+
+				if (++frame_number >= 5) {
+					av_packet_unref(&packet);
+					break;
+				}
 			}
-
-			// TODO(brendan): on status != AVERROR(EAGAIN), scale
-			// frame to RGB and save to file.
-
-			sws_scale(sws_context,
-				  (const uint8_t * const *)frame->data,
-				  frame->linesize,
-				  0,
-				  frame->height,
-				  frame_rgb->data,
-				  frame_rgb->linesize);
-
-			av_frame_unref(frame);
 		}
 
 		av_packet_unref(&packet);
