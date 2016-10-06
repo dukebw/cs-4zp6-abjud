@@ -78,7 +78,7 @@ find_video_stream_index(AVFormatContext *format_context)
  *
  * @return Opened copy of codec_context on success, NULL on failure.
  */
-AVCodecContext *
+static AVCodecContext *
 open_video_codec_ctx(AVStream *video_stream)
 {
 	int32_t status;
@@ -184,6 +184,15 @@ int main(int32_t argc, char **argv)
 				av_packet_unref(&packet);
 				goto clean_up_sws_context;
 			}
+
+			status = avcodec_receive_frame(codec_context, frame);
+			if ((status != 0) && (status != AVERROR(EAGAIN))) {
+				av_packet_unref(&packet);
+				goto clean_up_sws_context;
+			}
+
+			// TODO(brendan): on status != AVERROR(EAGAIN), scale
+			// frame to RGB and save to file.
 
 			sws_scale(sws_context,
 				  (const uint8_t * const *)frame->data,
