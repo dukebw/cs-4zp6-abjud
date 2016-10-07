@@ -109,6 +109,125 @@ open_video_codec_ctx(AVStream *video_stream)
 	return codec_context;
 }
 
+/**
+ * Saves a single frame to a file named "frame<frame_number>.ppm" in raw RGB
+ * (PPM) format.
+ *
+ * @param frame_number Number of frame from video.
+ * @param frame_rgb    RGB frame to save.
+ *
+ * @return READ_FRAME_ERROR on failure, READ_FRAME_SUCCESS on success.
+ */
+static int32_t
+save_frame(uint32_t frame_number, AVFrame *frame_rgb)
+{
+	char saved_filename[32];
+	sprintf(saved_filename, "frame%.6u.ppm", frame_number);
+
+	FILE *frame_file = fopen(saved_filename, "wb");
+	if (frame_file == NULL)
+		return READ_FRAME_ERROR;
+
+	fprintf(frame_file, "P6\n%d %d\n255\n", frame_rgb->width, frame_rgb->height);
+
+	for (int32_t row_index = 0;
+	     row_index < frame_rgb->height;
+	     ++row_index) {
+		fwrite(frame_rgb->data[0] + row_index*frame_rgb->linesize[0],
+		       1,
+		       3*frame_rgb->width,
+		       frame_file);
+	}
+
+	fclose(frame_file);
+
+	return READ_FRAME_SUCCESS;
+}
+
+
+/*
+ * Receives a complete frame from the video stream in format_context that
+ * corresponds to video_stream_index.
+ *
+ * @param frame Output frame to be received.
+ * @param format_context Format context to read from.
+ * @param codec_context Context of decoder used to decode video stream packets.
+ * @param video_stream_index Index of video stream that frames will be read
+ * from.
+ *
+ * @return READ_FRAME_SUCCESS on success, READ_FRAME_ERROR on error.
+ */
+static int32_t
+receive_frame(AVFrame *frame,
+	      AVFormatContext *format_context,
+	      AVCodecContext *codec_context,
+	      int32_t video_stream_index)
+{
+	AVPacket packet;
+	int32_t status;
+	bool was_frame_received;
+
+	was_frame_received = false;
+	while (!was_frame_received &&
+	       (av_read_frame(format_context, &packet) == 0)) {
+		if (packet.stream_index == video_stream_index) {
+			status = avcodec_send_packet(codec_context, &packet);
+			if (status != 0) {
+				av_packet_unref(&packet);
+				return READ_FRAME_ERROR;
+			}
+
+			status = avcodec_receive_frame(codec_context, frame);
+			if (status == 0) {
+				was_frame_received = true;
+			} else if (status != AVERROR(EAGAIN)) {
+				av_packet_unref(&packet);
+				return READ_FRAME_ERROR;
+			}
+		}
+
+		av_packet_unref(&packet);
+	}
+
+	return READ_FRAME_SUCCESS;
+}
+
+/**
+ * Allocates an RGB image frame.
+ *
+ * @param codec_context Decoder context from the video stream, from which the
+ * RGB frame will get its dimensions.
+ *
+ * @return The allocated RGB frame on success, NULL on failure.
+ */
+static AVFrame *
+allocate_rgb_image(AVCodecContext *codec_context)
+{
+	int32_t status;
+	AVFrame *frame_rgb;
+
+	frame_rgb = av_frame_alloc();
+	if (frame_rgb == NULL)
+		return NULL;
+
+	frame_rgb->format = AV_PIX_FMT_RGB24;
+	frame_rgb->width = codec_context->width;
+	frame_rgb->height = codec_context->height;
+
+	status = av_image_alloc(frame_rgb->data,
+				frame_rgb->linesize,
+				frame_rgb->width,
+				frame_rgb->height,
+				AV_PIX_FMT_RGB24,
+				32);
+	if (status < 0) {
+		av_frame_free(&frame_rgb);
+		return NULL;
+	}
+
+	return frame_rgb;
+}
+
 int main(int32_t argc, char **argv)
 {
 	int32_t status = EXIT_SUCCESS;
@@ -139,27 +258,14 @@ int main(int32_t argc, char **argv)
 	AVFrame *frame = av_frame_alloc();
 	if (frame == NULL) {
 		status = EXIT_FAILURE;
-		goto clean_up_codec_ctx_copy;
+		goto clean_up_codec_ctx;
 	}
 
-	AVFrame *frame_rgb = av_frame_alloc();
+	AVFrame *frame_rgb = allocate_rgb_image(codec_context);
 	if (frame_rgb == NULL) {
 		status = EXIT_FAILURE;
 		goto clean_up_frame;
 	}
-
-	frame_rgb->format = AV_PIX_FMT_RGB24;
-	frame_rgb->width = codec_context->width;
-	frame_rgb->height = codec_context->height;
-
-	status = av_image_alloc(frame_rgb->data,
-				frame_rgb->linesize,
-				codec_context->width,
-				codec_context->height,
-				AV_PIX_FMT_RGB24,
-				32);
-	if (status < 0)
-		goto clean_up_frame_rgb;
 
 	struct SwsContext *sws_context = sws_getContext(codec_context->width,
 							codec_context->height,
@@ -173,78 +279,40 @@ int main(int32_t argc, char **argv)
 							NULL);
 	if (sws_context == NULL) {
 		status = EXIT_FAILURE;
-		goto clean_up_frame_rgb_data;
+		goto clean_up_frame_rgb;
 	}
 
-	AVPacket packet;
-	int32_t frame_number = 0;
-	while (av_read_frame(format_context, &packet) == 0) {
-		if (packet.stream_index == video_stream_index) {
-			status = avcodec_send_packet(codec_context, &packet);
-			if (status != 0) {
-				av_packet_unref(&packet);
-				goto clean_up_sws_context;
-			}
+	for (uint32_t frame_number = 0;
+	     frame_number < 5;
+	     ++frame_number) {
+		status = receive_frame(frame,
+				       format_context,
+				       codec_context,
+				       video_stream_index);
+		if (status != READ_FRAME_SUCCESS)
+			goto clean_up_sws_context;
 
-			status = avcodec_receive_frame(codec_context, frame);
-			if (status != AVERROR(EAGAIN)) {
-				if (status != 0) {
-					av_packet_unref(&packet);
-					goto clean_up_sws_context;
-				}
+		sws_scale(sws_context,
+			  (const uint8_t * const *)frame->data,
+			  frame->linesize,
+			  0,
+			  codec_context->height,
+			  frame_rgb->data,
+			  frame_rgb->linesize);
 
-				sws_scale(sws_context,
-					  (const uint8_t * const *)frame->data,
-					  frame->linesize,
-					  0,
-					  codec_context->height,
-					  frame_rgb->data,
-					  frame_rgb->linesize);
-
-				char saved_filename[32];
-				sprintf(saved_filename, "frame%.6d.ppm", frame_number);
-
-				FILE *frame_file = fopen(saved_filename, "wb");
-				if (frame_file == NULL)
-					goto clean_up_sws_context;
-
-				fprintf(frame_file,
-					"P6\n%d %d\n255\n",
-					codec_context->width,
-					codec_context->height);
-
-				for (int32_t row_index = 0;
-				     row_index < codec_context->height;
-				     ++row_index) {
-					fwrite(frame_rgb->data[0] + row_index*frame_rgb->linesize[0],
-					       1,
-					       3*codec_context->width,
-					       frame_file);
-				}
-
-				fclose(frame_file);
-
-				av_frame_unref(frame);
-
-				if (++frame_number >= 5) {
-					av_packet_unref(&packet);
-					break;
-				}
-			}
-		}
-
-		av_packet_unref(&packet);
+		status = save_frame(frame_number, frame_rgb);
+		if (status != READ_FRAME_SUCCESS)
+			goto clean_up_sws_context;
 	}
 
 clean_up_sws_context:
 	sws_freeContext(sws_context);
-clean_up_frame_rgb_data:
-	av_freep(frame_rgb->data);
 clean_up_frame_rgb:
+	av_freep(frame_rgb->data);
 	av_frame_free(&frame_rgb);
 clean_up_frame:
 	av_frame_free(&frame);
-clean_up_codec_ctx_copy:
+clean_up_codec_ctx:
 	avcodec_close(codec_context);
 	avcodec_free_context(&codec_context);
 clean_up_input:
