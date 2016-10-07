@@ -1,0 +1,154 @@
+% Original work copyright 2014 Jean-Philippe Eisenbarth
+% Modified work copyright 2016 of Brendan Duke and Jordan Viveiros.
+
+% This program is free software: you can 
+% redistribute it and/or modify it under the terms of the GNU General Public 
+% License as published by the Free Software Foundation, either version 3 of the 
+% License, or (at your option) any later version.
+% This program is distributed in the hope that it will be useful,but WITHOUT ANY 
+% WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+% PARTICULAR PURPOSE. See the GNU General Public License for more details.
+% You should have received a copy of the GNU General Public License along with 
+% this program.  If not, see <http://www.gnu.org/licenses/>.
+
+% Based on the code of Yiannis Lazarides
+% http://tex.stackexchange.com/questions/42602/software-requirements-specification-with-latex
+% http://tex.stackexchange.com/users/963/yiannis-lazarides
+% Also based on the template of Karl E. Wiegers
+% http://www.se.rit.edu/~emad/teaching/slides/srs_template_sep14.pdf
+% http://karlwiegers.com
+\documentclass{scrreprt}
+\usepackage{listings}
+\usepackage{underscore}
+\usepackage[bookmarks=true]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\hypersetup{
+    bookmarks=false,    % show bookmarks bar?
+    pdftitle={Software Requirement Specification},    % title
+    pdfauthor={Jean-Philippe Eisenbarth},                     % author
+    pdfsubject={TeX and LaTeX},                        % subject of the document
+    pdfkeywords={TeX, LaTeX, graphics, images}, % list of keywords
+    colorlinks=true,       % false: boxed links; true: colored links
+    linkcolor=blue,       % color of internal links
+    citecolor=black,       % color of links to bibliography
+    filecolor=black,        % color of file links
+    urlcolor=purple,        % color of external links
+    linktoc=page            % only page is linked
+}%
+\def\myversion{0.0 }
+\date{}
+%\title{%
+
+%}
+\usepackage{hyperref}
+\begin{document}
+
+\begin{flushright}
+    \rule{16cm}{5pt}\vskip1cm
+    \begin{bfseries}
+        \Huge{SOFTWARE REQUIREMENTS\\ SPECIFICATION}\\
+        \vspace{1.9cm}
+        for\\
+        \vspace{1.9cm}
+        CS 4ZP6 Capstone Project\\
+        \vspace{1.9cm}
+        \LARGE{Version \myversion}\\
+        \vspace{1.9cm}
+        Prepared by Brendan Duke, Andrew Kohnen, Udip Patel, David Pitkanen, Jordan Viveiros\\
+        \vspace{1.9cm}
+        McMaster Text to Motion Database\\
+        \vspace{1.9cm}
+        \today\\
+    \end{bfseries}
+\end{flushright}
+
+\tableofcontents
+
+
+\chapter*{Revision History}
+
+\begin{center}
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+	    Name & Date & Reason For Changes & Version\\
+        \hline
+	    Brendan Duke & Oct. 7th, 2016 & Initial Version & 0.0\\
+        \hline
+    \end{tabular}
+\end{center}
+
+\chapter{Introduction}
+
+\section{Purpose}
+
+\section{Document Conventions}
+
+\section{Intended Audience and Reading Suggestions}
+
+\section{Project Scope}
+
+\section{References}
+
+\chapter{Overall Description}
+
+\section{Product Perspective}
+
+\section{Product Functions}
+
+\section{User Classes and Characteristics}
+
+\section{Operating Environment}
+
+\section{Design and Implementation Constraints}
+
+\section{User Documentation}
+
+\section{Assumptions and Dependencies}
+
+\chapter{External Interface Requirements}
+
+\section{User Interfaces}
+
+\section{Hardware Interfaces}
+
+\section{Software Interfaces}
+
+\section{Communications Interfaces}
+
+\chapter{System Features}
+
+\section{System Feature 1}
+
+\subsection{Description and Priority}
+
+\subsection{Stimulus/Response Sequences}
+
+\subsection{Functional Requirements}
+
+\section{System Feature 2 (and so on)}
+
+
+\chapter{Other Nonfunctional Requirements}
+
+\section{Performance Requirements}
+
+\section{Safety Requirements}
+
+\section{Security Requirements}
+
+\section{Software Quality Attributes}
+
+\section{Business Rules}
+
+
+\chapter{Other Requirements}
+
+\section{Appendix A: Glossary}
+%see https://en.wikibooks.org/wiki/LaTeX/Glossary
+
+\section{Appendix B: Analysis Models}
+
+\section{Appendix C: To Be Determined List}
+
+\end{document}
