@@ -83,64 +83,238 @@
 
 \section{The Purpose of the Project}
 
+\subsection{The User Business or Background of the Project Effort}
+
+\subsection{Goals of the Project}
+
 \section{The Client, the Customer, and Other Stakeholders}
 
+\subsection{The Client}
+
+\subsection{The Customer}
+
+\subsection{Other Stakeholders}
+
 \section{Users of the Product}
+
+\subsection{The Hands-on Users of the Product}
+
+\subsection{Priorities Assigned to Users}
+
+\subsection{User Participation}
+
+\subsection{Maintenance Users and Service Technicians}
 
 \chapter{Project Constraints}
 
 \section{Mandated Constraints}
 
-\section{Naming Conventions and Definitions}
-
-\section{Relevant Facts and Assumptions}
-
-\chapter{Functional Requirements}
-
-\section{The Scope of the Work}
-
-\section{The Scope of the Product}
-
-\section{Functional and Data Requirements}
+\subsection{Solution Constraints}
 
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
     Requirement Number & \theRequirementNumber \\ \hline
-    Requirement Type & 9. Functional and Data Requirements \\ \hline
-    Event/Use Case Numbers & \\ \hline
-    Description & \\ \hline
-    Rationale & \\ \hline
-    Originator & \\ \hline
-    Fit Criterion & \\ \hline
-    Customer Satisfaction & \\ \hline
-    Customer Dissatisfaction & \\ \hline
-    Priority & \\ \hline
-    Conflicts & \\ \hline
-    Supporting Materials & \\ \hline
-    History & \\
+    Requirement Type & 4a. Solution Constraint \\ \hline
+    Event/Use Case Numbers & Entire product. \\ \hline
+    Description & The Text-to-Motion Software Suite must run under Linux.\\ \hline
+    Rationale & Linux is the operating system used by the Guelph Machine
+            Learning research lab, and also the most commonly used operating
+            system in the research community.\\ \hline
+    Originator & Dr. Graham Taylor \\ \hline
+    Fit Criterion & Automated builds and testing should pass on popular Linux
+            distributions: Ubuntu, Fedora and RHEL.\\ \hline
+    Customer Satisfaction & 5 \\ \hline
+    Customer Dissatisfaction & 5 \\ \hline
+    Priority & High priority. \\ \hline
+    Conflicts & None. \\ \hline
+    Supporting Materials & None. \\ \hline
+    History & Created September 26th, 2016.\\
 \hline
     \end{tabular}
 \end{center}
 \stepcounter{RequirementNumber}
 
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Requirement Number & \theRequirementNumber \\ \hline
+    Requirement Type & 4a. Solution Constraint \\ \hline
+    Event/Use Case Numbers & Entire product. \\ \hline
+    Description & Major APIs to the Text-to-Motion database must be accessible
+            from the Python programming language.\\ \hline
+    Rationale & Python is a popular, easy-to-use, and quick-to-prototype
+            language, and is therefore one of the most favoured programming
+            languages among the Machine Learning research community.\\ \hline
+    Originator & Dr. Graham Taylor \\ \hline
+    Fit Criterion & There must be hooks to all major interfaces written in
+            Python, and there must be tests that are directly testing the
+            Python interfaces.\\ \hline
+    Customer Satisfaction & 5 \\ \hline
+    Customer Dissatisfaction & 5 \\ \hline
+    Priority & High priority. \\ \hline
+    Conflicts & None. \\ \hline
+    Supporting Materials & None. \\ \hline
+    History & Created September 26th, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{RequirementNumber}
+
+\subsection{Implementation Environment of the Current System}
+
+\subsection{Partner or Collaborative Applications}
+
+\subsection{Off-the-Shelf Software}
+
+\subsection{Anticipated Worklace Environment}
+
+\subsection{Schedule Constraints}
+
+\subsection{Budget Constraints}
+
+\section{Naming Conventions and Definitions}
+
+\subsection{Definitions of All Terms, Including Acronyms, Used in the Project}
+
+\subsection{Data Dictionary for any Included Models}
+
+\section{Relevant Facts and Assumptions}
+
+\subsection{Facts}
+
+\subsection{Assumptions}
+
+\chapter{Functional Requirements}
+
+\section{The Scope of the Work}
+
+\subsection{The Current Situation}
+
+\subsection{The Context of the Work}
+
+\subsection{Work Partitioning}
+
+\section{The Scope of the Product}
+
+\subsection{Product Boundary}
+
+\subsection{Product Use-case List}
+
+\subsection{Individual Product Use Cases}
+
+\section{Functional and Data Requirements}
+
+\subsection{Functional Requirements}
+
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Requirement Number & \theRequirementNumber \\ \hline
+    Requirement Type & 9a. Functional Requirement \\ \hline
+    Event/Use Case Numbers & \\ \hline
+    Description & The text-to-motion software suite will provide an API to read
+            individual frames in RGB format from a video stream. At least MP4,
+            MP2 and AAC must be supported.\\ \hline
+    Rationale & Researchers may wish to do their own processing on RGB frames
+            before feeding those frames into the human pose estimation
+            module.\\ \hline
+    Originator & Brendan Duke. \\ \hline
+    Fit Criterion & For a given set of test video streams, the frame-capture
+            API must produce RGB frames identical to known reference frames.\\
+            \hline
+    Customer Satisfaction & 3 \\ \hline
+    Customer Dissatisfaction & 3 \\ \hline
+    Priority & Moderate priority. \\ \hline
+    Conflicts & None. \\ \hline
+    Supporting Materials & None. \\ \hline
+    History & Created October 5th, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{RequirementNumber}
+
+\subsection{Data Requirements}
+
 \chapter{Nonfunctional Requirements}
 
 \section{Look and Feel Requirements}
 
+\subsection{Appearance Requirements}
+
+\subsection{Style Requirements}
+
 \section{Usability and Humanity Requirements}
+
+\subsection{Ease of Use Requirements}
+
+\subsection{Personalization and Internationalization Requirements}
+
+\subsection{Learning Requirements}
+
+\subsection{Understandability and Politeness Requirements}
+
+\subsection{Accessibility Requirements}
 
 \section{Performance Requirements}
 
+\subsection{Speed and Latency Requirements}
+
+\subsection{Safety-Critical Requirements}
+
+\subsection{Precision or Accuracy Requirements}
+
+\subsection{Reliability and Availability Requirements}
+
+\subsection{Robustness or Fault-Tolerance Requirements}
+
+\subsection{Capacity Requirements}
+
+\subsection{Scaling of Extensibility Requirements}
+
+\subsection{Longevity Requirements}
+
 \section{Operational and Environmental Requirements}
+
+\subsection{Expected Physical Environment}
+
+\subsection{Requirements for Interfacing with Adjacent Systems}
+
+\subsection{Productization Requirements}
+
+\subsection{Release Requirements}
 
 \section{Maintainability and Support Requirements}
 
+\subsection{Maintenance Requirements}
+
+\subsection{Supportability Requirements}
+
+\subsection{Adaptability Requirements}
+
 \section{Security Requirements}
+
+\subsection{Access Requirements}
+
+\subsection{Integrity Requirements}
+
+\subsection{Privacy Requirements}
+
+\subsection{Audit Requirements}
+
+\subsection{Immunity Requirements}
 
 \section{Cultural and Political Requirements}
 
+\subsection{Cultural Requirements}
+
+\subsection{Political Requirements}
+
 \section{Legal Requirements}
+
+\subsection{Compliance Requirements}
+
+\subsection{Standards Requirements}
 
 \chapter{Project Issues}
 
@@ -148,17 +322,47 @@
 
 \section{Off-the-Shelf Solutions}
 
+\subsection{Ready-Made Products}
+
+\subsection{Reusable Components}
+
+\subsection{Products That Can Be Copied}
+
 \section{New Problems}
+
+\subsection{Effects on the Current Environment}
+
+\subsection{Effects on the Installed Systems}
+
+\subsection{Potential User Problems}
+
+\subsection{Limitations in the Anticipated Implementation Environment That May
+            Inhibit the New Product}
+
+\subsection{Follow-Up Problems}
 
 \section{Tasks}
 
+\subsection{Project Planning}
+
+\subsection{Planning of the Development Phases}
+
 \section{Migration to the New Product}
+
+\subsection{Requirements for Migration of the New Product}
+
+\subsection{Data That Has to Be Modified or Translated for the New
+            System}
 
 \section{Risks}
 
 \section{Costs}
 
 \section{User Documentation and Training}
+
+\subsection{User Documentation Requirements}
+
+\subsection{Training Requirements}
 
 \section{Waiting Room}
 
