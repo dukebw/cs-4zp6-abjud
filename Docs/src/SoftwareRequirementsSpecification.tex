@@ -23,6 +23,8 @@
 \usepackage[bookmarks=true]{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
+\usepackage{xcolor}
+\usepackage{indentfirst}
 \hypersetup{
     bookmarks=false,    % show bookmarks bar?
     pdftitle={Software Requirement Specification},    % title
@@ -114,21 +116,21 @@
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
-    Requirement Number & \theRequirementNumber \\ \hline
-    Requirement Type & 4a. Solution Constraint \\ \hline
-    Event/Use Case Numbers & Entire product. \\ \hline
-    Description & The Text-to-Motion Software Suite must run under Linux.\\ \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4a. Solution Constraint \\
+    Event/Use Case Numbers & Entire product. \\
+    Description & The Text-to-Motion Software Suite must run under Linux.\\
     Rationale & Linux is the operating system used by the Guelph Machine
             Learning research lab, and also the most commonly used operating
-            system in the research community.\\ \hline
-    Originator & Dr. Graham Taylor \\ \hline
+            system in the research community.\\
+    Originator & Dr. Graham Taylor \\
     Fit Criterion & Automated builds and testing should pass on popular Linux
-            distributions: Ubuntu, Fedora and RHEL.\\ \hline
-    Customer Satisfaction & 5 \\ \hline
-    Customer Dissatisfaction & 5 \\ \hline
-    Priority & High priority. \\ \hline
-    Conflicts & None. \\ \hline
-    Supporting Materials & None. \\ \hline
+            distributions: Ubuntu, Fedora and RHEL.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
     History & Created September 26th, 2016.\\
 \hline
     \end{tabular}
@@ -138,27 +140,53 @@
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
-    Requirement Number & \theRequirementNumber \\ \hline
-    Requirement Type & 4a. Solution Constraint \\ \hline
-    Event/Use Case Numbers & Entire product. \\ \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4a. Solution Constraint \\
+    Event/Use Case Numbers & Entire product. \\
     Description & Major APIs to the Text-to-Motion database must be accessible
-            from the Python programming language.\\ \hline
+            from the Python programming language.\\
     Rationale & Python is a popular, easy-to-use, and quick-to-prototype
             language, and is therefore one of the most favoured programming
-            languages among the Machine Learning research community.\\ \hline
-    Originator & Dr. Graham Taylor \\ \hline
+            languages among the Machine Learning research community.\\
+    Originator & Dr. Graham Taylor \\
     Fit Criterion & There must be hooks to all major interfaces written in
             Python, and there must be tests that are directly testing the
-            Python interfaces.\\ \hline
-    Customer Satisfaction & 5 \\ \hline
-    Customer Dissatisfaction & 5 \\ \hline
-    Priority & High priority. \\ \hline
-    Conflicts & None. \\ \hline
-    Supporting Materials & None. \\ \hline
+            Python interfaces.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
     History & Created September 26th, 2016.\\
 \hline
     \end{tabular}
 \end{center}
+\stepcounter{RequirementNumber}
+
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4a. Solution Constraint \\
+    Event/Use Case Numbers & Human Pose Estimation Event. \\
+    Description & The human pose estimation component should use deep learning
+            methods.\\
+    Rationale & This constraint is to allow Dr. Taylor's group to integrate the
+            software into their existing text-to-motion pipeline\\
+    Originator & Dr. Graham Taylor \\
+    Fit Criterion & Dr. Taylor should confirm that the deep learning methods
+            used in the human pose estimator are satisfactory.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 4 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
+    History & Created September 26th, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\newcounter{HumanPoseDeepLearningConstraint}
+\setcounter{HumanPoseDeepLearningConstraint}{\theRequirementNumber}
 \stepcounter{RequirementNumber}
 
 \subsection{Implementation Environment of the Current System}
@@ -177,6 +205,23 @@
 
 \subsection{Definitions of All Terms, Including Acronyms, Used in the Project}
 
+\textbf{Feedforward Neural Networks} are artifical neural networks where
+connections between the units do \textit{not} form a cycle). They are the
+simplest type of neural network, because information moves in only one
+direction.
+
+\textbf{ConvNets} or \textbf{Convolutional Neural Networks} are a type of
+feed-forward artificial neural network. ConvNets are inspired by the visual
+cortex and are commonly used in visual recognition applications.
+
+\textbf{RNNs} or \textbf{Recurrent Neural Networks} are a class of artificial
+neural networks where units form a directed cycle, in contrast with
+feed-forward neural networks.
+
+\textbf{Deep Belief Networks} are a type of deep neural network composed of
+multiple layers of "hidden units" (variables that are not observable), with
+connections between layers but not between units of a given layer.
+
 \subsection{Data Dictionary for any Included Models}
 
 \section{Relevant Facts and Assumptions}
@@ -190,6 +235,25 @@
 \section{The Scope of the Work}
 
 \subsection{The Current Situation}
+
+There is a large amount of existing research into human pose estimation, which
+this project will leverage. Based on constraint
+\theHumanPoseDeepLearningConstraint, we focus on existing solutions that use
+deep learning methods.
+
+\cite{DBLP:journals/corr/PfisterCZ15} present a ConvNet architecture for human
+pose estimation from videos, which is able to benefit from temporal context
+across multiple frames using optical flow. This work is focused on upper-body
+human pose estimation only.
+
+\cite{DBLP:journals/corr/BelagiannisZ16} propose a ConvNet model for predicting
+2D human body poses in an image. This model is able to achieve state-of-the-art
+results using a simple architecture, and draws on the work done in
+\cite{DBLP:journals/corr/PfisterCZ15}.
+
+\cite{DBLP:journals/corr/WeiRKS16} introduces \textit{Convolutional Pose
+Machines (CPMs)} for pose estimation in images. CPMs consist of a sequence of
+ConvNets that iteratively produce 2D belief maps.
 
 \subsection{The Context of the Work}
 
@@ -368,13 +432,7 @@
 
 \section{Ideas for Solutions}
 
-\chapter{Appendix}
-
-\section{Appendix A: Glossary}
-%see https://en.wikibooks.org/wiki/LaTeX/Glossary
-
-\section{Appendix B: Analysis Models}
-
-\section{Appendix C: To Be Determined List}
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,SoftwareRequirementsSpecification} 
 
 \end{document}

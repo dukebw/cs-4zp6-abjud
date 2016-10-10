@@ -2,6 +2,8 @@ SRS=SoftwareRequirementsSpecification
 
 all:
 	xelatex $(SRS).tex
+	bibtex $(SRS).aux
+	xelatex $(SRS).tex
 	xelatex $(SRS).tex
 	$(MAKE) clean
 	mv $(SRS).pdf ..
