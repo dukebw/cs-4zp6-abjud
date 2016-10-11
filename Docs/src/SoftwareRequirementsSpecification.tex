@@ -51,17 +51,17 @@
     \rule{16cm}{5pt}\vskip1cm
     \begin{bfseries}
         \Huge{SOFTWARE REQUIREMENTS\\ SPECIFICATION}\\
-        \vspace{1.9cm}
+        \vspace{1.8cm}
         for\\
-        \vspace{1.9cm}
+        \vspace{1.8cm}
         CS 4ZP6 Capstone Project\\
-        \vspace{1.9cm}
+        \vspace{1.8cm}
         \LARGE{Version \myversion}\\
-        \vspace{1.9cm}
+        \vspace{1.8cm}
         Prepared by Brendan Duke, Andrew Kohnen, Udip Patel, David Pitkanen, Jordan Viveiros\\
-        \vspace{1.9cm}
+        \vspace{1.8cm}
         McMaster Text to Motion Database\\
-        \vspace{1.9cm}
+        \vspace{1.8cm}
         \today\\
     \end{bfseries}
 \end{flushright}
@@ -88,72 +88,142 @@
 
 \subsection{The User Business or Background of the Project Effort}
 
-With the current advancement of deep learning architectures, specifically the
-use of Recurrent Neural Networks used for sequential data processing like
-natural language or pose estimates. Using a Recurrent Neural Networks is made
-more available through the creation of large databases that contain video with
-descriptive labeling and annotations like MovieQA, Charades, or MSR-VTT.
-Expanding on these technologies can be utilized to build a system for
-"Computational Storytelling" that takes in a short story of 5 lines and outputs
-an animated video between an AI and human director.
+There is an existing project at the University of Guelph that aims to create a
+system for ``Computational Storytelling''. The goal of the Computational
+Storytelling project is to create a system that takes as input a basic story
+composed of five sentences, and outputs an animated movie based on the story,
+which is produced in collaboration between an AI and human director.
+
+As an initial step in the Computational Storytelling project, the University of
+Guelph group requires a database of ``human motion'' that is stored with rich
+text annotations. Such a database is required as a source of training data for
+the Computational Storytelling project to use in their methods to convert text
+to animated motion.
+
+No satisfactory database of human motion data that is stored with associated
+text descriptions exists currently. However, there are existing databases of
+videos of people doing various actions with accompanying text describing those
+actions, for example the Charades database or MSR-VTT.
+
+Our McMaster group has been approached to assist in this initial step in the
+Computational Storytelling project in two ways.  Firstly, we are to develop
+software, based on existing research, that is able to process video and derive
+human motion data (e.g. joint positions over time) from the video. Secondly, we
+are to utilize data from an existing database that already has text
+annotations, such as Charades, using our video-to-motion processing software to
+generate a new database that contains both rich text annotations and motion data.
 
 \subsection{Goals of the Project}
 
-The goal of this project is to support a text to motion subcomponent of a
-larger collaboration between the University of Guelph, SRI, and other
-institutions. The creation of a database, website and manipulation of already
-established pose estimation software will be required. Creating this database
-and website will allow the larger text to motion project use the relationship
-developed through the pose estimation in order to provide a pose and word
-pairing for animating.
+The goal of this project is to create a database, web-interface to said
+database, and a deployable software bundle providing access to
+already-established human pose estimation methods. Creating this database,
+website and software suite will allow the larger text-to-motion project to use
+the relationships between motion data and text annotations developed through
+the pose estimation software in order to provide a pose and word pairing, which
+can be used for animation.
 
 \section{The Client, the Customer, and Other Stakeholders}
 
-The current stakeholders in this project are the:
-    - Supervisors of the project (Dr. He, Dr. Taylor)
-    - University of Guelph "text to motion" research group
-    - The McMaster Capstone group
-
 \subsection{The Client}
 
-The current clients for this project are Dr. Taylor and his graduate student
-Thor Jonsson. Dr. Taylor is the primary driver to develop a website and
-database where annotated motion information could be generated and pulled from
-as a growth point into the larger text to motion project. They will be using
-the database to create Recurrent Neural Networks that will pair actions and
+The current clients for this project are Dr.\ Taylor and his graduate student
+Thor Jonsson. Dr.\ Taylor is the primary driver to develop a website and
+database where annotated motion information can be generated and pulled from as
+a growth point into the larger text to motion project. They will be using the
+database to train Recurrent Neural Networks (RNNs) that will pair actions and
 their pose found within the database to words or combinations found in the
 input story.
 
 \subsection{The Customer}
 
 The customers are included within the clients since building this database and
-website combination will be utilized by Dr. Taylors research team and their
-external partners. In addition to Dr. Taylor and his research team this project
+website combination will be utilized by Dr.\ Taylors research team and their
+external partners. In addition to Dr.\ Taylor and his research team this project
 would appeal to anyone that needed a pairing of actions and pose estimations as
 the website would be readily available to others.
 
+In general, customers of the product will be researchers in the machine
+learning community who are interested in multi-modal learning, and specifically
+in systems that link text to human motion. Said customers will have a high
+degree of knowledge related to machine learning theory. However, they cannot be
+assumed to have a high degree of skill in any programming language with a steep
+skill curve, such as C++ or Haskell. Also, the customer is unlikely to be
+willing to invest a large amount of time in learning how to use the software
+produced by the McMaster Text-to-Motion project.
+
 \subsection{Other Stakeholders}
 
-In addition to the stakeholders listed above the success of the project could
-bring in additional stakeholders that are interested in the method of pose
-estimation, database information or want to use this information for a project
-of their own. This could be another research group or deep learning framework
-that is looking to expand.
+Other stakeholders affected by the project include Dr.\ He, our group's internal
+supervisor and teacher of the CS 4ZP6 Capstone Project course, and the team
+members of our group.
+
+Dr.\ He is a professor at McMaster who may not have the same specialized
+research knowledge as members of Dr.\ Taylor's group. Dr.\ He requires an
+explanation of all aspects of the project, as she will be responsible for
+assigning a grade to the entire group. Dr.\ He will require updates on the
+progress of the group in the form of deliverables that are part of the CS 4ZP6
+syllabus.
+
+The members of our CS 4ZP6 capstone group, namely Brendan Duke, Andrew Kohnen,
+Udip Patel, David Pitkanen and Jordan Viveiros, are also stakeholders affected
+by the project. For the most part, our group members did not have any
+specialized knowledge related to the project, although that knowledge is being
+acquired as the project progresses. The group members will require full
+involvement in all aspects of the project, as well as supporting knowledge and
+direction from Thor Jonsson and Dr.\ Taylor.
 
 \section{Users of the Product}
 
 \subsection{The Hands-on Users of the Product}
 
-The primary users of this project will be Dr. Taylor and his research team as
-they need this data in order to complete the Computational Storytelling. They
-are also comfortable with the process of deep learning and would provide input
-on how the pairings should be set up.
+\begin{center}
+    \begin{tabular}{ | p{2cm} | p{4cm} | p{2cm} | p{4cm} |}
+    \hline
+    User Category & User Role & Subject Matter Experience &
+    Technological Experience \\ \hline
+    Dr.\ Taylor's Group & Using the database to train an RNN to create
+            animations from text. & Master & Master \\
+    Other machine learning researchers & Using the product for any multi-modal
+            machine learning use-case involving text and human motion. & Master
+            & Journeyman. This user category cannot be assumed to have a high
+            degree of skill in complex programming languages such as C++. \\
+    Amateur machine learning enthusiasts & Using the McMaster Text-to-Motion
+            database and software suite to learn about multi-modal machine
+            learning and human pose estimation. & Journeyman & Journeyman \\
+    \hline
+    \end{tabular}
+\end{center}
 
 \subsection{Priorities Assigned to Users}
 
+Our \textbf{key users} are members of Dr.\ Taylor's research group.
+\textbf{Secondary users} are other members of the machine learning community.
+Amateur machine learning enthusiasts are \textbf{unimportant users}.
+
 \subsection{User Participation}
 
+Thor Jonsson and Dr.\ Taylor will be expected to assist in supporting our group
+with their domain knowledge of deep learning methods. They will also be
+expected to participate in shaping the interfaces to the product (both the web
+interface and the programming interface to the database) by using the
+prototypes of those interfaces and providing feedback.
+
+The minimum amount of participation from Dr.\ Taylor and Thor would be
+participation in a meeting with our group members on a bi-weekly to monthly
+basis, as well as participating in weekly correspondence electronically (e.g.
+by e-mail).
+
 \subsection{Maintenance Users and Service Technicians}
+
+Maintenance users would certainly be members of Dr.\ Taylor's research group,
+as they will be using the software produced by the project after its completion
+and may need to add changes to the product.
+
+Once the product is open-sourced into the community, maintenance users could
+range from machine learning researchers to amateur machine learning
+enthusiasts. These users could be expected to fix bugs or add new features that
+were not in the initial scope of the project.
 
 \chapter{Project Constraints}
 
@@ -166,63 +236,13 @@ on how the pairings should be set up.
     \hline
     Constraint Number & \theRequirementNumber \\
     Constraint Type & 4a. Solution Constraint \\
-    Event/Use Case Numbers & Entire product. \\
-    Description & The Text-to-Motion Software Suite must run under Linux.\\
-    Rationale & Linux is the operating system used by the Guelph Machine
-            Learning research lab, and also the most commonly used operating
-            system in the research community.\\
-    Originator & Dr. Graham Taylor \\
-    Fit Criterion & Automated builds and testing should pass on popular Linux
-            distributions: Ubuntu, Fedora and RHEL.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 26th, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{RequirementNumber}
-
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theRequirementNumber \\
-    Constraint Type & 4a. Solution Constraint \\
-    Event/Use Case Numbers & Entire product. \\
-    Description & Major APIs to the Text-to-Motion database must be accessible
-            from the Python programming language.\\
-    Rationale & Python is a popular, easy-to-use, and quick-to-prototype
-            language, and is therefore one of the most favoured programming
-            languages among the Machine Learning research community.\\
-    Originator & Dr. Graham Taylor \\
-    Fit Criterion & There must be hooks to all major interfaces written in
-            Python, and there must be tests that are directly testing the
-            Python interfaces.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 26th, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{RequirementNumber}
-
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theRequirementNumber \\
-    Constraint Type & 4a. Solution Constraint \\
     Event/Use Case Numbers & Human Pose Estimation Event. \\
     Description & The human pose estimation component should use deep learning
             methods.\\
-    Rationale & This constraint is to allow Dr. Taylor's group to integrate the
+    Rationale & This constraint is to allow Dr.\ Taylor's group to integrate the
             software into their existing text-to-motion pipeline\\
-    Originator & Dr. Graham Taylor \\
-    Fit Criterion & Dr. Taylor should confirm that the deep learning methods
+    Originator & Dr.\ Graham Taylor \\
+    Fit Criterion & Dr.\ Taylor should confirm that the deep learning methods
             used in the human pose estimator are satisfactory.\\
     Customer Satisfaction & 5 \\
     Customer Dissatisfaction & 4 \\
@@ -235,28 +255,6 @@ on how the pairings should be set up.
 \end{center}
 \newcounter{HumanPoseDeepLearningConstraint}
 \setcounter{HumanPoseDeepLearningConstraint}{\theRequirementNumber}
-\stepcounter{RequirementNumber}
-
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theRequirementNumber \\
-    Constraint Type & 4a. Solution Constraint \\
-    Event/Use Case Numbers & Entire product. \\
-    Description & The project must be completed by April 5th, 2017.\\
-    Rationale & The project is part of the CS 4ZP6 Capstone Project course.\\
-    Originator & Dr. He \\
-    Fit Criterion & All documentation, testing and implementatoin must be
-            completed and checked in to GitHub by April 5th, 2017.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 21st, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
 \stepcounter{RequirementNumber}
 
 \begin{center}
@@ -286,13 +284,87 @@ on how the pairings should be set up.
 
 \subsection{Implementation Environment of the Current System}
 
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4b. Implementation Environment \\
+    Event/Use Case Numbers & Entire product. \\
+    Description & The Text-to-Motion Software Suite must run under Linux.\\
+    Rationale & Linux is the operating system used by the Guelph Machine
+            Learning research lab, and also the most commonly used operating
+            system in the research community.\\
+    Originator & Dr.\ Graham Taylor \\
+    Fit Criterion & Automated builds and testing should pass on popular Linux
+            distributions: Ubuntu, Fedora and RHEL.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
+    History & Created September 26th, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{RequirementNumber}
+
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4b. Implementation Environment \\
+    Event/Use Case Numbers & Entire product. \\
+    Description & Major APIs to the Text-to-Motion database must be accessible
+            from the Python programming language.\\
+    Rationale & Python is the language used by the rest of Dr.\ Taylor's
+            text-to-motion pipeline. Python is a popular, easy-to-use, and
+            quick-to-prototype language, and is therefore one of the most
+            favoured programming languages among the Machine Learning research
+            community.\\
+    Originator & Dr.\ Graham Taylor \\
+    Fit Criterion & There must be hooks to all major interfaces written in
+            Python, and there must be tests that are directly testing the
+            Python interfaces.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
+    History & Created September 26th, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{RequirementNumber}
+
 \subsection{Partner or Collaborative Applications}
 
 \subsection{Off-the-Shelf Software}
 
-\subsection{Anticipated Worklace Environment}
+\subsection{Anticipated Workplace Environment}
 
 \subsection{Schedule Constraints}
+
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4f. Schedule Constraint \\
+    Event/Use Case Numbers & Entire product. \\
+    Description & The project must be completed by April 5th, 2017.\\
+    Rationale & The project is part of the CS 4ZP6 Capstone Project course.\\
+    Originator & Dr.\ He \\
+    Fit Criterion & All documentation, testing and implementatoin must be
+            completed and checked in to GitHub by April 5th, 2017.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
+    History & Created September 21st, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{RequirementNumber}
 
 \subsection{Budget Constraints}
 
@@ -310,6 +382,15 @@ or pose, of the body based on a single still image or a sequence of images that
 comprise a video. Human pose estimation may find the chin, radius, humerus, and
 other bone and joint positions.
 
+\textbf{Charades} is a dataset composed of approximately 10K videos of daily
+indoor activities, complete with associated action-describing sentences,
+collected through Amazon Mechanical Turk\cite{charades}.
+
+\textbf{MSR-VTT}, standing for ``Microsoft Research Video to Text'', is a
+large-scale video benchmark for the task of translating video to text. MSR-VTT
+provides 10K video clips spanning 41.2 hours and containing 200K clip-sentence
+pairs in total\cite{msr-vtt}.
+
 \textbf{Feedforward Neural Networks} are artifical neural networks where
 connections between the units do \textit{not} form a cycle). They are the
 simplest type of neural network, because information moves in only one
@@ -324,8 +405,12 @@ neural networks where units form a directed cycle, in contrast with
 feed-forward neural networks.
 
 \textbf{Deep Belief Networks} are a type of deep neural network composed of
-multiple layers of "hidden units" (variables that are not observable), with
+multiple layers of ``hidden units'' (variables that are not observable), with
 connections between layers but not between units of a given layer.
+
+\textbf{Multi-modal neural language models} are models of natural language that
+can be conditioned on other modalities, e.g. high-level image
+features\cite{DBLP:journals/corr/KirosSZ14}.
 
 \subsection{Data Dictionary for any Included Models}
 
