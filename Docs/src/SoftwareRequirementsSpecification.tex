@@ -26,6 +26,7 @@
 \usepackage{xcolor}
 \usepackage{indentfirst}
 \usepackage[section]{placeins}
+\usepackage{graphicx}
 \hypersetup{
     bookmarks=false,    % show bookmarks bar?
     pdftitle={Software Requirement Specification},    % title
@@ -51,17 +52,19 @@
     \rule{16cm}{5pt}\vskip1cm
     \begin{bfseries}
         \Huge{SOFTWARE REQUIREMENTS\\ SPECIFICATION}\\
-        \vspace{1.8cm}
+        \vspace{1.4cm}
         for\\
-        \vspace{1.8cm}
+        \vspace{1.4cm}
         CS 4ZP6 Capstone Project\\
-        \vspace{1.8cm}
+        \vspace{1.4cm}
         \LARGE{Version \myversion}\\
-        \vspace{1.8cm}
+        \vspace{1.4cm}
         Prepared by Brendan Duke, Andrew Kohnen, Udip Patel, David Pitkanen, Jordan Viveiros\\
-        \vspace{1.8cm}
+        \vspace{1.4cm}
+        Using Volere Template Edition 13\\
+        \vspace{1.4cm}
         McMaster Text to Motion Database\\
-        \vspace{1.8cm}
+        \vspace{1.4cm}
         \today\\
     \end{bfseries}
 \end{flushright}
@@ -80,6 +83,7 @@
     \end{tabular}
 \end{center}
 
+\newcounter{ConstraintNumber}
 \newcounter{RequirementNumber}
 
 \chapter{Project Drivers}
@@ -89,15 +93,15 @@
 \subsection{The User Business or Background of the Project Effort}
 
 There is an existing project at the University of Guelph that aims to create a
-system for ``Computational Storytelling''. The goal of the Computational
-Storytelling project is to create a system that takes as input a basic story
+system for ``computational storytelling''. The goal of the computational
+storytelling project is to create a system that takes as input a basic story
 composed of five sentences, and outputs an animated movie based on the story,
 which is produced in collaboration between an AI and human director.
 
-As an initial step in the Computational Storytelling project, the University of
+As an initial step in the computational storytelling project, the University of
 Guelph group requires a database of ``human motion'' that is stored with rich
 text annotations. Such a database is required as a source of training data for
-the Computational Storytelling project to use in their methods to convert text
+the computational storytelling project to use in their methods to convert text
 to animated motion.
 
 No satisfactory database of human motion data that is stored with associated
@@ -106,7 +110,7 @@ videos of people doing various actions with accompanying text describing those
 actions, for example the Charades database or MSR-VTT.
 
 Our McMaster group has been approached to assist in this initial step in the
-Computational Storytelling project in two ways.  Firstly, we are to develop
+computational storytelling project in two ways.  Firstly, we are to develop
 software, based on existing research, that is able to process video and derive
 human motion data (e.g. joint positions over time) from the video. Secondly, we
 are to utilize data from an existing database that already has text
@@ -168,10 +172,10 @@ syllabus.
 The members of our CS 4ZP6 capstone group, namely Brendan Duke, Andrew Kohnen,
 Udip Patel, David Pitkanen and Jordan Viveiros, are also stakeholders affected
 by the project. For the most part, our group members did not have any
-specialized knowledge related to the project, although that knowledge is being
-acquired as the project progresses. The group members will require full
-involvement in all aspects of the project, as well as supporting knowledge and
-direction from Thor Jonsson and Dr.\ Taylor.
+specialized knowledge related to the project before commencing, although that
+knowledge is being acquired as the project progresses. The group members will
+require full involvement in all aspects of the project, as well as supporting
+knowledge and direction from Thor Jonsson and Dr.\ Taylor.
 
 \section{Users of the Product}
 
@@ -234,7 +238,7 @@ were not in the initial scope of the project.
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
-    Constraint Number & \theRequirementNumber \\
+    Constraint Number & \theConstraintNumber \\
     Constraint Type & 4a. Solution Constraint \\
     Event/Use Case Numbers & Human Pose Estimation Event. \\
     Description & The human pose estimation component should use deep learning
@@ -254,13 +258,13 @@ were not in the initial scope of the project.
     \end{tabular}
 \end{center}
 \newcounter{HumanPoseDeepLearningConstraint}
-\setcounter{HumanPoseDeepLearningConstraint}{\theRequirementNumber}
-\stepcounter{RequirementNumber}
+\setcounter{HumanPoseDeepLearningConstraint}{\theConstraintNumber}
+\stepcounter{ConstraintNumber}
 
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
-    Constraint Number & \theRequirementNumber \\
+    Constraint Number & \theConstraintNumber \\
     Constraint Type & 4a. Solution Constraint \\
     Event/Use Case Numbers & All use-cases based on the database. \\
     Description & Use a standard format such as LMDB or HDF5 for storing
@@ -280,14 +284,14 @@ were not in the initial scope of the project.
 \hline
     \end{tabular}
 \end{center}
-\stepcounter{RequirementNumber}
+\stepcounter{ConstraintNumber}
 
 \subsection{Implementation Environment of the Current System}
 
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
-    Constraint Number & \theRequirementNumber \\
+    Constraint Number & \theConstraintNumber \\
     Constraint Type & 4b. Implementation Environment \\
     Event/Use Case Numbers & Entire product. \\
     Description & The Text-to-Motion Software Suite must run under Linux.\\
@@ -306,12 +310,12 @@ were not in the initial scope of the project.
 \hline
     \end{tabular}
 \end{center}
-\stepcounter{RequirementNumber}
+\stepcounter{ConstraintNumber}
 
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
-    Constraint Number & \theRequirementNumber \\
+    Constraint Number & \theConstraintNumber \\
     Constraint Type & 4b. Implementation Environment \\
     Event/Use Case Numbers & Entire product. \\
     Description & Major APIs to the Text-to-Motion database must be accessible
@@ -334,26 +338,107 @@ were not in the initial scope of the project.
 \hline
     \end{tabular}
 \end{center}
-\stepcounter{RequirementNumber}
+\stepcounter{ConstraintNumber}
 
 \subsection{Partner or Collaborative Applications}
 
+The McMaster Text-to-Motion database software will collaborate with the rest of
+the University of Guelph group's text-to-motion pipeline. While their
+application is still in a research stage, we can expect that their application
+will be written in Python.
+
+Furthermore, the animation component of Dr.\ Taylor's group's project will be
+using the proprietary software application Muvizu.
+
 \subsection{Off-the-Shelf Software}
 
+There are a number of off-the-shelf libraries that can and should be used by
+this project in order to implement the requirements. In particular, deep
+learning libraries should be used for the training of neural networks and for
+doing numerical computations.
+
+Two notable deep learning frameworks are listed below.
+
+\textbf{Caffe}, originally developed by the Berkeley Vision and Learning Center
+(BVLC),  is a deep learning framework written in C++ with Python and Matlab
+wrappers.
+
+Caffe has a strong ConvNet implementation and is popular amongst the
+computer vision community. However, Caffe's RNN implementation and support for
+language models is lacking compared with other libraries.
+
+Caffe is released under the BSD 2-Clause license.
+
+\textbf{TensorFlow}, originally developed by researchers at Google, is a deep
+learning and numerical computation framework written in C++ and Python.
+
+TensorFlow has a clean, modular architecture and since it provides both Python
+and C++ interfaces, code can be prototyped in a rich high-level interpreted
+language before deployment in a high-performance, scalable environment.
+
+TensorFlow is open sourced under the Apache 2.0 open source license.
+
+It will also be necessary to use a library for accessing video codecs. This is
+in order to convert video streams to and from sets of images, which will be
+input to the human pose estimation software.
+
+\textbf{FFmpeg} is a leading multimedia framework that is able to decode and
+encode video, in addition to having many other features. FFmpeg can be utilized
+for any video encoding and decoding purposes in the project.
+
+To implement search-by-text functionality into the McMaster Text-to-Motion
+Database, it will be helpful to leverage an existing software package that
+implements full-text search.
+
+\textbf{Sphinx} is such a software package, as it implements full-text search.
+Sphinx also integrates well with SQL databases.
+
+Sphinx is licensed under GPL version 2.
+
 \subsection{Anticipated Workplace Environment}
+
+As the McMaster Text-to-Motion Database is a software product, there are no
+requirements considerations specifically pertaining to the anticipated
+workplace environment of users of the product. Any considerations of
+environment, such as operating system environment, have already been covered
+under the ``Implementation Environment'' section.
 
 \subsection{Schedule Constraints}
 
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
     \hline
-    Constraint Number & \theRequirementNumber \\
+    Constraint Number & \theConstraintNumber \\
+    Constraint Type & 4f. Schedule Constraint \\
+    Event/Use Case Numbers & Entire product. \\
+    Description & A demonstration of the product must be completed by February
+            13th, 2017.\\
+    Rationale & This is a deadline that is part of the CS 4ZP6 course.\\
+    Originator & Dr.\ He \\
+    Fit Criterion & By February 13th, 2017, fully functional versions of the
+            web interface, database interface and human pose estimation
+            software must all be working as verified by Dr.\ He.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
+    History & Created September 21st, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{ConstraintNumber}
+
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Constraint Number & \theConstraintNumber \\
     Constraint Type & 4f. Schedule Constraint \\
     Event/Use Case Numbers & Entire product. \\
     Description & The project must be completed by April 5th, 2017.\\
     Rationale & The project is part of the CS 4ZP6 Capstone Project course.\\
     Originator & Dr.\ He \\
-    Fit Criterion & All documentation, testing and implementatoin must be
+    Fit Criterion & All documentation, testing and implementation must be
             completed and checked in to GitHub by April 5th, 2017.\\
     Customer Satisfaction & 5 \\
     Customer Dissatisfaction & 5 \\
@@ -364,9 +449,14 @@ were not in the initial scope of the project.
 \hline
     \end{tabular}
 \end{center}
-\stepcounter{RequirementNumber}
+\stepcounter{ConstraintNumber}
 
 \subsection{Budget Constraints}
+
+There is no budget allocated for this project. As such, hardware requirements
+such as GPUs to carry out the computations required for the project must be
+provided by the client, Dr.\ Taylor, or borrowed through other means such as
+seeking help from McMaster professors.
 
 \section{Naming Conventions and Definitions}
 
@@ -412,13 +502,55 @@ connections between layers but not between units of a given layer.
 can be conditioned on other modalities, e.g. high-level image
 features\cite{DBLP:journals/corr/KirosSZ14}.
 
+\textbf{Muvizu} is an interactive 3D animation package designed for quick storytelling.
+
+An \textbf{autoencoder} is an artificial neural network used to learn a
+representation of a set of data. The simplest form of an autoencoder is a
+feed-forward neural net with an input layer, an output layer, and one or more
+hidden layers. Instead of being trained to predict an output $Y$ from input
+$X$, an autoencoder is trained to reconstruct its own input $X'$ from $X$.
+
 \subsection{Data Dictionary for any Included Models}
 
 \section{Relevant Facts and Assumptions}
 
 \subsection{Facts}
 
+\begin{itemize}
+        \item The training of deep neural networks can take on the order of
+                days to weeks. For example, training two of the different
+                neural network architectures used in
+                \cite{DBLP:journals/corr/PfisterCZ15} on four NVIDIA GTX Titan
+                GPUs took 3 and 7 days, respectively.
+        \item ConvNets take a fixed size input and generate a fixed size
+                output, whereas RNNs can handle arbitrary input/output lengths.
+                This is one reason why ConvNets are more popular in vision
+                applications, while RNNs are used for language applications.
+                However, neural network architectures can be used that combine
+                both ConvNets and RNNs.
+        \item The uncompressed size of the Charades dataset is 55GB at full
+                resolution, and 16GB at 480p.
+        \item The goals of this project, specifically generating a database of
+                text-annotated human motion data, constitute new research and
+                there are no existing solutions available.
+\end{itemize}
+
 \subsection{Assumptions}
+
+\begin{itemize}
+        \item It has been assumed that it is possible to re-use existing
+                software components in order to achieve the human pose
+                estimation use-case, as it would take a full eight months just
+                to implement an algorithm such as that of
+                \cite{DBLP:journals/corr/PfisterCZ15} from scratch.
+        \item It has been assumed that this project will not encompass
+                generating a dataset of videos with text annotations, and that
+                we will be able to rely on an existing dataset such as the
+                Charades dataset.
+        \item It is assumed that a storage format for human pose estimation
+                data already exists, and will be available for this project to
+                leverage.
+\end{itemize}
 
 \chapter{Functional Requirements}
 
@@ -427,7 +559,7 @@ features\cite{DBLP:journals/corr/KirosSZ14}.
 \subsection{The Current Situation}
 
 There is a large amount of existing research into human pose estimation, which
-this project will leverage. Based on constraint
+this project will leverage. Based on Constraint
 \theHumanPoseDeepLearningConstraint, we focus on existing solutions that use
 deep learning methods.
 
@@ -443,14 +575,35 @@ results using a simple architecture, and draws on the work done in
 
 \cite{DBLP:journals/corr/WeiRKS16} introduces \textit{Convolutional Pose
 Machines (CPMs)} for pose estimation in images. CPMs consist of a sequence of
-ConvNets that iteratively produce 2D belief maps.
+ConvNets that iteratively produce 2D belief maps. Source code from this paper
+is available, and makes use of the Caffe deep learning library.
+
+In \cite{zhou2016sparseness}, the authors estimate 3D full-body human poses
+from a monocular image sequence. They train a ConvNet to predict the locations
+of joints in 2D, then estimate human poses in 3D via an
+Expectation-Maximization algorithm over the entire video sequence.
+
+On the animation side of the larger computational storytelling problem our
+project is assisting in solving, \cite{Holden2016} use
+deep learning to synthesize character movements based on high-level parameters
+such as a curve that the character should follow. The learned motion is
+represented by the hidden units of a convolutional autoencoder.
 
 \subsection{The Context of the Work}
 
+\begin{figure}[!ht]
+        \caption{McMaster Text-to-Motion Database Work Context Diagram}
+        \centering
+        \includegraphics[width=0.8\textwidth]{mcmaster-text-to-motion-work-context-diagram.png}
+\end{figure}
+
 \subsection{Work Partitioning}
+
+The events/use-cases for the project are laid out in Table \ref{business-event-list-table}.
 
 \begin{table}
 \caption{Business Event List}
+\label{business-event-list-table}
 \begin{center}
     \begin{tabular}{ | p{5cm} | p{5cm} | p{5cm} |}
     \hline
@@ -468,7 +621,7 @@ ConvNets that iteratively produce 2D belief maps.
             word/phrase, complete with overlaid skeleton.
             & Allow users to see the output of searches on the database using
             pose and/or action keywords, such as ``run'' or ``kneeling''.\\
-    Database Interface Skeleton Overlay
+    Software Interface Skeleton Overlay
             & \textbf{IN}: A stream of video with humans depicted.\newline
             \textbf{OUT}: A set of human pose estimations corresponding to the
             video, in a standard data format.
