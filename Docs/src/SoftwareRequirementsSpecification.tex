@@ -259,6 +259,31 @@ on how the pairings should be set up.
 \end{center}
 \stepcounter{RequirementNumber}
 
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4a. Solution Constraint \\
+    Event/Use Case Numbers & All use-cases based on the database. \\
+    Description & Use a standard format such as LMDB or HDF5 for storing
+            text-motion data.\\
+    Rationale & Having the data in a standard format will enable users to
+            re-use existing code to manipulate that data.\\
+    Originator & Thor Jonsson \\
+    Fit Criterion & Run a set of existing tests to manipulate the
+            standard data format (e.g. LMDB) and assert that those tests must
+            pass.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
+    History & Created October 3rd, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{RequirementNumber}
+
 \subsection{Implementation Environment of the Current System}
 
 \subsection{Partner or Collaborative Applications}
