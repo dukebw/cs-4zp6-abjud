@@ -591,8 +591,12 @@ represented by the hidden units of a convolutional autoencoder.
 
 \subsection{The Context of the Work}
 
-\begin{figure}[!ht]
+The context diagram, displaying adjacent systems to this project, is shown in
+Figure \ref{work-context-diagram}.
+
+\begin{figure}
         \caption{McMaster Text-to-Motion Database Work Context Diagram}
+        \label{work-context-diagram}
         \centering
         \includegraphics[width=0.8\textwidth]{mcmaster-text-to-motion-work-context-diagram.png}
 \end{figure}
@@ -605,29 +609,29 @@ The events/use-cases for the project are laid out in Table \ref{business-event-l
 \caption{Business Event List}
 \label{business-event-list-table}
 \begin{center}
-    \begin{tabular}{ | p{5cm} | p{5cm} | p{5cm} |}
+    \begin{tabular}{ | p{1cm} | p{4cm} | p{5cm} | p{5cm} |}
     \hline
-    Event Name & Input and Output & Summary \\
+    Event \# & Event Name & Input and Output & Summary \\
     \hline
-    Web Interface Skeleton Overlay
+    1 & Web Interface Skeleton Overlay
             & \textbf{IN}: An image or video with humans in it.\newline
             \textbf{OUT}: The same image or video, with a skeleton overlaid on
             top of all humans indicating their bone and joint positions.
             & Allow users to observe the human pose estimation component in
             real time through a web interface.\\
-    Web Interface Text-to-Motion
+    2 & Web Interface Text-to-Motion
             & \textbf{IN}: Word or phrase describing a human pose or action.\newline
             \textbf{OUT}: Rich-text-annotated video corresponding to the input
             word/phrase, complete with overlaid skeleton.
             & Allow users to see the output of searches on the database using
             pose and/or action keywords, such as ``run'' or ``kneeling''.\\
-    Software Interface Skeleton Overlay
+    3 & Software Interface Skeleton Overlay
             & \textbf{IN}: A stream of video with humans depicted.\newline
             \textbf{OUT}: A set of human pose estimations corresponding to the
             video, in a standard data format.
             & Users should be able to use the human pose estimation solution to
             generate their own motion data set.\\
-    Database Interface Text-to-Motion
+    4 & Database Interface Text-to-Motion
             & \textbf{IN}: Word or phrase describing a human pose or action.\newline
             \textbf{OUT}: Video in common encoding (e.g. MP4), associated
             rich-text-annotations, and human pose estimations in a standardized
