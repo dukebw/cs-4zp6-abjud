@@ -25,6 +25,7 @@
 \usepackage[english]{babel}
 \usepackage{xcolor}
 \usepackage{indentfirst}
+\usepackage[section]{placeins}
 \hypersetup{
     bookmarks=false,    % show bookmarks bar?
     pdftitle={Software Requirement Specification},    % title
@@ -147,13 +148,6 @@ they need this data in order to complete the Computational Storytelling. They
 are also comfortable with the process of deep learning and would provide input
 on how the pairings should be set up.
 
-Consider Bob, Bob is interested in making a program that takes actions as input
-and pairs them to short skits in order be a better producer. If Bob were to use
-the website created in order to get pose estimation and pair them together he
-could use this data to test ideas before bringing them forward. Now add the
-completion of the Computational Storytelling and Bob could use the input to
-create short skits or stories and test them before even needing to hire actors.
-
 \subsection{Priorities Assigned to Users}
 
 \subsection{User Participation}
@@ -165,16 +159,6 @@ create short skits or stories and test them before even needing to hire actors.
 \section{Mandated Constraints}
 
 \subsection{Solution Constraints}
-
-There are external constraints put on by the existing software, clients, and
-course deadlines. The project must be designed with the clients needs as they
-will be using the database to build on once complete. It must also be built
-upon existing software like Caffe or other deep learning frameworks. This
-existing software should be run on the GPU in order to provide a quicker
-processing time and better user experience.
-
-In addition to these software constraints the project must be completed by the
-end of April 2017 in order to be successful.
 
 \begin{center}
     \begin{tabular}{ | p{4cm} | p{10cm} |}
@@ -252,6 +236,28 @@ end of April 2017 in order to be successful.
 \setcounter{HumanPoseDeepLearningConstraint}{\theRequirementNumber}
 \stepcounter{RequirementNumber}
 
+\begin{center}
+    \begin{tabular}{ | p{4cm} | p{10cm} |}
+    \hline
+    Constraint Number & \theRequirementNumber \\
+    Constraint Type & 4a. Solution Constraint \\
+    Event/Use Case Numbers & Entire product. \\
+    Description & The project must be completed by April 5th, 2017.\\
+    Rationale & The project is part of the CS 4ZP6 Capstone Project course.\\
+    Originator & Dr. He \\
+    Fit Criterion & All documentation, testing and implementatoin must be
+            completed and checked in to GitHub by April 5th, 2017.\\
+    Customer Satisfaction & 5 \\
+    Customer Dissatisfaction & 5 \\
+    Priority & High priority. \\
+    Conflicts & None. \\
+    Supporting Materials & None. \\
+    History & Created September 21st, 2016.\\
+\hline
+    \end{tabular}
+\end{center}
+\stepcounter{RequirementNumber}
+
 \subsection{Implementation Environment of the Current System}
 
 \subsection{Partner or Collaborative Applications}
@@ -266,17 +272,17 @@ end of April 2017 in order to be successful.
 
 \section{Naming Conventions and Definitions}
 
-Throughout this document the website and database will be referred to as "the
-project" or "solution". Any additional software will be referrenced to by
-saying "external" or "existing software" and represent the deep learning
-framework.
-
-Table
-Caffe = Deep learning framework that provides an existing neural network.
-Pose Estimation = A way to find the relative position on software on images or
-video. It finds the chin, radius, humerus, and other bone positions.
-
 \subsection{Definitions of All Terms, Including Acronyms, Used in the Project}
+
+\textbf{The Project} when used, is referring to the McMaster Text to Motion
+Database project. The project aims to generate a database of human pose
+estimation model information that is linked to videos of human motion
+containing rich text annotations.
+
+\textbf{Human Pose Estimation} is the process of estimating the configuration,
+or pose, of the body based on a single still image or a sequence of images that
+comprise a video. Human pose estimation may find the chin, radius, humerus, and
+other bone and joint positions.
 
 \textbf{Feedforward Neural Networks} are artifical neural networks where
 connections between the units do \textit{not} form a cycle). They are the
@@ -331,6 +337,37 @@ ConvNets that iteratively produce 2D belief maps.
 \subsection{The Context of the Work}
 
 \subsection{Work Partitioning}
+
+\begin{table}
+\caption{Business Event List}
+\begin{center}
+    \begin{tabular}{ | p{5cm} | p{5cm} | p{5cm} |}
+    \hline
+    Event Name & Input and Output & Summary \\
+    \hline
+    Web Interface Skeleton Overlay
+            & \textbf{IN}: An image or video with humans in it.\newline
+            \textbf{OUT}: The same image or video, with a skeleton overlaid on
+            top of all humans indicating their bone and joint positions.
+            & Allow users to observe the human pose estimation component in
+            real time through a web interface.\\
+    Web Interface Text-to-Motion
+            & \textbf{IN}: Word or phrase describing a human pose or action.\newline
+            \textbf{OUT}: Rich-text-annotated video corresponding to the input
+            word/phrase, complete with overlaid skeleton.
+            & Allow users to see the output of searches on the database using
+            pose and/or action keywords, such as ``run'' or ``kneeling''.\\
+    Database Interface Text-to-Motion
+            & \textbf{IN}: Word or phrase describing a human pose or action.\newline
+            \textbf{OUT}: Video in common encoding (e.g. MP4), associated
+            rich-text-annotations, and human pose estimations in a standardized
+            format.
+            & Provide users direct access to the raw motion-estimation data
+            format based on action-keyword database lookup.\\
+    \hline
+    \end{tabular}
+\end{center}
+\end{table}
 
 \section{The Scope of the Product}
 
