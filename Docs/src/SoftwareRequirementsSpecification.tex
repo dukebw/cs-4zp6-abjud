@@ -73,7 +73,7 @@
 \begin{center}
     \begin{tabular}{|c|c|c|c|}
         \hline
-	    Name & Date & Reason For Changes & Version\\
+            Name & Date & Reason For Changes & Version\\
         \hline
 	    Brendan Duke & Oct. 7th, 2016 & Initial Version & 0.0\\
         \hline
@@ -110,24 +110,25 @@ pairing for animating.
 \section{The Client, the Customer, and Other Stakeholders}
 
 The current stakeholders in this project are the:
-    - Supervisors of the project (Dr.He, Dr.Taylor)
+    - Supervisors of the project (Dr. He, Dr. Taylor)
     - University of Guelph "text to motion" research group
     - The McMaster Capstone group
 
 \subsection{The Client}
 
-The current clients for this project are Dr.Taylor and his graduate student
-Þorsteinn Jónsson. Dr.Taylor was driver to develop a website and database where
-the information could be generated and pulled from as a growth point into the
-larger text to motion project. They will be using the database to create
-Recurrent Neural Networks that will pair actions and their pose found within
-the database to words or combinations found in the input story.
+The current clients for this project are Dr. Taylor and his graduate student
+Thor Jonsson. Dr. Taylor is the primary driver to develop a website and
+database where annotated motion information could be generated and pulled from
+as a growth point into the larger text to motion project. They will be using
+the database to create Recurrent Neural Networks that will pair actions and
+their pose found within the database to words or combinations found in the
+input story.
 
 \subsection{The Customer}
 
 The customers are included within the clients since building this database and
-website combination will be utilized by Dr.Taylors research team and their
-external partners. In addition to Dr.Taylor and his research team this project
+website combination will be utilized by Dr. Taylors research team and their
+external partners. In addition to Dr. Taylor and his research team this project
 would appeal to anyone that needed a pairing of actions and pose estimations as
 the website would be readily available to others.
 
@@ -143,7 +144,7 @@ that is looking to expand.
 
 \subsection{The Hands-on Users of the Product}
 
-The primary users of this project will be Dr.Taylor and his research team as
+The primary users of this project will be Dr. Taylor and his research team as
 they need this data in order to complete the Computational Storytelling. They
 are also comfortable with the process of deep learning and would provide input
 on how the pairings should be set up.
@@ -357,6 +358,12 @@ ConvNets that iteratively produce 2D belief maps.
             word/phrase, complete with overlaid skeleton.
             & Allow users to see the output of searches on the database using
             pose and/or action keywords, such as ``run'' or ``kneeling''.\\
+    Database Interface Skeleton Overlay
+            & \textbf{IN}: A stream of video with humans depicted.\newline
+            \textbf{OUT}: A set of human pose estimations corresponding to the
+            video, in a standard data format.
+            & Users should be able to use the human pose estimation solution to
+            generate their own motion data set.\\
     Database Interface Text-to-Motion
             & \textbf{IN}: Word or phrase describing a human pose or action.\newline
             \textbf{OUT}: Video in common encoding (e.g. MP4), associated
