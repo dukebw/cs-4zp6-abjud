@@ -469,6 +469,16 @@ feed-forward neural net with an input layer, an output layer, and one or more
 hidden layers. Instead of being trained to predict an output $Y$ from input
 $X$, an autoencoder is trained to reconstruct its own input $X'$ from $X$.
 
+\textbf{Ground truth} refers to the expected classification, i.e. the expected
+output in a machine learning classification problem, based on a given input.
+
+\textbf{CMU Graphics Lab Motion Capture Database} is a dataset of human motions
+that were collected at the Motion Capture Lab of Carnegie Mellon University.
+The motion capture data was collected by recording the movements of humans
+wearing a body suit with 41 markers taped on. The 3D motion data in this
+dataset is available in two formats (.vsk/.v or .asf/.amc), which describe a
+\textit{skeleton and its joints} and \textit{movement data}, respectively.
+
 \subsection{Data Dictionary for any Included Models}
 
 Here we define the different information flows displayed in Figure
@@ -627,9 +637,34 @@ The events/use-cases for the project are laid out in Table \ref{business-event-l
 We do not include a product boundary diagram, and instead refer to Figure
 \ref{work-context-diagram}.
 
+All interfaces to the McMaster Text-to-Motion Database will be software
+interfaces except the web interfaces, which will have a human component. There
+will be a search box requiring user input to do text-to-motion lookups, and
+there will be a graphical web interface for users to upload videos to use the
+skeleton-overlay functionality.
+
 \subsection{Product Use-case List}
 
+The product use cases correspond exactly to the business events list, and
+therefore to see product use-cases one should refer to Table
+\ref{business-event-list-table}.
+
 \subsection{Individual Product Use Cases}
+
+Use cases \ref{web-skeleton-event} and \ref{web-text-to-motion-event} would be
+used in a scenario where the user is looking to do experiments with immediate
+feedback, in order to gain intuition about the product's functionality. E.g. a
+researcher may want to use the Web Interface Skeleton Overlay feature (use case
+\ref{web-skeleton-event}) to visually gauge the human pose estimation
+software's accuracy before spending the time to process a large amount of video
+data.
+
+Use cases \ref{software-skeleton-event} and \ref{database-text-to-motion-event}
+could be used in a more large scale experiment. E.g. human motion data could be
+attached to a large amount of video data using use case
+\ref{software-skeleton-event}, or a large amount of text-annotated motion data
+could be retrieved from the database programmatically using use case
+\ref{database-text-to-motion-event}.
 
 \section{Functional and Data Requirements}
 
@@ -644,11 +679,76 @@ We do not include a product boundary diagram, and instead refer to Figure
  supported.}
 {Researchers may wish to do their own processing on RGB frames before feeding
  those frames into the human pose estimation module.}
+{Brendan Duke}
 {For a given set of test video streams, the frame-capture API must produce RGB
  frames identical to known reference frames.}
 {Moderate}
 {Created October 5th, 2016.}
+
+\requirement
+{Req_VideoProcessingCorrectness}
+{9a. Functional Requirement}
+{software-skeleton-event}
+{The skeleton overlay software must output a set of human pose data that is
+ time-stamped and accurate to the ground truth joint positions in the frames
+ corresponding to those time stamps.}
+{If the software does not have accurate output, then the output cannot be used
+ to generate human motion.}
 {Brendan Duke}
+{A set of double-blind tests should be designed that allows test subjects to
+ compare the human pose data output from the McMaster Text-to-Motion software
+ suite again human motion skeletons rendered from the CMU Graphics Lab Motion
+ Capture Database. The fit criterion would be that the human motion data
+ produced by the McMaster software is statistically indistinguishable from
+ CMU's MoCap data from sensors on actual humans.}
+{High}
+{Created September 26th, 2016.}
+
+\requirement
+{Req_EveryVideoRetrievable}
+{9a. Functional Requirement}
+{database-text-to-motion-event}
+{The domain of inputs to the text-to-motion database search should output a
+ range that covers the entire set of videos in the database.}
+{There is text associated with each video, therefore for every video there
+ should be some set of matching text that can retrieve it.}
+{Brendan Duke}
+{A test application could be designed to intentionally pull text data from the
+ description of each video and assert that the video from which that text data
+ was obtained appears in the output of the search.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoNoFalsePositives}
+{9a. Functional Requirement}
+{database-text-to-motion-event}
+{The videos retrieved from a text-to-motion search should not contain any
+ results with text descriptions not containing the search terms.}
+{False positives would make the text-to-motion retrieval difficult to use,
+ since returned videos would not reliably match the search terms.}
+{Brendan Duke}
+{A test application could be designed to, for each video, search a random set
+ of terms not in that video's text description and assert that the given video
+ is not returned in the search results.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{9a. Functional Requirement}
+{database-text-to-motion-event}
+{The videos retrieved from a text-to-motion search should be ordered by relevance.}
+{Users will want to use the motion data that most closely fits the text they
+ have searched for.}
+{Brendan Duke}
+{A smaller set of test data can be created by hand and sorted by a human, and
+ the results can be compared against an expected output, also generated by hand.
+ The output from a larger set of test data could be compared against the output
+ from a known full-text search engine, such as Sphinx, or if we are using
+ Sphinx, then Lucene.}
+{High}
+{Created October 10th, 2016.}
 
 \subsection{Data Requirements}
 
