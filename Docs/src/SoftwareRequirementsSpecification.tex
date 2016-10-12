@@ -1,14 +1,14 @@
 % Original work copyright 2014 Jean-Philippe Eisenbarth
 % Modified work copyright 2016 of Brendan Duke and Jordan Viveiros.
 
-% This program is free software: you can 
-% redistribute it and/or modify it under the terms of the GNU General Public 
-% License as published by the Free Software Foundation, either version 3 of the 
+% This program is free software: you can
+% redistribute it and/or modify it under the terms of the GNU General Public
+% License as published by the Free Software Foundation, either version 3 of the
 % License, or (at your option) any later version.
-% This program is distributed in the hope that it will be useful,but WITHOUT ANY 
-% WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+% This program is distributed in the hope that it will be useful,but WITHOUT ANY
+% WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 % PARTICULAR PURPOSE. See the GNU General Public License for more details.
-% You should have received a copy of the GNU General Public License along with 
+% You should have received a copy of the GNU General Public License along with
 % this program.  If not, see <http://www.gnu.org/licenses/>.
 
 % Based on the code of Yiannis Lazarides
@@ -90,9 +90,9 @@
 % Requirement template -------------------------------------------------------
 \newcommand{\requirement}[9]{%
 \fbox{\parbox{\textwidth}{%
-\parbox[t]{.333\textwidth}{\raggedright% 
+\parbox[t]{.333\textwidth}{\raggedright%
 \textbf{Req. \#}: \refstepcounter{RequirementNumber} \arabic{RequirementNumber} \label{#1}}%
-\parbox[t]{.333\textwidth}{\centering% 
+\parbox[t]{.333\textwidth}{\centering%
 \textbf{Req. Type}: #2}%
 \parbox[t]{.333\textwidth}{\raggedleft%
 \textbf{Use Case \#}: \ref{#3}}
@@ -758,17 +758,118 @@ could be retrieved from the database programmatically using use case
 
 \subsection{Appearance Requirements}
 
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.1.1. Appearance Requirement}
+{web-skeleton-event} % add <web-text-to-motion-event>
+{The web interface shall have a color-scheme that is focused on contrast.}
+{A color shceme with bright and dark colors clashing is bound to captivate users of the website.}
+{Udip Patel}
+{At least 6 out of every 10 users should be left with a positive impression of the color scheme.}
+{Low}
+{Created October 8th, 2016.}
+
 \subsection{Style Requirements}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.1.2. Style Requirement}
+{web-skeleton-event} % add <web-text-to-motion-event>
+{The web interface shall be designed to look minimalistic (in terms of text) and visually informative through graphs and other visual aides.}
+{To be able to convey the complex processes of a deep learning model in a simple way that can be understood by any end user, regardless of their level of knowledge. The amount of text displayed should also be minimized to avoid overwhelming a first-time user with too much information.}
+{Udip Patel}
+{The web interface shall be able to display a graph that tracks how the deep learning model analyzes an input image. This is similar to an open-source website called \href{http://playground.tensorflow.org/}{TensorFlow Playground}.}
+{Low}
+{Created October 8th, 2016.}
 
 \section{Usability and Humanity Requirements}
 
 \subsection{Ease of Use Requirements}
 
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.1. Ease of Use Requirement}
+{web-skeleton-event} % add <web-text-to-motion-event>
+{The functionalites of the web interface shall be easy to use for any casual internet user above the age of 12 who understands how to upload and download files to a website.}
+{Having a simpler interface can open up this web app to a lot of potential users.}
+{Udip Patel}
+{Any end user at least 12 years of age shall be able know how to upload an image to the web interface within 15 seconds of visiting the website.}
+{Low}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.1. Ease of Use Requirement}
+{web-skeleton-event}
+{The user shall not be expected to remember anything to be able to interact with the Web Interface.}
+{This is just to reduce the amount of work that the user has to do in order to be able to get the desired result.}
+{Udip Patel}
+{The Web Interface shall only ask for images, videos or text from the user, and without prompting the user again, it will return the given image or video (with or without text annotations).}
+{Low}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.1. Ease of Use Requirement}
+{web-text-to-motion-event}
+{The user shall be able to type in a descriptive word or phrase into a text box that will be easy to find from the web interface.}
+{This way, the functionality provided by the web application will be made obvious and accessible to the user.}
+{Udip Patel}
+{The end user shall be able to input one word or phrase into the text box (written in HTML/CSS) using their keyboard, and be able to click on a 'Submit' button to view the functionality of thew web app.}
+{Medium}
+{Created October 10th, 2016.}
+
 \subsection{Personalization and Internationalization Requirements}
+
+As of Revision 0, there are no requirements for Language support. Since the web Interface and the Software Interface would rely on Natural Language Processing for English, adding language support for multiple languages would be too large of a feature to implement for now.
 
 \subsection{Learning Requirements}
 
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.3. Learning Requirement}
+{web-skeleton-event}
+{Any end-user shall be able to use the web application and generate a skeleton-overlay without having any prior training.}
+{This is because all the user needs to be able to do is upload and download a file to/from the website.}
+{Udip Patel}
+{Any user that visits the website shall be able to understand how to use the skeleton-overlay functionality within 1 minute of visiting the website.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.3. Learning Requirement}
+{web-text-to-motion-event}
+{Any end-user shall be able to use the web application to instantiate a 'text-to-motion' event without having any prior training.}
+{This is because all the user needs to do is type in a descriptive word or phrase into a text box.}
+{Udip Patel}
+{Any user that visits the website shall be able to understand how to use the 'text-to-motion' functionality within 30 seconds of visiting the website.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.3. Learning Requirement}
+{software-skeleton-event} % ADD <database-text-to-motion-event>
+{The functionalities of the software interface shall be easily understood by programmers who have experience with APIs.}
+{This is because using a command line API still takes some base knowledge of software to set up, and we cannot assume that every user will be able to set up our API without any problems even if they follow all of the detailed steps.}
+{Udip Patel}
+{Any user should be able to set up the Software Interface and be able to use its functionalities (described in events 3 and 4) through the command line interface within 15 minutes.}
+{Medium}
+{Created October 10th, 2016.}
+
 \subsection{Understandability and Politeness Requirements}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.3. Learning Requirement}
+{web-skeleton-event} % ADD <database-text-to-motion-event>
+{The end user of the web interface shall not be able to see the inner workings of the deep learning model that is used to estimate the human pose or action from an image/video}
+{This is because the user should be obscured from having to deal with the complexities of deep learning. Furthermore, it would be computationally expensive to show the users such low-level detail in a way that they could understand it.}
+{Udip Patel}
+{The end user of the web interface shall be able to get a valid output from the skeleton-overlay function without seeing any of the deep learning code or processes.}
+{High}
+{Created October 10th, 2016.}
 
 \subsection{Accessibility Requirements}
 
@@ -885,6 +986,6 @@ could be retrieved from the database programmatically using use case
 \section{Ideas for Solutions}
 
 \bibliographystyle{IEEEtran}
-\bibliography{IEEEabrv,SoftwareRequirementsSpecification} 
+\bibliography{IEEEabrv,SoftwareRequirementsSpecification}
 
 \end{document}
