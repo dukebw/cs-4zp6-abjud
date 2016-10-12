@@ -27,6 +27,7 @@
 \usepackage{indentfirst}
 \usepackage[section]{placeins}
 \usepackage{graphicx}
+\usepackage{graphics}
 \hypersetup{
     bookmarks=false,    % show bookmarks bar?
     pdftitle={Software Requirement Specification},    % title
@@ -85,6 +86,24 @@
 
 \newcounter{ConstraintNumber}
 \newcounter{RequirementNumber}
+
+% Requirement template -------------------------------------------------------
+\newcommand{\requirement}[9]{%
+\fbox{\parbox{\textwidth}{%
+\parbox[t]{.333\textwidth}{\raggedright% 
+\textbf{Req. \#}: \refstepcounter{RequirementNumber} \arabic{RequirementNumber} \label{#1}}%
+\parbox[t]{.333\textwidth}{\centering% 
+\textbf{Req. Type}: #2}%
+\parbox[t]{.333\textwidth}{\raggedleft%
+\textbf{Use Case \#}: \ref{#3}}
+\newline\\
+\textbf{Description}: #4\\\\
+\textbf{Rationale}: #5\\\\
+\textbf{Originator}: #6\\\\
+\textbf{Fit Criterion}: #7\\\\
+\textbf{Priority}: #8 \hfill \textbf{History}: #9\\\\
+}}}
+% End Requirement template ---------------------------------------------------
 
 \chapter{Project Drivers}
 
@@ -231,114 +250,75 @@ were not in the initial scope of the project.
 
 \chapter{Project Constraints}
 
+Note that constraints also use the requirement shell, and therefore also use
+the requirement numbering.
+
+Customer satisfaction and dissatisfaction have been evaluated in the "Priority" entry.
+
+Also there are no conflicts between requirements, or supporting materials, so
+these entries have been dropped.
+
 \section{Mandated Constraints}
 
 \subsection{Solution Constraints}
 
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theConstraintNumber \\
-    Constraint Type & 4a. Solution Constraint \\
-    Event/Use Case Numbers & Human Pose Estimation Event. \\
-    Description & The human pose estimation component should use deep learning
-            methods.\\
-    Rationale & This constraint is to allow Dr.\ Taylor's group to integrate the
-            software into their existing text-to-motion pipeline\\
-    Originator & Dr.\ Graham Taylor \\
-    Fit Criterion & Dr.\ Taylor should confirm that the deep learning methods
-            used in the human pose estimator are satisfactory.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 4 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 26th, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\newcounter{HumanPoseDeepLearningConstraint}
-\setcounter{HumanPoseDeepLearningConstraint}{\theConstraintNumber}
-\stepcounter{ConstraintNumber}
+\requirement
+{Constraint_DeepLearningMethods}
+{4a. Solution Constraint}
+{software-skeleton-event}
+{The human pose estimation component should use deep learning methods.}
+{This constraint is to allow Dr.\ Taylor's group to integrate the software into
+ their existing text-to-motion pipeline.}
+{Dr.\ Graham Taylor}
+{Dr.\ Taylor should confirm that the deep learning methods used in the human
+ pose estimator are satisfactory.}
+{High}
+{Created September 26th, 2016.}
 
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theConstraintNumber \\
-    Constraint Type & 4a. Solution Constraint \\
-    Event/Use Case Numbers & All use-cases based on the database. \\
-    Description & Use a standard format such as LMDB or HDF5 for storing
-            text-motion data.\\
-    Rationale & Having the data in a standard format will enable users to
-            re-use existing code to manipulate that data.\\
-    Originator & Thor Jonsson \\
-    Fit Criterion & Run a set of existing tests to manipulate the
-            standard data format (e.g. LMDB) and assert that those tests must
-            pass.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created October 3rd, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{ConstraintNumber}
+\requirement
+{Constraint_DataStorageFormat}
+{4a. Solution Constraint}
+{database-text-to-motion-event}
+{Use a standard format such as LMDB or HDF5 for storing text-motion data.}
+{Having the data in a standard format will enable users to re-use existing code
+ to manipulate that data.}
+{Thor Jonsson }
+{Run a set of existing tests to manipulate the standard data format (e.g. LMDB)
+ and assert that those tests must pass.}
+{High}
+{Created October 3rd, 2016.}
 
 \subsection{Implementation Environment of the Current System}
 
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theConstraintNumber \\
-    Constraint Type & 4b. Implementation Environment \\
-    Event/Use Case Numbers & Entire product. \\
-    Description & The Text-to-Motion Software Suite must run under Linux.\\
-    Rationale & Linux is the operating system used by the Guelph Machine
-            Learning research lab, and also the most commonly used operating
-            system in the research community.\\
-    Originator & Dr.\ Graham Taylor \\
-    Fit Criterion & Automated builds and testing should pass on popular Linux
-            distributions: Ubuntu, Fedora and RHEL.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 26th, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{ConstraintNumber}
+\requirement
+{Constraint_Linux}
+{4b. Implementation Environment}
+{software-skeleton-event}
+{The Text-to-Motion Software Suite must run under Linux.}
+{Linux is the operating system used by the Guelph Machine Learning research
+ lab, and also the most commonly used operating system in the research
+ community.}
+{Dr.\ Graham Taylor}
+{Automated builds and testing should pass on popular Linux distributions:
+ Ubuntu, Fedora and RHEL.}
+{High}
+{Created September 26th, 2016.}
 
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theConstraintNumber \\
-    Constraint Type & 4b. Implementation Environment \\
-    Event/Use Case Numbers & Entire product. \\
-    Description & Major APIs to the Text-to-Motion database must be accessible
-            from the Python programming language.\\
-    Rationale & Python is the language used by the rest of Dr.\ Taylor's
-            text-to-motion pipeline. Python is a popular, easy-to-use, and
-            quick-to-prototype language, and is therefore one of the most
-            favoured programming languages among the Machine Learning research
-            community.\\
-    Originator & Dr.\ Graham Taylor \\
-    Fit Criterion & There must be hooks to all major interfaces written in
-            Python, and there must be tests that are directly testing the
-            Python interfaces.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 26th, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{ConstraintNumber}
+\requirement
+{Constraint_PythonAPI}
+{4b. Implementation Environment}
+{software-skeleton-event}
+{Major APIs to the Text-to-Motion database must be accessible from the Python
+ programming language.}
+{Python is the language used by the rest of Dr.\ Taylor's text-to-motion
+ pipeline. Python is a popular, easy-to-use, and quick-to-prototype language,
+ and is therefore one of the most favoured programming languages among the
+ Machine Learning research community.}
+{Dr.\ Graham Taylor}
+{There must be hooks to all major interfaces written in Python, and there must
+ be tests that are directly testing the Python interfaces.}
+{High}
+{Created September 26th, 2016.}
 
 \subsection{Partner or Collaborative Applications}
 
@@ -405,51 +385,30 @@ under the ``Implementation Environment'' section.
 
 \subsection{Schedule Constraints}
 
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theConstraintNumber \\
-    Constraint Type & 4f. Schedule Constraint \\
-    Event/Use Case Numbers & Entire product. \\
-    Description & A demonstration of the product must be completed by February
-            13th, 2017.\\
-    Rationale & This is a deadline that is part of the CS 4ZP6 course.\\
-    Originator & Dr.\ He \\
-    Fit Criterion & By February 13th, 2017, fully functional versions of the
-            web interface, database interface and human pose estimation
-            software must all be working as verified by Dr.\ He.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 21st, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{ConstraintNumber}
+\requirement
+{Constraint_DemoSchedule}
+{4f. Schedule Constraint }
+{software-skeleton-event}
+{A demonstration of the product must be completed by February 13th, 2017.}
+{This is a deadline that is part of the CS 4ZP6 course.}
+{Dr.\ Wen Bo He}
+{By February 13th, 2017, fully functional versions of the web interface,
+ database interface and human pose estimation software must all be working as
+ verified by Dr.\ He.}
+{High}
+{Created September 26th, 2016.}
 
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Constraint Number & \theConstraintNumber \\
-    Constraint Type & 4f. Schedule Constraint \\
-    Event/Use Case Numbers & Entire product. \\
-    Description & The project must be completed by April 5th, 2017.\\
-    Rationale & The project is part of the CS 4ZP6 Capstone Project course.\\
-    Originator & Dr.\ He \\
-    Fit Criterion & All documentation, testing and implementation must be
-            completed and checked in to GitHub by April 5th, 2017.\\
-    Customer Satisfaction & 5 \\
-    Customer Dissatisfaction & 5 \\
-    Priority & High priority. \\
-    Conflicts & None. \\
-    Supporting Materials & None. \\
-    History & Created September 21st, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{ConstraintNumber}
+\requirement
+{Constraint_ProjectDeadline}
+{4f. Schedule Constraint}
+{software-skeleton-event}
+{The project must be completed by April 5th, 2017.}
+{The project is part of the CS 4ZP6 Capstone Project course.}
+{Dr.\ Wen Bo He}
+{All documentation, testing and implementation must be completed and checked in
+ to GitHub by April 5th, 2017.}
+{High}
+{Created September 21th, 2016.}
 
 \subsection{Budget Constraints}
 
@@ -512,6 +471,20 @@ $X$, an autoencoder is trained to reconstruct its own input $X'$ from $X$.
 
 \subsection{Data Dictionary for any Included Models}
 
+Here we define the different information flows displayed in Figure
+\ref{work-context-diagram}, the work context diagram.
+
+A \textbf{skeleton overlay} refers to a set of human joint and body-part
+estimation data that has been associated with a given video stream. A skeleton
+overlay may also encompass an actual graphical stick-figure, displayed on top
+of the video stream, with circles indicating the position of each joint.
+
+\textbf{Text annotated video} refers to a video that has a time-stamped
+natural-language description associated with it. Similarly, \textbf{text
+annotated motion data} refers to human pose data that is time-stamped and
+coupled with a natural-language description of the actions comprised by those
+human pose data.
+
 \section{Relevant Facts and Assumptions}
 
 \subsection{Facts}
@@ -560,7 +533,7 @@ $X$, an autoencoder is trained to reconstruct its own input $X'$ from $X$.
 
 There is a large amount of existing research into human pose estimation, which
 this project will leverage. Based on Constraint
-\theHumanPoseDeepLearningConstraint, we focus on existing solutions that use
+\ref{Constraint_DeepLearningMethods}, we focus on existing solutions that use
 deep learning methods.
 
 \cite{DBLP:journals/corr/PfisterCZ15} present a ConvNet architecture for human
@@ -606,32 +579,36 @@ Figure \ref{work-context-diagram}.
 The events/use-cases for the project are laid out in Table \ref{business-event-list-table}.
 
 \begin{table}
+\begin{enumerate}
 \caption{Business Event List}
 \label{business-event-list-table}
-\begin{center}
-    \begin{tabular}{ | p{1cm} | p{4cm} | p{5cm} | p{5cm} |}
+    \begin{tabular}{  p{1cm} | p{3cm} | p{5cm} | p{5cm} }
     \hline
     Event \# & Event Name & Input and Output & Summary \\
     \hline
-    1 & Web Interface Skeleton Overlay
+    \item \label{web-skeleton-event}
+            & Web Interface Skeleton Overlay
             & \textbf{IN}: An image or video with humans in it.\newline
             \textbf{OUT}: The same image or video, with a skeleton overlaid on
             top of all humans indicating their bone and joint positions.
             & Allow users to observe the human pose estimation component in
             real time through a web interface.\\
-    2 & Web Interface Text-to-Motion
+    \item \label{web-text-to-motion-event}
+            & Web Interface Text-to-Motion
             & \textbf{IN}: Word or phrase describing a human pose or action.\newline
             \textbf{OUT}: Rich-text-annotated video corresponding to the input
             word/phrase, complete with overlaid skeleton.
             & Allow users to see the output of searches on the database using
             pose and/or action keywords, such as ``run'' or ``kneeling''.\\
-    3 & Software Interface Skeleton Overlay
+    \item \label{software-skeleton-event}
+            & Software Interface Skeleton Overlay
             & \textbf{IN}: A stream of video with humans depicted.\newline
             \textbf{OUT}: A set of human pose estimations corresponding to the
             video, in a standard data format.
             & Users should be able to use the human pose estimation solution to
             generate their own motion data set.\\
-    4 & Database Interface Text-to-Motion
+    \item \label{database-text-to-motion-event}
+            & Database Interface Text-to-Motion
             & \textbf{IN}: Word or phrase describing a human pose or action.\newline
             \textbf{OUT}: Video in common encoding (e.g. MP4), associated
             rich-text-annotations, and human pose estimations in a standardized
@@ -640,7 +617,7 @@ The events/use-cases for the project are laid out in Table \ref{business-event-l
             format based on action-keyword database lookup.\\
     \hline
     \end{tabular}
-\end{center}
+\end{enumerate}
 \end{table}
 
 \section{The Scope of the Product}
@@ -658,32 +635,20 @@ We do not include a product boundary diagram, and instead refer to Figure
 
 \subsection{Functional Requirements}
 
-\begin{center}
-    \begin{tabular}{ | p{4cm} | p{10cm} |}
-    \hline
-    Requirement Number & \theRequirementNumber \\ \hline
-    Requirement Type & 9a. Functional Requirement \\ \hline
-    Event/Use Case Numbers & \\ \hline
-    Description & The text-to-motion software suite will provide an API to read
-            individual frames in RGB format from a video stream. At least MP4,
-            MP2 and AAC must be supported.\\ \hline
-    Rationale & Researchers may wish to do their own processing on RGB frames
-            before feeding those frames into the human pose estimation
-            module.\\ \hline
-    Originator & Brendan Duke. \\ \hline
-    Fit Criterion & For a given set of test video streams, the frame-capture
-            API must produce RGB frames identical to known reference frames.\\
-            \hline
-    Customer Satisfaction & 3 \\ \hline
-    Customer Dissatisfaction & 3 \\ \hline
-    Priority & Moderate priority. \\ \hline
-    Conflicts & None. \\ \hline
-    Supporting Materials & None. \\ \hline
-    History & Created October 5th, 2016.\\
-\hline
-    \end{tabular}
-\end{center}
-\stepcounter{RequirementNumber}
+\requirement
+{Req_FrameEncodeDecode}
+{9a. Functional Requirement}
+{software-skeleton-event}
+{The text-to-motion software suite will provide an API to read individual
+ frames in RGB format from a video stream. At least MP4, MP2 and AAC must be
+ supported.}
+{Researchers may wish to do their own processing on RGB frames before feeding
+ those frames into the human pose estimation module.}
+{For a given set of test video streams, the frame-capture API must produce RGB
+ frames identical to known reference frames.}
+{Moderate}
+{Created October 5th, 2016.}
+{Brendan Duke}
 
 \subsection{Data Requirements}
 
