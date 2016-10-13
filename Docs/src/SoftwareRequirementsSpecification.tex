@@ -916,7 +916,7 @@ to determine the valid output.}
 {Created October 11th, 2016.}
 
 \subsection{Accessibility Requirements}
-
+\label{req-accessibility}
 As of Revision 9, there are no accessbility requirements for this application.
 Since both interfaces only contain a virtual/visual component and no physical
 mechanisms, there is no need to provide any accessibility requirements for now
@@ -928,7 +928,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.3.1. Speed and Latency Requirement}
+{\ref{req-speed-latency} Speed and Latency Requirement}
 {web-skeleton-event}
 {The web interface shall be able to connect to an external database with no problems and be able to store items and query for them quickly }
 {The speed is necessary here because generating the actual output itself is going to be computationally intensive so the program should not be spend a lot of time waiting on responses from the database.}
@@ -939,7 +939,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.3.1. Speed and Latency Requirement}
+{\ref{req-speed-latency} Speed and Latency Requirement}
 {software-skeleton-event}
 {The software interface's deep learning model shall be able to process an image (RGB format) in a span of one minute or a set of frames in relative time (ex. 5 frames = 5 minutes)}
 {The deep learning model is the most computationally expensive aspect of the software interface, and thus, should be able to process images/videos quickly enough so that the user does not find the process too time consuming.}
@@ -950,7 +950,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.3.1. Speed and Latency Requirement}
+{\ref{req-speed-latency} Speed and Latency Requirement}
 {web-text-to-motion-event}
 {The web interface, given a word or phrase as input, shall be able to respond with an output of an image/video detailing a pose or action within 2 minutes}
 {The web interface will need a considerable amount of time to process the request since it has to be able to parse the text input, be able to interpret it as a description of a pose or action using a set of defined database mappings. The web interface is is then responsible for constructing a visual object that encapsulates all of the bone and joint positions and exporting the object in a standardized data format. This is a very time consuming set of processes to compute, so it should be expected to take at least 2 minutes.}
@@ -960,24 +960,14 @@ mechanisms, there is no need to provide any accessibility requirements for now
 {Created October 11th, 2016.}
 
 \subsection{Safety-Critical Requirements}
-
+\label{req-safety-critical}
 As of Revision 0, there are no safety critical requirements. Both of the interfaces are very simple in terms of the output they produce, and even if the program is fed with bad input, there will be no actual physical or virtual damage to the system.
-\requirement
-{Req_RetrievedVideoRelevance}
-{4.3.2. Safety-Critical Requirement}
-{web-text-to-motion-event}
-{The web interface shall filter the input word or phrase before passing the text to the database, where it can be processed}
-{This is to avoid making confusing requests to the database. If an unintelligible word or phrase is entered, there is no need to apply the database mapping functionality because it will not be able to return a significant response.}
-{Udip Patel}
-{The web interface shall be able to parse the text input to weed out unintelligible words, curse words, }
-{High}
-{Created October 11th, 2016.}
 
 \subsection{Precision or Accuracy Requirements}
-
+\label{req-precision-accuracy}
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.3.3. Precision and Accuracy Requirement}
+{\ref{req-precision-accuracy} Precision and Accuracy Requirement}
 {database-text-to-motion-event}
 {The software interface shall be able to deliver a data object that can accurately encapsulate the bone positions and joint angles of a human being's skeleton}
 {The software interface would not be very useful to the end user if it is not able to accurately portray a human bodym, so this is a very high priority requirement.}
@@ -988,7 +978,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.3.3. Precision and Accuracy Requirement}
+{\ref{req-precision-accuracy} Precision and Accuracy Requirement}
 {web-skeleton-event}
 {Given an image or a set of frames as its input, the web interface shall be able to accurately draw a skeleton overlay around a human being, if one is found in the given image or set of frames}
 {This is one of the main use cases of the web interface, so it stands to reason that the web interface should be able to provide an accurate skeleton overlay. This is crucial to the satisfaction of the customer or end user }
@@ -998,10 +988,10 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 {Created October 11th, 2016.}
 
 \subsection{Reliability and Availability Requirements}
-
+\label{req-reliability-availability}
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.3.4. Reliability and Availablilty Requirement}
+{\ref{req-reliability-availability} Reliability and Availablilty Requirement}
 {software-skeleton-event}
 {The software interface shall be available for use 24 hours a day, 365 days a year.}
 {This will make it so that the user is able to decide when they want to use the functionality, and will not be constrained by any scheduling issues.}
@@ -1012,7 +1002,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.3.4. Reliability and Availablilty Requirement}
+{\ref{req-reliability-availability} Reliability and Availablilty Requirement}
 {web-skeleton-event}
 {The web interface shall be available for use 24 hours a day, 365 days a year, except for when the system has to be audited, tested or migrated to a different environment}
 {Any standard web app should be available for use at any time, this is a major standard in web development, so this project aims to abide by it.}
@@ -1022,6 +1012,29 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 {Created October 11th, 2016.}
 
 \subsection{Robustness or Fault-Tolerance Requirements}
+\label{req-robustness}
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-robustness} Robustness or Fault-Tolerance Requirement}
+{web-skeleton-event}
+{The web interface shall throw error messages for every possible exception or error caught}
+{To let the users know when they have done something wrong or are not using the web interface as intended. This will also help the users learn how to interact correctly with the web interface}
+{Udip Patel}
+{The web interface shall be able to recognize when the set of inputs is invalid, and shall alert the user with a error message right away}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-robustness} Robustness or Fault-Tolerance Requirement}
+{web-text-to-motion-event}
+{The web interface shall filter the input word or phrase before passing the text to the database, where it can be processed}
+{This is to avoid making confusing requests to the database. If an unintelligible word or phrase is entered, there is no need to apply the database mapping functionality because it will not be able to return a significant response.}
+{Udip Patel}
+{The web interface shall be able to parse the text input to weed out unintelligible words or curse words and be able to respond to the user with an error message right away }
+{High}
+{Created October 11th, 2016.}
+
 
 \subsection{Capacity Requirements}
 
