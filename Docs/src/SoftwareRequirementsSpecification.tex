@@ -1037,33 +1037,145 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 
 
 \subsection{Capacity Requirements}
+\label{req-capacity}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-capacity} Capacity Requirement}
+{web-skeleton-event}
+{The web interface shall be able to serve multiple connections}
+{This is a standard requirement for a simple web application.}
+{Udip Patel}
+{The web interface shall be able to serve at least 5 users at the same time}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-capacity} Capacity Requirement}
+{web-text-to-motion-event}
+{The web interface shall use a database that stores a lot of information about the relation of words and phrases to human poses and actions}
+{This is so that the deep learning model can accurately map a word to an action or pose correctly, this is a major part of the requirements.}
+{Udip Patel}
+{The web interface shall reference a database of mappings between words and poses/actions that is at least 5 GB large, to begin with }
+{High}
+{Created October 11th, 2016.}
+
+
 
 \subsection{Scaling of Extensibility Requirements}
+\label{req-scaling}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-capacity} Scaling of Extensibility Requirement}
+{software-skeleton-event}
+{The deep learning model that is used by the software interface shall be put through rigorous training so that it can predict the correct skeleton-overlay position more accurately}
+{The deep learning model can make better predictions if it is given more data to train with. End users will be satisified with the product if the skeleton overlay functionality is extremely precise}
+{Udip Patel}
+{The deep learning model shall be trained with thousands, if not tens of thousands of images that depict a myriad of human poses and actions.}
+{High}
+{Created October 11th, 2016.}
 
 \subsection{Longevity Requirements}
+\label{req-longevity}
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-longevity} Longevity Requirement}
+{web-skeleton-event}
+{The web interface shall be able to last for years to come}
+{Since this is a web application, the software can continue to run for a long time, until the server stops working. Even then, the application can be migrated to a different server. Either way, this web interface will last a long time}
+{Udip Patel}
+{The web interface shall be up and running at least until September 2017}
+{High}
+{Created October 11th, 2016.}
+
 
 \section{Operational and Environmental Requirements}
 
 \subsection{Expected Physical Environment}
+\label{req-op-env}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-op-env} Expected Physical Requirement}
+{web-skeleton-event}
+{The web interface shall operate on a Linux-friendly server that can access a tensorflow model, either directly or indirectly}
+{The web application will need a runtime environment and will use up resources, so a server is the tool to use }
+{Udip Patel}
+{The web interface shall be able to operate on an ngnix or Apache server with no problems}
+{High}
+{Created October 11th, 2016.}
 
 \subsection{Requirements for Interfacing with Adjacent Systems}
+\label{req-interfacing}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-interfacing} Requirement for Interfacing with Adjacent Systems}
+{web-skeleton-event}
+{The web interface shall interface with the Tensorflow library and a pre-trained Tensorflow model specialized in image processing}
+{The web interface itself cannot be expected to implement the deep learning. The Tensorflow library is a configurable and accessible deep learning network, and should be used to do the actual 'predicting' when it comes to drawing a skeleton outline over an image or a set of frames.}
+{Udip Patel}
+{The web interface shall be able to use a simple Tensorflow model to get one simple yes or no answer. (ex. is there a person in a given picture [data content]) The web interface shall be able to contact the Tensorflow model through Tensorflow's Python API [medium]}
+{High}
+{Created October 11th, 2016.}
+
 
 \subsection{Productization Requirements}
+\label{req-product}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-product} Productization Requirement}
+{software-skeleton-event}
+{The software interface shall export the resulting output (an image or set of images with a skeleton outline over a human being's silhouette, if one exists) to all major operating systems }
+{This helps us cover all of our possible users and ensure that they are able to use the functionality without running into versioning or environment-based problems}
+{Udip Patel}
+{The software interface shall allow the user to choose the format of the exported image that is best suited to their environment (JPEG, PNG, DDS, etc) }
+{High}
+{Created October 11th, 2016.}
+
+
 
 \subsection{Release Requirements}
+\label{req-release}
+As of Revision 0, there are no release requirements. This is because the application has yet to be fully documented, and we are not under contractual obligations to release future versions within a given timeframe
 
 \section{Maintainability and Support Requirements}
 
 \subsection{Maintenance Requirements}
+\label{req-maintenance}
 
+As of revision 0, there are no maintenance requirements. This is because a simple protoype must be built first before we can identify the aspects of the system that need a lot of maintenance
 \subsection{Supportability Requirements}
+\label{req-supportability}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-supportablility} Supportablility Requirement}
+{web-skeleton-event}
+{The web interface shall provide a small 'tour' of the functionalities with simple examples}
+{This is to ensure that first-time users can gain a full understanding of what the web interface is supposed to do and the features it provides}
+{Udip Patel}
+{The web interface shall have a small 'help' button that will trigger the showing of several modals (web development term) that are meant to guide the user through every available feature}
+{High}
+{Created October 11th, 2016.}
 
 \subsection{Adaptability Requirements}
+\label{req-adaptablility}
 
-There are currently no plans to adapt the McMaster Text-to-Motion software to
-any platform besides those mentioned in constraints \ref{Constraint_Linux} and
-\ref{Constraint_PythonAPI}.  Therefore we do not consider adaptability
-requirements in the scope of this document.
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-adaptability} Adaptability Requirement}
+{web-skeleton-event}
+{The web interface shall be available for use from all the major browsers}
+{This is to ensure that all of the possible users of the systems can have access to its features}
+{Udip Patel}
+{The web interface shall be able to operate on Chrome, Safari, Firefox, IE 7+, Edge, and Opera}
+{High}
+{Created October 11th, 2016.}
+
 
 \section{Security Requirements}
 
