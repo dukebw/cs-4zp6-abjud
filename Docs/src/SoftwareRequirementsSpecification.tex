@@ -973,6 +973,27 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 
 \subsection{Precision or Accuracy Requirements}
 
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.3. Precision and Accuracy Requirement}
+{database-text-to-motion-event}
+{The software interface shall be able to deliver a data object that can accurately encapsulate the bone positions and joint angles of a human being's skeleton}
+{The software interface would not be very useful to the end user if it is not able to accurately portray a human bodym, so this is a very high priority requirement.}
+{Udip Patel}
+{The software interface shall be able to create a data object that can use vectors to provide the positions of well-defined bones relative to each other in a 3D grid. The vectors which describe the bones should all be able to correspond to the anatomical proportions of an average human, with an uncertainty of 5 percent.}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.3. Precision and Accuracy Requirement}
+{web-skeleton-event}
+{Given an image or a set of frames as its input, the web interface shall be able to accurately draw a skeleton overlay around a human being, if one is found in the given image or set of frames}
+{This is one of the main use cases of the web interface, so it stands to reason that the web interface should be able to provide an accurate skeleton overlay. This is crucial to the satisfaction of the customer or end user }
+{The web interface shall be able to draw an outline around a human being in a picture or set of frames with an uncertainty of 20 pixels (+-).}
+{High}
+{Created October 11th, 2016.}
+
 \subsection{Reliability and Availability Requirements}
 
 \subsection{Robustness or Fault-Tolerance Requirements}
