@@ -893,11 +893,33 @@ As of Revision 9, there are no accessbility requirements for this application. S
 \requirement
 {Req_RetrievedVideoRelevance}
 {4.3.1. Speed and Latency Requirement}
-{web-text-to-motion-event}
+{web-skeleton-event}
 {The web interface shall be able to connect to an external database with no problems and be able to store items and query for them quickly }
 {The speed is necessary here because generating the actual output itself is going to be computationally intensive so the program should not be spend a lot of time waiting on responses from the database.}
 {Udip Patel}
 {The web interface should be able to establish an initial connection to the database within a span of 5 seconds. The web interface should be able to transfer a file of size 500MB to the database in around 50 seconds, assuming an upload speed of 10Mbps. The web interface should be able to transfer a file of size 500MB from the database to the user in around 25 seconds, assuming a download speed of 20Mbps.}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.1. Speed and Latency Requirement}
+{software-skeleton-event}
+{The software interface's deep learning model shall be able to process an image (RGB format) in a span of one minute or a set of frames in relative time (ex. 5 frames = 5 minutes)}
+{The deep learning model is the most computationally expensive aspect of the software interface, and thus, should be able to process images/videos quickly enough so that the user does not find the process too time consuming.}
+{Udip Patel}
+{The Quantative goal has been mentioned in the Description. The deep learning model shall be able to process an image in a span of 1 minute}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.1. Speed and Latency Requirement}
+{web-text-to-motion-event}
+{The web interface, given a word or phrase as input, shall be able to respond with an output of an image/video detailing a pose or action within 2 minutes}
+{The web interface will need a considerable amount of time to process the request since it has to be able to parse the text input, be able to interpret it as a description of a pose or action using a set of defined database mappings. The web interface is is then responsible for constructing a visual object that encapsulates all of the bone and joint positions and exporting the object in a standardized data format. This is a very time consuming set of processes to compute, so it should be expected to take at least 2 minutes.}
+{Udip Patel}
+{The Quantative goal has been mentioned in the Description. The entire workset shall be completed in a span of 2 minutes, the workset itself: 1) parsing input, 2) mapping the text input to a description, 3) generating a visual object based on the description, 4)exporting the object in a data format that is accessible to the user }
 {High}
 {Created October 11th, 2016.}
 
