@@ -28,6 +28,10 @@
 \usepackage[section]{placeins}
 \usepackage{graphicx}
 \usepackage{graphics}
+\usepackage{longtable}
+\usepackage{booktabs}
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \hypersetup{
     bookmarks=false,    % show bookmarks bar?
     pdftitle={Software Requirement Specification},    % title
@@ -261,10 +265,11 @@ these entries have been dropped.
 \section{Mandated Constraints}
 
 \subsection{Solution Constraints}
+\label{req-solution-constraint}
 
 \requirement
 {Constraint_DeepLearningMethods}
-{4a. Solution Constraint}
+{\ref{req-solution-constraint} Solution Constraint}
 {software-skeleton-event}
 {The human pose estimation component should use deep learning methods.}
 {This constraint is to allow Dr.\ Taylor's group to integrate the software into
@@ -277,7 +282,7 @@ these entries have been dropped.
 
 \requirement
 {Constraint_DataStorageFormat}
-{4a. Solution Constraint}
+{\ref{req-solution-constraint} Solution Constraint}
 {database-text-to-motion-event}
 {Use a standard format such as LMDB or HDF5 for storing text-motion data.}
 {Having the data in a standard format will enable users to re-use existing code
@@ -289,10 +294,11 @@ these entries have been dropped.
 {Created October 3rd, 2016.}
 
 \subsection{Implementation Environment of the Current System}
+\label{req-implementation-environment}
 
 \requirement
 {Constraint_Linux}
-{4b. Implementation Environment}
+{\ref{req-implementation-environment} Implementation Environment}
 {software-skeleton-event}
 {The Text-to-Motion Software Suite must run under Linux.}
 {Linux is the operating system used by the Guelph Machine Learning research
@@ -306,7 +312,7 @@ these entries have been dropped.
 
 \requirement
 {Constraint_PythonAPI}
-{4b. Implementation Environment}
+{\ref{req-implementation-environment} Implementation Environment}
 {software-skeleton-event}
 {Major APIs to the Text-to-Motion database must be accessible from the Python
  programming language.}
@@ -384,10 +390,11 @@ environment, such as operating system environment, have already been covered
 under the ``Implementation Environment'' section.
 
 \subsection{Schedule Constraints}
+\label{req-schedule-constraint}
 
 \requirement
 {Constraint_DemoSchedule}
-{4f. Schedule Constraint }
+{\ref{req-schedule-constraint} Schedule Constraint }
 {software-skeleton-event}
 {A demonstration of the product must be completed by February 13th, 2017.}
 {This is a deadline that is part of the CS 4ZP6 course.}
@@ -400,7 +407,7 @@ under the ``Implementation Environment'' section.
 
 \requirement
 {Constraint_ProjectDeadline}
-{4f. Schedule Constraint}
+{\ref{req-schedule-constraint} Schedule Constraint}
 {software-skeleton-event}
 {The project must be completed by April 5th, 2017.}
 {The project is part of the CS 4ZP6 Capstone Project course.}
@@ -669,10 +676,11 @@ could be retrieved from the database programmatically using use case
 \section{Functional and Data Requirements}
 
 \subsection{Functional Requirements}
+\label{req-functional-requirement}
 
 \requirement
 {Req_FrameEncodeDecode}
-{9a. Functional Requirement}
+{\ref{req-functional-requirement} Functional Requirement}
 {software-skeleton-event}
 {The text-to-motion software suite will provide an API to read individual
  frames in RGB format from a video stream. At least MP4, MP2 and AAC must be
@@ -687,7 +695,7 @@ could be retrieved from the database programmatically using use case
 
 \requirement
 {Req_VideoProcessingCorrectness}
-{9a. Functional Requirement}
+{\ref{req-functional-requirement} Functional Requirement}
 {software-skeleton-event}
 {The skeleton overlay software must output a set of human pose data that is
  time-stamped and accurate to the ground truth joint positions in the frames
@@ -706,7 +714,7 @@ could be retrieved from the database programmatically using use case
 
 \requirement
 {Req_EveryVideoRetrievable}
-{9a. Functional Requirement}
+{\ref{req-functional-requirement} Functional Requirement}
 {database-text-to-motion-event}
 {The domain of inputs to the text-to-motion database search should output a
  range that covers the entire set of videos in the database.}
@@ -721,7 +729,7 @@ could be retrieved from the database programmatically using use case
 
 \requirement
 {Req_RetrievedVideoNoFalsePositives}
-{9a. Functional Requirement}
+{\ref{req-functional-requirement} Functional Requirement}
 {database-text-to-motion-event}
 {The videos retrieved from a text-to-motion search should not contain any
  results with text descriptions not containing the search terms.}
@@ -736,7 +744,7 @@ could be retrieved from the database programmatically using use case
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{9a. Functional Requirement}
+{\ref{req-functional-requirement} Functional Requirement}
 {database-text-to-motion-event}
 {The videos retrieved from a text-to-motion search should be ordered by relevance.}
 {Users will want to use the motion data that most closely fits the text they
@@ -752,15 +760,23 @@ could be retrieved from the database programmatically using use case
 
 \subsection{Data Requirements}
 
+The McMaster Text-to-Motion project is not strictly adhering to an
+object-oriented design, and therefore there is no class model that must be
+followed as part of the requirements.
+
+Interactions between classes, or modules, will be diagrammed as part of the
+module hierarchy during the design iterations of the project development.
+
 \chapter{Nonfunctional Requirements}
 
 \section{Look and Feel Requirements}
 
 \subsection{Appearance Requirements}
+\label{req-appearance}
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.1.1. Appearance Requirement}
+{\ref{req-appearance} Appearance Requirement}
 {web-skeleton-event} % add <web-text-to-motion-event>
 {The web interface shall have a color-scheme that is focused on contrast.}
 {A color shceme with bright and dark colors clashing is bound to captivate users of the website.}
@@ -770,10 +786,11 @@ could be retrieved from the database programmatically using use case
 {Created October 8th, 2016.}
 
 \subsection{Style Requirements}
+\label{req-style}
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.1.2. Style Requirement}
+{\ref{req-style} Style Requirement}
 {web-skeleton-event} % add <web-text-to-motion-event>
 {The web interface shall be designed to look minimalistic (in terms of text) and visually informative through graphs and other visual aides.}
 {To be able to convey the complex processes of a deep learning model in a simple way that can be understood by any end user, regardless of their level of knowledge. The amount of text displayed should also be minimized to avoid overwhelming a first-time user with too much information.}
@@ -785,10 +802,11 @@ could be retrieved from the database programmatically using use case
 \section{Usability and Humanity Requirements}
 
 \subsection{Ease of Use Requirements}
+\label{req-ease-of-use}
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.1. Ease of Use Requirement}
+{\ref{req-ease-of-use} Ease of Use Requirement}
 {web-skeleton-event} % add <web-text-to-motion-event>
 {The functionalites of the web interface shall be easy to use for any casual internet user above the age of 12 who understands how to upload and download files to a website.}
 {Having a simpler interface can open up this web app to a lot of potential users.}
@@ -799,7 +817,7 @@ could be retrieved from the database programmatically using use case
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.1. Ease of Use Requirement}
+{\ref{req-ease-of-use} Ease of Use Requirement}
 {web-skeleton-event}
 {The user shall not be expected to remember anything to be able to interact with the Web Interface.}
 {This is just to reduce the amount of work that the user has to do in order to be able to get the desired result.}
@@ -810,7 +828,7 @@ could be retrieved from the database programmatically using use case
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.1. Ease of Use Requirement}
+{\ref{req-ease-of-use} Ease of Use Requirement}
 {web-text-to-motion-event}
 {The user shall be able to type in a descriptive word or phrase into a text box that will be easy to find from the web interface.}
 {This way, the functionality provided by the web application will be made obvious and accessible to the user.}
@@ -824,10 +842,11 @@ could be retrieved from the database programmatically using use case
 As of Revision 0, there are no requirements for Language support. Since the web Interface and the Software Interface would rely on Natural Language Processing for English, adding language support for multiple languages would be too large of a feature to implement for now.
 
 \subsection{Learning Requirements}
+\label{req-learning}
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.3. Learning Requirement}
+{\ref{req-learning} Learning Requirement}
 {web-skeleton-event}
 {Any end-user shall be able to use the web application and generate a skeleton-overlay without having any prior training.}
 {This is because all the user needs to be able to do is upload and download a file to/from the website.}
@@ -838,7 +857,7 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.3. Learning Requirement}
+{\ref{req-learning} Learning Requirement}
 {web-text-to-motion-event}
 {Any end-user shall be able to use the web application to instantiate a 'text-to-motion' event without having any prior training.}
 {This is because all the user needs to do is type in a descriptive word or phrase into a text box.}
@@ -849,7 +868,7 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.3. Learning Requirement}
+{\ref{req-learning} Learning Requirement}
 {software-skeleton-event} % ADD <database-text-to-motion-event>
 {The functionalities of the software interface shall be easily understood by programmers who have experience with APIs.}
 {This is because using a command line API still takes some base knowledge of software to set up, and we cannot assume that every user will be able to set up our API without any problems even if they follow all of the detailed steps.}
@@ -859,36 +878,52 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 {Created October 10th, 2016.}
 
 \subsection{Understandability and Politeness Requirements}
+\label{req-understandability-politeness}
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.4. Understandability and Politeness Requirement}
+{\ref{req-understandability-politeness} Understandability and Politeness Requirement}
 {web-skeleton-event}
-{The end user of the web interface shall not be able to see the inner workings of the deep learning model that is used to estimate the human pose or action from an image/video}
-{This is because the user should be obscured from having to deal with the complexities of deep learning. Furthermore, it would be computationally expensive to show the users such low-level detail in a way that they could understand it.}
+{The end user of the web interface shall not be able to see the inner workings
+of the deep learning model that is used to estimate the human pose or action
+from an image/video}
+{This is because the user should be obscured from having to deal with the
+complexities of deep learning. Furthermore, it would be computationally
+expensive to show the users such low-level detail in a way that they could
+understand it.}
 {Udip Patel}
-{The end user of the web interface shall be able to get a valid output from the skeleton-overlay function without seeing any of the deep learning code or processes.}
+{The end user of the web interface shall be able to get a valid output from the
+skeleton-overlay function without seeing any of the deep learning code or
+processes.}
 {High}
 {Created October 10th, 2016.}
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.4. Understandability and Politeness Requirement}
+{\ref{req-understandability-politeness} Understandability and Politeness Requirement}
 {database-text-to-motion-event}
-{The end user of the software interface shall not know how the program is able to map a word or phrase to a human pose or action}
-{Using the software interface should be simple, and if we show these highly complex data mappings to the user, we might risk overwhelming the user by giving them a large amount of information that is of very little use.}
+{The end user of the software interface shall not know how the program is able
+to map a word or phrase to a human pose or action}
+{Using the software interface should be simple, and if we show these highly
+complex data mappings to the user, we might risk overwhelming the user by
+giving them a large amount of information that is of very little use.}
 {Udip Patel}
-{The end user of the web interface shall be able to get a valid output from the software interface without being exposed to the database mappings that are used to determine the valid output.}
+{The end user of the web interface shall be able to get a valid output from the
+software interface without being exposed to the database mappings that are used
+to determine the valid output.}
 {High}
 {Created October 11th, 2016.}
 
 \subsection{Accessibility Requirements}
 
-As of Revision 9, there are no accessbility requirements for this application. Since both interfaces only contain a virtual/visual component and no physical mechanisms, there is no need to provide any accessibility requirements for now
+As of Revision 9, there are no accessbility requirements for this application.
+Since both interfaces only contain a virtual/visual component and no physical
+mechanisms, there is no need to provide any accessibility requirements for now
 
 \section{Performance Requirements}
 
 \subsection{Speed and Latency Requirements}
+\label{req-speed-latency}
 
 \requirement
 {Req_RetrievedVideoRelevance}
@@ -897,7 +932,6 @@ As of Revision 9, there are no accessbility requirements for this application. S
 {The web interface shall be able to connect to an external database with no problems and be able to store items and query for them quickly }
 {The speed is necessary here because generating the actual output itself is going to be computationally intensive so the program should not be spend a lot of time waiting on responses from the database.}
 {Udip Patel}
-{The web interface should be able to establish an initial connection to the database within a span of 5 seconds. The web interface should be able to transfer a file of size 500MB to the database in around 50 seconds, assuming an upload speed of 10Mbps. The web interface should be able to transfer a file of size 500MB from the database to the user in around 25 seconds, assuming a download speed of 20Mbps.}
 {High}
 {Created October 11th, 2016.}
 
@@ -983,21 +1017,118 @@ As of Revision 9, there are no accessbility requirements for this application. S
 
 \section{Open Issues}
 
+{Here we discuss issues not addressed in the functional or
+non-functional requirements.}
+
+{One open issue common to most machine learning problems is that the
+quality of the fit. We are using algorithms ready made and there are
+many such options. ~So one open problem is to choose amongst these pose
+estimation algorithms. ~A possibility is since there are multiple
+options that there could be an option where the user can select their
+own algorithm to analyze the data. ~However due to time constraints we
+will need to choose one without first testing. ~So one problem is simply
+choosing an algorithm that will work without having tested it first.}
+
+{A second problem is the hardware that we intend to use for the problem.
+~We are analyzing and performing pose estimations on an enormous
+database of video. ~This is a computationally intensive task so we need
+a fast computer hardware system to perform our computations. ~One
+problem is choosing the hardware solution to this problem. ~We will also
+be creating a web application so it may be in our best interest to host
+the application using a server of our creation. ~In this case we would
+also have to create and maintain this system.}
+
 \section{Off-the-Shelf Solutions}
+
+{In choosing an algorithm for the pose estimation problem there is
+already software that is available online that implements these
+algorithms. ~We intend to use these resources in our project.}
 
 \subsection{Ready-Made Products}
 
 \subsection{Reusable Components}
 
+{We are creating a intermediate software for pre-processing data and
+placing this data in a database that can be easily queried through a
+user interface. ~The pre-processing and sorting/searching of data is a
+common task in machine learning development. ~For this reason it is
+}{hopeful that the product we develop is not specialized to the
+pre-processing algorithms we use or the database that contains the
+database we analyze. ~}
+
+{Ideally we will create a multi-tiered system that will have many
+components that could be re-used for future data analysis and viewing
+tasks.}
+
 \subsection{Products That Can Be Copied}
+
+{The product that we aim to create will implement machine learning
+algorithms on a database of media in order to produce a new database of
+processed media. ~}
+
+{Some popular machine learning algorithms are the Short Long Term Memory
+(LSTM) neural networks. ~Due to their popularity many web applications
+have been created which allow users to visualize the way that these
+networks learn and they allow them to see the output of the networks for
+given input. ~Two such web applications are the TensorFlow playground
+produced by Google and Visual Analysis of recurrent Neural Networks
+offered by Harvard. ~We will aim to reproduce many of the features that
+are present in these products. }
+
+{The machine learning algorithms typically have many parameters in them
+which can be adjusted to optimize their performance. ~The previously
+mentioned products let the user choose these parameters though the user
+interface. ~We will aim to implement these features as well.}
 
 \section{New Problems}
 
+{There are several problems which we wish to avoid when creating our
+system. ~Our project is a small part of a larger project. ~Each of the
+sub-projects have been broken down as a modular hierarchy. ~We hope that
+our system will be able to work with the other modules without
+corrupting their performance and correctness.}
+
+{Our project will house a large database of media data. ~The database
+will need to be queried and the data manipulated. ~However through our
+manipulation we will not want the data stored in the database to be
+corrupted so that the performance of our system degrades the more it is
+used. ~We will also aim to make it so that our program does not cause
+side-effects on the larger projects that make use of it. ~}
+
 \subsection{Effects on the Current Environment}
+
+{Currently if someone wishes to analyze the video data offered online
+they will have to analyze raw video data. ~Our application will offer a
+new interface in which this data has been processed in a manner that is
+useful if the user should wish to analyze the human motion in the
+video.}
+
+{The alternative web interface we offer will of course be different from
+the previously made available systems. ~However the format that we video
+format of the video will be preserved in our transformations.}
+
+{The finished product will exist as a standalone web-application hosted
+on a server. ~The server will allow queries to be made. ~We hope in this
+way that the system will be able to exist independently of the larger
+project of which it is a part of so that it will not have to be
+installed on every users computer. }
 
 \subsection{Effects on the Installed Systems}
 
+{The transformations that we will apply to the video data should be very
+useful for machine learning researchers. ~Having transformed data can
+speed up the learning rate in many machine learning algorithms and we
+expect the product will benefit users.}
+
 \subsection{Potential User Problems}
+
+{As we have mentioned this project is a sub-component of a larger
+project that is meant to facilitate the change in representations from
+text to motion. ~In this current project we are only analyzing the
+problem of pre-processing the data. ~So problems that will need to be
+considered in the future is how the data we generate can be used to
+train a deep neural network to make the previously mentioned
+transformation.}
 
 \subsection{Limitations in the Anticipated Implementation Environment That May
             Inhibit the New Product}
@@ -1008,9 +1139,43 @@ As of Revision 9, there are no accessbility requirements for this application. S
 
 \subsection{Project Planning}
 
+{To develop our software product we will make use of the iterative and
+incremental software development process shown below.}
+
+{\includegraphics{images/image00.png}}
+
+{We have passed through the initial planning step. ~In this step we
+decided on a project to pursue and explored whether or not the idea was
+achievable by talking to researchers and exploring some published papers
+in this area.}
+
+{The next step of the project is the requirements stage where we
+formally state the objectives of our project. ~}
+
+{An important feature of this stage is that the process: Requirements,
+Design, Implementations, Verification and Evaluation can be run in
+parallel for each module of the product followed by systems level
+testing at the end that ensures that each module in the system will run
+without producing errors with ~the other parts.}
+
+{Our system involves several separate components. ~It is a web
+application and needs to store a lot of data in a database. ~So the
+program will consist of a data layer, a layer that performs the machine
+learning algorithm on the data and a layer for the user interface. ~Each
+of these separate layers can be developed in parallel in our system.}
+
 \subsection{Planning of the Development Phases}
 
 \section{Migration to the New Product}
+
+{As we have mentioned in Reusable Components section (Section 19) we
+plan to use the implemented versions of the machine learning algorithms
+that are already available online by the authors of the papers. ~However
+much of this code is written in matlab and since the program is to be
+Python based some of the code will need to be rewritten in this
+language. ~However since we are re-writing the code we will be able to
+test our output by comparing it to the output of the older code we are
+rewriting.}
 
 \subsection{Requirements for Migration of the New Product}
 
@@ -1019,17 +1184,156 @@ As of Revision 9, there are no accessbility requirements for this application. S
 
 \section{Risks}
 
+{We are taking algorithms that are meant to analyze images and applying
+them to video. ~The transition from image to video is a step up in
+computational tractability. ~There is a risk that the increase in volume
+of data will cause performance issues for our program.}
+
+{Another worry is that possibly the algorithms will not generalize well
+from images to data. They have not been tested on these tasks so it is
+possible that they will create very noisy data in their output and will
+not generalise well.}
+
 \section{Costs}
+
+{For our program we will be using freely available and open source
+programs. ~The list of programs we will make use of was mentioned in
+section on off the shelf solutions (section 5.2). }
+
+{However for our hardware we may wish to run our own server to host the
+application. ~In this case there will be maintenance and hardware costs.
+~The maintenance will be in terms of depreciation of the equipment, the
+cost of connecting to a network and streaming data over the internet and
+power consumption. ~The power consumption however should be low.}
+
+{The hardware we would need to purchase would include ~GTX 1070 and an
+Intel i5 (\$1600).}
+
+\begin{longtable}[c]{@{}ll@{}}
+\toprule
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Desctiption}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Cost}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{GTX 1070 Intel i5}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{\$1600}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Data Plan (approximate use?)}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{\$10/month}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Power}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{\textless{}\$5}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Maintenance of equipment}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Unknown at this point}
+\strut\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
+
+{The second cost that we have to consider is the amount of time that the
+project will require in order to implement. ~}
+
+{Our project we have 7 functional requirements as discussed in section 3
+of our report. ~}
+
+\begin{longtable}[c]{@{}ll@{}}
+\toprule
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Functional Requirement}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Time Necessary}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+\begin{enumerate}
+\tightlist
+\item
+  {Web Interface Skeleton Overlay}
+\end{enumerate}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{No idea how to estimate these?}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{2. Web Interface Text-to-Motion}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{3. Interface Skeleton Overlay}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{4. Database Interface text to motion}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{}
+\strut\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
 
 \section{User Documentation and Training}
 
 \subsection{User Documentation Requirements}
 
+{As our application will be a standalone web application we will have a
+help feature}
+
+\begin{enumerate}
+\tightlist
+\item
+  {Technical Specifications document - specifies which algorithms our
+  program uses and their expected accuracy}
+\item
+  {User Manual or help feature - instructs the user on navigating the
+  user interface, information on the contents of the database and a list
+  of contacts for additional help.}
+\end{enumerate}
+
 \subsection{Training Requirements}
+
+{The intended users of our program will be machine learning experts who
+have plenty of experience working with software interfaces. So the
+training these users will need to use our program will be minimal. ~The
+software will only have the 4 features we have mentioned in our
+functional requirements.}
 
 \section{Waiting Room}
 
+{As we have mentioned we are using off the shelf version of for the
+machine learning algorithms. ~A next step in our project would be to
+improve on these algorithms. ~The procedures are designed for working on
+images but it would be interesting to optimize or change the algorithms
+so they take advantage of the fact that the data we are using is video
+and not strictly images.}
+
+{We are at the moment focusing on the human motion and labelling body
+parts. ~The motion of other objects such as cars and animals is also
+interesting. ~A next interesting step in this project would be to
+consider the motion of a more diverse range of objects.}
+
 \section{Ideas for Solutions}
+
+{The ultimate solution of the product is the generation of the video
+from the text. This is the step that is to be taken after our project is
+complete. ~}
 
 \bibliographystyle{IEEEtran}
 \bibliography{IEEEabrv,SoftwareRequirementsSpecification}
