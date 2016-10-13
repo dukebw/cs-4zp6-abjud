@@ -1055,24 +1055,41 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 
 \subsection{Privacy Requirements}
 
+Users should not be submitting any private or sensitive information to the
+McMaster Text-to-Motion software, and therefore we do not consider any privacy
+requirements for this project.
+
 \subsection{Audit Requirements}
 
+There are no required audit checks that must be complied with by the software.
+
 \subsection{Immunity Requirements}
+
+As the software includes a user-mode program and a web application running in a
+browser, the software cannot introduce security vulnerabilities in users'
+systems that do not already exist in their operating system or browser.
+Therefore we do not consider immunity requirements for the software.
 
 \section{Cultural and Political Requirements}
 
 \subsection{Cultural Requirements}
 
+There are no cultural factors affecting the acceptability of the McMaster
+Text-to-Motion project.
+
 \subsection{Political Requirements}
 
+There are no political factors affecting the acceptability of the McMaster
+Text-to-Motion project.
+
 \section{Legal Requirements}
-\label{req-legal}
 
 \subsection{Compliance Requirements}
+\label{req-compliance}
 
 \requirement
 {Req_Licensing}
-{\ref{req-legal} Legal Requirement}
+{\ref{req-compliance} Compliance Requirement}
 {software-skeleton-event}
 {The licensing conditions of any open-source software included as part of this
 product must be adhered to. E.g., if a GPL 2 component is used, then the source
