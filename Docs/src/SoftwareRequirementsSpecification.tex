@@ -928,28 +928,94 @@ mechanisms, there is no need to provide any accessibility requirements for now
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{\ref{req-speed-latency} Speed and Latency Requirement}
-{web-text-to-motion-event}
-{The web interface shall be able to connect to an external database with no
-problems and be able to store items and query for them quickly }
-{The speed is necessary here because generating the actual output itself is
-going to be computationally intensive so the program should not be spend a lot
-of time waiting on responses from the database.}
+{4.3.1. Speed and Latency Requirement}
+{web-skeleton-event}
+{The web interface shall be able to connect to an external database with no problems and be able to store items and query for them quickly }
+{The speed is necessary here because generating the actual output itself is going to be computationally intensive so the program should not be spend a lot of time waiting on responses from the database.}
 {Udip Patel}
-{The web interface should be able to establish an initial connection to the
- database within a span of 5 seconds. The web interface should be able to
- transfer a file of size 500MB to the database in around 50 seconds, assuming an
- upload speed of 10Mbps. The web interface should be able to transfer a file of
- size 500MB from the database to the user in around 25 seconds, assuming a
- download speed of 20Mbps.}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.1. Speed and Latency Requirement}
+{software-skeleton-event}
+{The software interface's deep learning model shall be able to process an image (RGB format) in a span of one minute or a set of frames in relative time (ex. 5 frames = 5 minutes)}
+{The deep learning model is the most computationally expensive aspect of the software interface, and thus, should be able to process images/videos quickly enough so that the user does not find the process too time consuming.}
+{Udip Patel}
+{The Quantative goal has been mentioned in the Description. The deep learning model shall be able to process an image in a span of 1 minute}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.1. Speed and Latency Requirement}
+{web-text-to-motion-event}
+{The web interface, given a word or phrase as input, shall be able to respond with an output of an image/video detailing a pose or action within 2 minutes}
+{The web interface will need a considerable amount of time to process the request since it has to be able to parse the text input, be able to interpret it as a description of a pose or action using a set of defined database mappings. The web interface is is then responsible for constructing a visual object that encapsulates all of the bone and joint positions and exporting the object in a standardized data format. This is a very time consuming set of processes to compute, so it should be expected to take at least 2 minutes.}
+{Udip Patel}
+{The Quantative goal has been mentioned in the Description. The entire workset shall be completed in a span of 2 minutes, the workset itself: 1) parsing input, 2) mapping the text input to a description, 3) generating a visual object based on the description, 4)exporting the object in a data format that is accessible to the user }
 {High}
 {Created October 11th, 2016.}
 
 \subsection{Safety-Critical Requirements}
 
+As of Revision 0, there are no safety critical requirements. Both of the interfaces are very simple in terms of the output they produce, and even if the program is fed with bad input, there will be no actual physical or virtual damage to the system.
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.2. Safety-Critical Requirement}
+{web-text-to-motion-event}
+{The web interface shall filter the input word or phrase before passing the text to the database, where it can be processed}
+{This is to avoid making confusing requests to the database. If an unintelligible word or phrase is entered, there is no need to apply the database mapping functionality because it will not be able to return a significant response.}
+{Udip Patel}
+{The web interface shall be able to parse the text input to weed out unintelligible words, curse words, }
+{High}
+{Created October 11th, 2016.}
+
 \subsection{Precision or Accuracy Requirements}
 
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.3. Precision and Accuracy Requirement}
+{database-text-to-motion-event}
+{The software interface shall be able to deliver a data object that can accurately encapsulate the bone positions and joint angles of a human being's skeleton}
+{The software interface would not be very useful to the end user if it is not able to accurately portray a human bodym, so this is a very high priority requirement.}
+{Udip Patel}
+{The software interface shall be able to create a data object that can use vectors to provide the positions of well-defined bones relative to each other in a 3D grid. The vectors which describe the bones should all be able to correspond to the anatomical proportions of an average human, with an uncertainty of 5 percent.}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.3. Precision and Accuracy Requirement}
+{web-skeleton-event}
+{Given an image or a set of frames as its input, the web interface shall be able to accurately draw a skeleton overlay around a human being, if one is found in the given image or set of frames}
+{This is one of the main use cases of the web interface, so it stands to reason that the web interface should be able to provide an accurate skeleton overlay. This is crucial to the satisfaction of the customer or end user }
+{The web interface shall be able to draw an outline around a human being in a picture or set of frames with an uncertainty of 20 pixels (+-).}
+{High}
+{Created October 11th, 2016.}
+
 \subsection{Reliability and Availability Requirements}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.4. Reliability and Availablilty Requirement}
+{software-skeleton-event}
+{The software interface shall be available for use 24 hours a day, 365 days a year.}
+{This will make it so that the user is able to decide when they want to use the functionality, and will not be constrained by any scheduling issues.}
+{The quantative goal of this requirement has been stated in the description}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.4. Reliability and Availablilty Requirement}
+{web-skeleton-event}
+{The web interface shall be available for use 24 hours a day, 365 days a year, except for when the system has to be audited, tested or migrated to a different environment}
+{Any standard web app should be available for use at any time, this is a major standard in web development, so this project aims to abide by it.}
+{The quantative goal of this requirement has been stated in the description}
+{High}
+{Created October 11th, 2016.}
 
 \subsection{Robustness or Fault-Tolerance Requirements}
 
