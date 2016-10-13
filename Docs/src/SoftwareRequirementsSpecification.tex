@@ -862,8 +862,8 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{4.2.3. Learning Requirement}
-{web-skeleton-event} % ADD <database-text-to-motion-event>
+{4.2.4. Understandability and Politeness Requirement}
+{web-skeleton-event}
 {The end user of the web interface shall not be able to see the inner workings of the deep learning model that is used to estimate the human pose or action from an image/video}
 {This is because the user should be obscured from having to deal with the complexities of deep learning. Furthermore, it would be computationally expensive to show the users such low-level detail in a way that they could understand it.}
 {Udip Patel}
@@ -871,11 +871,35 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 {High}
 {Created October 10th, 2016.}
 
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.2.4. Understandability and Politeness Requirement}
+{database-text-to-motion-event}
+{The end user of the software interface shall not know how the program is able to map a word or phrase to a human pose or action}
+{Using the software interface should be simple, and if we show these highly complex data mappings to the user, we might risk overwhelming the user by giving them a large amount of information that is of very little use.}
+{Udip Patel}
+{The end user of the web interface shall be able to get a valid output from the software interface without being exposed to the database mappings that are used to determine the valid output.}
+{High}
+{Created October 11th, 2016.}
+
 \subsection{Accessibility Requirements}
+
+As of Revision 9, there are no accessbility requirements for this application. Since both interfaces only contain a virtual/visual component and no physical mechanisms, there is no need to provide any accessibility requirements for now
 
 \section{Performance Requirements}
 
 \subsection{Speed and Latency Requirements}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.1. Speed and Latency Requirement}
+{web-text-to-motion-event}
+{The web interface shall be able to connect to an external database with no problems and be able to store items and query for them quickly }
+{The speed is necessary here because generating the actual output itself is going to be computationally intensive so the program should not be spend a lot of time waiting on responses from the database.}
+{Udip Patel}
+{The web interface should be able to establish an initial connection to the database within a span of 5 seconds. The web interface should be able to transfer a file of size 500MB to the database in around 50 seconds, assuming an upload speed of 10Mbps. The web interface should be able to transfer a file of size 500MB from the database to the user in around 25 seconds, assuming a download speed of 20Mbps.}
+{High}
+{Created October 11th, 2016.}
 
 \subsection{Safety-Critical Requirements}
 
