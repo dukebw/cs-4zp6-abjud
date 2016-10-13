@@ -1052,6 +1052,21 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \subsection{Access Requirements}
 
 \subsection{Integrity Requirements}
+\label{req-integrity}
+
+\requirement
+{Req_DataIntegrity}
+{\ref{req-integrity} Integrity Requirement}
+{database-text-to-motion-event}
+{The motion data stored on our server should maintain its integrity despite any
+attempts at attack.}
+{Researchers will rely on the integrity of our text and motion data.}
+{Brendan Duke}
+{Since the data is static, it would be possible to keep a hash of the data and
+check periodically that it is the same. The hash of the data should be stored
+somewhere secure where the hash itself cannot be updated.}
+{High}
+{Created October 10th, 2016.}
 
 \subsection{Privacy Requirements}
 
