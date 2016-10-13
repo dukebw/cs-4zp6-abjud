@@ -584,14 +584,15 @@ represented by the hidden units of a convolutional autoencoder.
 The context diagram, displaying adjacent systems to this project, is shown in
 Figure \ref{work-context-diagram}.
 
-\begin{figure}
+\begin{figure}[!ht]
         \caption{McMaster Text-to-Motion Database Work Context Diagram}
         \label{work-context-diagram}
         \centering
-        \includegraphics[width=0.8\textwidth]{mcmaster-text-to-motion-work-context-diagram.png}
+        \includegraphics[width=0.8\textwidth]{../data/mcmaster-text-to-motion-work-context-diagram.png}
 \end{figure}
 
 \subsection{Work Partitioning}
+\label{work-partitioning}
 
 The events/use-cases for the project are laid out in Table \ref{business-event-list-table}.
 
@@ -1007,41 +1008,45 @@ of time waiting on responses from the database.}
 {Here we discuss issues not addressed in the functional or
 non-functional requirements.}
 
-{One open issue common to most machine learning problems is that the
-quality of the fit. We are using algorithms ready made and there are
-many such options. ~So one open problem is to choose amongst these pose
-estimation algorithms. ~A possibility is since there are multiple
-options that there could be an option where the user can select their
-own algorithm to analyze the data. ~However due to time constraints we
-will need to choose one without first testing. ~So one problem is simply
-choosing an algorithm that will work without having tested it first.}
+One open issue common to most machine learning problems is the quality of the
+fit, as this can always be improved upon.
 
-{A second problem is the hardware that we intend to use for the problem.
-~We are analyzing and performing pose estimations on an enormous
-database of video. ~This is a computationally intensive task so we need
-a fast computer hardware system to perform our computations. ~One
-problem is choosing the hardware solution to this problem. ~We will also
+We are using ready-made algorithms, and there are many such options. So
+another open problem is to choose amongst these pose estimation algorithms. A
+possible solution is, since there are multiple options that there could be an
+option where the user can select their own algorithm to analyze the data.
+However due to time constraints we will need to choose one without first
+testing. So one problem is simply choosing an algorithm that will work without
+having tested it first.
+
+A second problem is the hardware that we intend to use for the problem.
+We are analyzing and performing pose estimations on an enormous
+database of video. This is a computationally intensive task so we need
+a fast computer hardware system to perform our computations. One
+problem is choosing the hardware solution to this problem. We will also
 be creating a web application so it may be in our best interest to host
-the application using a server of our creation. ~In this case we would
-also have to create and maintain this system.}
+the application using a server of our creation. In this case we would
+also have to create and maintain this system.
 
 \section{Off-the-Shelf Solutions}
-
-{In choosing an algorithm for the pose estimation problem there is
-already software that is available online that implements these
-algorithms. ~We intend to use these resources in our project.}
+\label{off-the-shelf-solutions}
 
 \subsection{Ready-Made Products}
 
-\subsection{Reusable Components}
+{In choosing an algorithm for the pose estimation problem there is
+already software that is available online that implements these
+algorithms. We intend to use these resources in our project.}
 
-{We are creating a intermediate software for pre-processing data and
+\subsection{Reusable Components}
+\label{reusable-components}
+
+{We are creating an intermediate software for pre-processing data and
 placing this data in a database that can be easily queried through a
-user interface. ~The pre-processing and sorting/searching of data is a
-common task in machine learning development. ~For this reason it is
-}{hopeful that the product we develop is not specialized to the
+user interface. The pre-processing and sorting/searching of data is a
+common task in machine learning development. For this reason it is
+hopeful that the product we develop is not specialized to the
 pre-processing algorithms we use or the database that contains the
-database we analyze. ~}
+database we analyze.}
 
 {Ideally we will create a multi-tiered system that will have many
 components that could be re-used for future data analysis and viewing
@@ -1051,159 +1056,181 @@ tasks.}
 
 {The product that we aim to create will implement machine learning
 algorithms on a database of media in order to produce a new database of
-processed media. ~}
+processed media.}
 
 {Some popular machine learning algorithms are the Short Long Term Memory
-(LSTM) neural networks. ~Due to their popularity many web applications
+(LSTM) neural networks. Due to their popularity many web applications
 have been created which allow users to visualize the way that these
 networks learn and they allow them to see the output of the networks for
-given input. ~Two such web applications are the TensorFlow playground
-produced by Google and Visual Analysis of recurrent Neural Networks
-offered by Harvard. ~We will aim to reproduce many of the features that
-are present in these products. }
+given input. Two such web applications are the TensorFlow playground
+produced by Google and Visual Analysis of Recurrent Neural Networks
+offered by Harvard. We will aim to reproduce many of the features that
+are present in these products.}
 
 {The machine learning algorithms typically have many parameters in them
-which can be adjusted to optimize their performance. ~The previously
-mentioned products let the user choose these parameters though the user
-interface. ~We will aim to implement these features as well.}
+which can be adjusted to optimize their performance. The previously
+mentioned products let the user choose these parameters through the user
+interface. We will aim to implement these features as well.}
 
 \section{New Problems}
 
 {There are several problems which we wish to avoid when creating our
-system. ~Our project is a small part of a larger project. ~Each of the
-sub-projects have been broken down as a modular hierarchy. ~We hope that
+system. Our project is a small part of a larger project. Each of the
+sub-projects have been broken down as a modular hierarchy. We hope that
 our system will be able to work with the other modules without
 corrupting their performance and correctness.}
 
-{Our project will house a large database of media data. ~The database
-will need to be queried and the data manipulated. ~However through our
+{Our project will house a large database of media data. The database
+will need to be queried and the data manipulated. However through our
 manipulation we will not want the data stored in the database to be
 corrupted so that the performance of our system degrades the more it is
-used. ~We will also aim to make it so that our program does not cause
-side-effects on the larger projects that make use of it. ~}
+used. We will also aim to make it so that our program does not cause
+side-effects on the larger projects that make use of it.}
 
 \subsection{Effects on the Current Environment}
 
 {Currently if someone wishes to analyze the video data offered online
-they will have to analyze raw video data. ~Our application will offer a
+they will have to analyze raw video data. Our application will offer a
 new interface in which this data has been processed in a manner that is
 useful if the user should wish to analyze the human motion in the
 video.}
 
-{The alternative web interface we offer will of course be different from
-the previously made available systems. ~However the format that we video
-format of the video will be preserved in our transformations.}
+{The alternative web interface we offer will be different from the previously
+made available systems. However the format of the video will be preserved in
+our transformations.}
 
-{The finished product will exist as a standalone web-application hosted
-on a server. ~The server will allow queries to be made. ~We hope in this
-way that the system will be able to exist independently of the larger
-project of which it is a part of so that it will not have to be
-installed on every users computer. }
+{The finished product will exist as a standalone web-application hosted on a
+server. The server will allow queries to be made. We hope that the system
+will thereby be able to exist independently of the larger project of which it
+is a part of, so that our product will not have to be installed on every user's
+computer.}
 
 \subsection{Effects on the Installed Systems}
 
 {The transformations that we will apply to the video data should be very
-useful for machine learning researchers. ~Having transformed data can
+useful for machine learning researchers. Having transformed data can
 speed up the learning rate in many machine learning algorithms and we
 expect the product will benefit users.}
 
 \subsection{Potential User Problems}
 
-{As we have mentioned this project is a sub-component of a larger
-project that is meant to facilitate the change in representations from
-text to motion. ~In this current project we are only analyzing the
-problem of pre-processing the data. ~So problems that will need to be
-considered in the future is how the data we generate can be used to
-train a deep neural network to make the previously mentioned
-transformation.}
+Users of our software should not suffer any adverse or ill effects due to said
+usage, so this section is not applicable.
 
 \subsection{Limitations in the Anticipated Implementation Environment That May
             Inhibit the New Product}
 
+We refer here to constraints \ref{Constraint_Linux} and \ref{Constraint_PythonAPI}.
+While the Linux constraint should not inhibit the new product, the limitation
+of using a Python API may present issues with performance, scalability, and
+maintainability in the long term.
+
 \subsection{Follow-Up Problems}
+
+{As we have mentioned this project is a sub-component of a larger project that
+is meant to facilitate the change in representations from text to motion. In
+this current project we are only analyzing the problem of pre-processing the
+data. So, another problem that will need to be considered in the future is
+how the data we generate can be used to train a deep neural network to make the
+previously mentioned transformation from text to motion.}
 
 \section{Tasks}
 
 \subsection{Project Planning}
 
 {To develop our software product we will make use of the iterative and
-incremental software development process shown below.}
+incremental software development process shown in Figure~\ref{fig-project-planning}.}
 
-{\includegraphics{images/image00.png}}
-
-{We have passed through the initial planning step. ~In this step we
-decided on a project to pursue and explored whether or not the idea was
-achievable by talking to researchers and exploring some published papers
-in this area.}
-
-{The next step of the project is the requirements stage where we
-formally state the objectives of our project. ~}
-
-{An important feature of this stage is that the process: Requirements,
-Design, Implementations, Verification and Evaluation can be run in
-parallel for each module of the product followed by systems level
-testing at the end that ensures that each module in the system will run
-without producing errors with ~the other parts.}
-
-{Our system involves several separate components. ~It is a web
-application and needs to store a lot of data in a database. ~So the
-program will consist of a data layer, a layer that performs the machine
-learning algorithm on the data and a layer for the user interface. ~Each
-of these separate layers can be developed in parallel in our system.}
+{\begin{figure}[!ht]
+        \label{fig-project-planning}
+        \caption{Iterative and Incremental Software Development Process}
+        \includegraphics[width=0.8\textwidth]{../data/project-planning.png}
+\end{figure}}
 
 \subsection{Planning of the Development Phases}
 
+{We have passed through the initial planning step. In this step we decided on
+a project to pursue, and explored whether or not the idea was achievable by
+talking to researchers and exploring published papers in this area.}
+
+{The next step of the project is the requirements stage where we formally state
+the objectives of our project.}
+
+{An important feature of this stage is that the process: Requirements, Design,
+Implementations, Verification and Evaluation can be run in parallel for each
+module of the product, followed by systems level testing at the end. This
+method of unit testing in parallel with development ensures that each module in
+the system will run without producing errors with the other parts.}
+
+{Our system involves several separate components. It is a web
+application and needs to store a lot of data in a database. So the
+program will consist of a data layer, a layer that performs the machine
+learning algorithm on the data and a layer for the user interface. Each
+of these separate layers can be developed in parallel in our system.}
+
 \section{Migration to the New Product}
 
-{As we have mentioned in Reusable Components section (Section 19) we
-plan to use the implemented versions of the machine learning algorithms
-that are already available online by the authors of the papers. ~However
-much of this code is written in matlab and since the program is to be
-Python based some of the code will need to be rewritten in this
-language. ~However since we are re-writing the code we will be able to
-test our output by comparing it to the output of the older code we are
-rewriting.}
-
 \subsection{Requirements for Migration of the New Product}
+
+{As we have mentioned in Reusable Components
+(Section~\ref{reusable-components}) that we plan to use the implemented
+versions of the machine learning algorithms that are already available online
+by the authors of the papers. However much of this code is written in Matlab
+and since the program is to be Python based some of the code will need to be
+rewritten in this language. However since we are re-writing the code we will be
+able to test our output by comparing it to the output of the older code we are
+rewriting.}
 
 \subsection{Data That Has to Be Modified or Translated for the New
             System}
 
+If we choose to migrate existing software from one deep learning framework to
+another, e.g. from Caffe to Tensorflow, it may be necessary to regenerate the
+model corresponding to the neural network architecture on one framework into a
+model that is compatible with the new framework.
+
 \section{Risks}
 
 {We are taking algorithms that are meant to analyze images and applying
-them to video. ~The transition from image to video is a step up in
-computational tractability. ~There is a risk that the increase in volume
+them to video. The transition from image to video is a step up in
+computational tractability. There is a risk that the increase in volume
 of data will cause performance issues for our program.}
 
-{Another worry is that possibly the algorithms will not generalize well
-from images to data. They have not been tested on these tasks so it is
+{Another worry is the possibly that algorithms will not generalize well
+from images to video. They have not been tested on these tasks so it is
 possible that they will create very noisy data in their output and will
 not generalise well.}
 
 \section{Costs}
 
-{For our program we will be using freely available and open source
-programs. ~The list of programs we will make use of was mentioned in
-section on off the shelf solutions (section 5.2). }
+{For our program we will be using freely available and open source programs.
+The list of programs we will make use of was mentioned in Off-the-Shelf
+Solutions (Section~\ref{off-the-shelf-solutions}).}
 
-{However for our hardware we may wish to run our own server to host the
-application. ~In this case there will be maintenance and hardware costs.
-~The maintenance will be in terms of depreciation of the equipment, the
-cost of connecting to a network and streaming data over the internet and
-power consumption. ~The power consumption however should be low.}
+{However, for our hardware we may wish to run our own server to host the
+application. In this case there will be maintenance and hardware costs.  The
+maintenance cost will be in terms of depreciation of the equipment, the cost of
+connecting to a network and streaming data over the internet and power
+consumption. The power consumption, however, should be low.}
 
-{The hardware we would need to purchase would include ~GTX 1070 and an
-Intel i5 (\$1600).}
+The hardware we would need to purchase would include an NVIDIA GTX 1070 and an
+Intel i5 (\$1600).
+
+The reason for the NVIDIA GPU is to maintain compatibility with deep learning
+libraries, which are relying on NVIDIA's proprietary CUDA hardware abstraction
+layer at the lowest level.
+
+The reason for an Intel i5 is so that the CPU will not bottleneck the GPU's
+performance.
 
 \begin{longtable}[c]{@{}ll@{}}
 \toprule
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{Desctiption}
+{Description}
 \strut\end{minipage} &
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
 {Cost}
-\strut\end{minipage}\tabularnewline
+\strut\end{minipage}\tabularnewline\midrule
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
 {GTX 1070 Intel i5}
 \strut\end{minipage} &
@@ -1232,10 +1259,14 @@ Intel i5 (\$1600).}
 \end{longtable}
 
 {The second cost that we have to consider is the amount of time that the
-project will require in order to implement. ~}
+project will require in order to implement. }
 
-{Our project we have 7 functional requirements as discussed in section 3
-of our report. ~}
+{Our project has four use-cases discussed in Section~\ref{work-partitioning} of
+our report. We estimate the amount of time required for one person to complete
+each use-case, assuming they spend 20 hours per week.}
+
+Due to the research nature of the project, these estimates are subject to
+change based on the success or failure of our prototyping efforts.
 
 \begin{longtable}[c]{@{}ll@{}}
 \toprule
@@ -1244,34 +1275,31 @@ of our report. ~}
 \strut\end{minipage} &
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
 {Time Necessary}
-\strut\end{minipage}\tabularnewline
+\strut\end{minipage}\tabularnewline\midrule
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-\begin{enumerate}
-\tightlist
-\item
-  {Web Interface Skeleton Overlay}
-\end{enumerate}
+{Web Interface Skeleton Overlay}
 \strut\end{minipage} &
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{No idea how to estimate these?}
+{Two weeks implementation, one month testing and debugging.}
 \strut\end{minipage}\tabularnewline
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{2. Web Interface Text-to-Motion}
+{Web Interface Text-to-Motion}
 \strut\end{minipage} &
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{}
+{One month implementation, two months of testing and debugging.}
 \strut\end{minipage}\tabularnewline
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{3. Interface Skeleton Overlay}
+{Software Interface Skeleton Overlay}
 \strut\end{minipage} &
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{}
+{One month research, one month implementation, two months of testing and
+        debugging.}
 \strut\end{minipage}\tabularnewline
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{4. Database Interface text to motion}
+{Database Interface text to motion}
 \strut\end{minipage} &
 \begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
-{}
+{One month implementation, two months of testing and debugging.}
 \strut\end{minipage}\tabularnewline
 \bottomrule
 \end{longtable}
@@ -1280,8 +1308,8 @@ of our report. ~}
 
 \subsection{User Documentation Requirements}
 
-{As our application will be a standalone web application we will have a
-help feature}
+{As one component of our application will be a standalone web application, we
+will have a help feature.}
 
 \begin{enumerate}
 \tightlist
@@ -1290,37 +1318,36 @@ help feature}
   program uses and their expected accuracy}
 \item
   {User Manual or help feature - instructs the user on navigating the
-  user interface, information on the contents of the database and a list
-  of contacts for additional help.}
+  user interface, provides information on the contents of the database as well
+  as a list of contacts for additional help.}
 \end{enumerate}
 
 \subsection{Training Requirements}
 
 {The intended users of our program will be machine learning experts who
 have plenty of experience working with software interfaces. So the
-training these users will need to use our program will be minimal. ~The
-software will only have the 4 features we have mentioned in our
+training these users will need to use our program will be minimal. The
+software will only have the four use-cases we have mentioned in our
 functional requirements.}
 
 \section{Waiting Room}
 
-{As we have mentioned we are using off the shelf version of for the
-machine learning algorithms. ~A next step in our project would be to
-improve on these algorithms. ~The procedures are designed for working on
-images but it would be interesting to optimize or change the algorithms
-so they take advantage of the fact that the data we are using is video
-and not strictly images.}
+{As we have mentioned we are using off the shelf version for the machine
+learning algorithms used in this project. A next step in our project would be
+to improve on these algorithms. The procedures are designed for working on
+images, but it would be interesting to optimize or change the algorithms so they
+take advantage of the fact that the data we are using is video and not strictly
+images.}
 
-{We are at the moment focusing on the human motion and labelling body
-parts. ~The motion of other objects such as cars and animals is also
-interesting. ~A next interesting step in this project would be to
+{We are at the moment focusing on human motion and labelling body
+parts. The motion of other objects such as cars and animals is also
+interesting. A next interesting step in this project would be to
 consider the motion of a more diverse range of objects.}
 
 \section{Ideas for Solutions}
 
-{The ultimate solution of the product is the generation of the video
-from the text. This is the step that is to be taken after our project is
-complete. ~}
+{The ultimate solution of the product is the generation of animated motion from
+text. This is the step that is to be taken after our project is complete.}
 
 \bibliographystyle{IEEEtran}
 \bibliography{IEEEabrv,SoftwareRequirementsSpecification}
