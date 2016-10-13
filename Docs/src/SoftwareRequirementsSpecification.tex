@@ -1,0 +1,1516 @@
+% Original work copyright 2014 Jean-Philippe Eisenbarth
+% Modified work copyright 2016 of Brendan Duke and Jordan Viveiros.
+
+% This program is free software: you can
+% redistribute it and/or modify it under the terms of the GNU General Public
+% License as published by the Free Software Foundation, either version 3 of the
+% License, or (at your option) any later version.
+% This program is distributed in the hope that it will be useful,but WITHOUT ANY
+% WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+% PARTICULAR PURPOSE. See the GNU General Public License for more details.
+% You should have received a copy of the GNU General Public License along with
+% this program.  If not, see <http://www.gnu.org/licenses/>.
+
+% Based on the code of Yiannis Lazarides
+% http://tex.stackexchange.com/questions/42602/software-requirements-specification-with-latex
+% http://tex.stackexchange.com/users/963/yiannis-lazarides
+% Also based on the template of Karl E. Wiegers
+% http://www.se.rit.edu/~emad/teaching/slides/srs_template_sep14.pdf
+% http://karlwiegers.com
+\documentclass{scrreprt}
+\usepackage{listings}
+\usepackage{underscore}
+\usepackage[bookmarks=true]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{xcolor}
+\usepackage{indentfirst}
+\usepackage[section]{placeins}
+\usepackage{graphicx}
+\usepackage{graphics}
+\usepackage{longtable}
+\usepackage{booktabs}
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\hypersetup{
+    bookmarks=false,    % show bookmarks bar?
+    pdftitle={Software Requirement Specification},    % title
+    pdfauthor={Jean-Philippe Eisenbarth},                     % author
+    pdfsubject={TeX and LaTeX},                        % subject of the document
+    pdfkeywords={TeX, LaTeX, graphics, images}, % list of keywords
+    colorlinks=true,       % false: boxed links; true: colored links
+    linkcolor=blue,       % color of internal links
+    citecolor=black,       % color of links to bibliography
+    filecolor=black,        % color of file links
+    urlcolor=purple,        % color of external links
+    linktoc=page            % only page is linked
+}%
+\def\myversion{0.0 }
+\date{}
+%\title{%
+
+%}
+\usepackage{hyperref}
+\begin{document}
+
+\begin{flushright}
+    \rule{16cm}{5pt}\vskip1cm
+    \begin{bfseries}
+        \Huge{SOFTWARE REQUIREMENTS\\ SPECIFICATION}\\
+        \vspace{1.4cm}
+        for\\
+        \vspace{1.4cm}
+        CS 4ZP6 Capstone Project\\
+        \vspace{1.4cm}
+        \LARGE{Version \myversion}\\
+        \vspace{1.4cm}
+        Prepared by Brendan Duke, Andrew Kohnen, Udip Patel, David Pitkanen, Jordan Viveiros\\
+        \vspace{1.4cm}
+        Using Volere Template Edition 13\\
+        \vspace{1.4cm}
+        McMaster Text to Motion Database\\
+        \vspace{1.4cm}
+        \today\\
+    \end{bfseries}
+\end{flushright}
+
+\tableofcontents
+
+\chapter*{Revision History}
+
+\begin{center}
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+            Name & Date & Reason For Changes & Version\\
+        \hline
+	    Brendan Duke & Oct. 7th, 2016 & Initial Version & 0.0\\
+        \hline
+    \end{tabular}
+\end{center}
+
+\newcounter{ConstraintNumber}
+\newcounter{RequirementNumber}
+
+% Requirement template -------------------------------------------------------
+\newcommand{\requirement}[9]{%
+\fbox{\parbox{\textwidth}{%
+\parbox[t]{.333\textwidth}{\raggedright%
+\textbf{Req. \#}: \refstepcounter{RequirementNumber} \arabic{RequirementNumber} \label{#1}}%
+\parbox[t]{.333\textwidth}{\centering%
+\textbf{Req. Type}: #2}%
+\parbox[t]{.333\textwidth}{\raggedleft%
+\textbf{Use Case \#}: \ref{#3}}
+\newline\\
+\textbf{Description}: #4\\\\
+\textbf{Rationale}: #5\\\\
+\textbf{Originator}: #6\\\\
+\textbf{Fit Criterion}: #7\\\\
+\textbf{Priority}: #8 \hfill \textbf{History}: #9\\\\
+}}}
+% End Requirement template ---------------------------------------------------
+
+\chapter{Project Drivers}
+
+\section{The Purpose of the Project}
+
+\subsection{The User Business or Background of the Project Effort}
+
+There is an existing project at the University of Guelph that aims to create a
+system for ``computational storytelling''. The goal of the computational
+storytelling project is to create a system that takes as input a basic story
+composed of five sentences, and outputs an animated movie based on the story,
+which is produced in collaboration between an AI and human director.
+
+As an initial step in the computational storytelling project, the University of
+Guelph group requires a database of ``human motion'' that is stored with rich
+text annotations. Such a database is required as a source of training data for
+the computational storytelling project to use in their methods to convert text
+to animated motion.
+
+No satisfactory database of human motion data that is stored with associated
+text descriptions exists currently. However, there are existing databases of
+videos of people doing various actions with accompanying text describing those
+actions, for example the Charades database or MSR-VTT.
+
+Our McMaster group has been approached to assist in this initial step in the
+computational storytelling project in two ways.  Firstly, we are to develop
+software, based on existing research, that is able to process video and derive
+human motion data (e.g. joint positions over time) from the video. Secondly, we
+are to utilize data from an existing database that already has text
+annotations, such as Charades, using our video-to-motion processing software to
+generate a new database that contains both rich text annotations and motion data.
+
+\subsection{Goals of the Project}
+
+The goal of this project is to create a database, web-interface to said
+database, and a deployable software bundle providing access to
+already-established human pose estimation methods. Creating this database,
+website and software suite will allow the larger text-to-motion project to use
+the relationships between motion data and text annotations developed through
+the pose estimation software in order to provide a pose and word pairing, which
+can be used for animation.
+
+\section{The Client, the Customer, and Other Stakeholders}
+
+\subsection{The Client}
+
+The current clients for this project are Dr.\ Taylor and his graduate student
+Thor Jonsson. Dr.\ Taylor is the primary driver to develop a website and
+database where annotated motion information can be generated and pulled from as
+a growth point into the larger text to motion project. They will be using the
+database to train Recurrent Neural Networks (RNNs) that will pair actions and
+their pose found within the database to words or combinations found in the
+input story.
+
+\subsection{The Customer}
+
+The customers are included within the clients since building this database and
+website combination will be utilized by Dr.\ Taylors research team and their
+external partners. In addition to Dr.\ Taylor and his research team this project
+would appeal to anyone that needed a pairing of actions and pose estimations as
+the website would be readily available to others.
+
+In general, customers of the product will be researchers in the machine
+learning community who are interested in multi-modal learning, and specifically
+in systems that link text to human motion. Said customers will have a high
+degree of knowledge related to machine learning theory. However, they cannot be
+assumed to have a high degree of skill in any programming language with a steep
+skill curve, such as C++ or Haskell. Also, the customer is unlikely to be
+willing to invest a large amount of time in learning how to use the software
+produced by the McMaster Text-to-Motion project.
+
+\subsection{Other Stakeholders}
+
+Other stakeholders affected by the project include Dr.\ He, our group's internal
+supervisor and teacher of the CS 4ZP6 Capstone Project course, and the team
+members of our group.
+
+Dr.\ He is a professor at McMaster who may not have the same specialized
+research knowledge as members of Dr.\ Taylor's group. Dr.\ He requires an
+explanation of all aspects of the project, as she will be responsible for
+assigning a grade to the entire group. Dr.\ He will require updates on the
+progress of the group in the form of deliverables that are part of the CS 4ZP6
+syllabus.
+
+The members of our CS 4ZP6 capstone group, namely Brendan Duke, Andrew Kohnen,
+Udip Patel, David Pitkanen and Jordan Viveiros, are also stakeholders affected
+by the project. For the most part, our group members did not have any
+specialized knowledge related to the project before commencing, although that
+knowledge is being acquired as the project progresses. The group members will
+require full involvement in all aspects of the project, as well as supporting
+knowledge and direction from Thor Jonsson and Dr.\ Taylor.
+
+\section{Users of the Product}
+
+\subsection{The Hands-on Users of the Product}
+
+\begin{center}
+    \begin{tabular}{ | p{2cm} | p{4cm} | p{2cm} | p{4cm} |}
+    \hline
+    User Category & User Role & Subject Matter Experience &
+    Technological Experience \\ \hline
+    Dr.\ Taylor's Group & Using the database to train an RNN to create
+            animations from text. & Master & Master \\
+    Other machine learning researchers & Using the product for any multi-modal
+            machine learning use-case involving text and human motion. & Master
+            & Journeyman. This user category cannot be assumed to have a high
+            degree of skill in complex programming languages such as C++. \\
+    Amateur machine learning enthusiasts & Using the McMaster Text-to-Motion
+            database and software suite to learn about multi-modal machine
+            learning and human pose estimation. & Journeyman & Journeyman \\
+    \hline
+    \end{tabular}
+\end{center}
+
+\subsection{Priorities Assigned to Users}
+
+Our \textbf{key users} are members of Dr.\ Taylor's research group.
+\textbf{Secondary users} are other members of the machine learning community.
+Amateur machine learning enthusiasts are \textbf{unimportant users}.
+
+\subsection{User Participation}
+
+Thor Jonsson and Dr.\ Taylor will be expected to assist in supporting our group
+with their domain knowledge of deep learning methods. They will also be
+expected to participate in shaping the interfaces to the product (both the web
+interface and the programming interface to the database) by using the
+prototypes of those interfaces and providing feedback.
+
+The minimum amount of participation from Dr.\ Taylor and Thor would be
+participation in a meeting with our group members on a bi-weekly to monthly
+basis, as well as participating in weekly correspondence electronically (e.g.
+by e-mail).
+
+\subsection{Maintenance Users and Service Technicians}
+
+Maintenance users would certainly be members of Dr.\ Taylor's research group,
+as they will be using the software produced by the project after its completion
+and may need to add changes to the product.
+
+Once the product is open-sourced into the community, maintenance users could
+range from machine learning researchers to amateur machine learning
+enthusiasts. These users could be expected to fix bugs or add new features that
+were not in the initial scope of the project.
+
+\chapter{Project Constraints}
+
+Note that constraints also use the requirement shell, and therefore also use
+the requirement numbering.
+
+Customer satisfaction and dissatisfaction have been evaluated in the "Priority" entry.
+
+Also there are no conflicts between requirements, or supporting materials, so
+these entries have been dropped.
+
+\section{Mandated Constraints}
+
+\subsection{Solution Constraints}
+\label{req-solution-constraint}
+
+\requirement
+{Constraint_DeepLearningMethods}
+{\ref{req-solution-constraint} Solution Constraint}
+{software-skeleton-event}
+{The human pose estimation component should use deep learning methods.}
+{This constraint is to allow Dr.\ Taylor's group to integrate the software into
+ their existing text-to-motion pipeline.}
+{Dr.\ Graham Taylor}
+{Dr.\ Taylor should confirm that the deep learning methods used in the human
+ pose estimator are satisfactory.}
+{High}
+{Created September 26th, 2016.}
+
+\requirement
+{Constraint_DataStorageFormat}
+{\ref{req-solution-constraint} Solution Constraint}
+{database-text-to-motion-event}
+{Use a standard format such as LMDB or HDF5 for storing text-motion data.}
+{Having the data in a standard format will enable users to re-use existing code
+ to manipulate that data.}
+{Thor Jonsson }
+{Run a set of existing tests to manipulate the standard data format (e.g. LMDB)
+ and assert that those tests must pass.}
+{High}
+{Created October 3rd, 2016.}
+
+\subsection{Implementation Environment of the Current System}
+\label{req-implementation-environment}
+
+\requirement
+{Constraint_Linux}
+{\ref{req-implementation-environment} Implementation Environment}
+{software-skeleton-event}
+{The Text-to-Motion Software Suite must run under Linux.}
+{Linux is the operating system used by the Guelph Machine Learning research
+ lab, and also the most commonly used operating system in the research
+ community.}
+{Dr.\ Graham Taylor}
+{Automated builds and testing should pass on popular Linux distributions:
+ Ubuntu, Fedora and RHEL.}
+{High}
+{Created September 26th, 2016.}
+
+\requirement
+{Constraint_PythonAPI}
+{\ref{req-implementation-environment} Implementation Environment}
+{software-skeleton-event}
+{Major APIs to the Text-to-Motion database must be accessible from the Python
+ programming language.}
+{Python is the language used by the rest of Dr.\ Taylor's text-to-motion
+ pipeline. Python is a popular, easy-to-use, and quick-to-prototype language,
+ and is therefore one of the most favoured programming languages among the
+ Machine Learning research community.}
+{Dr.\ Graham Taylor}
+{There must be hooks to all major interfaces written in Python, and there must
+ be tests that are directly testing the Python interfaces.}
+{High}
+{Created September 26th, 2016.}
+
+\subsection{Partner or Collaborative Applications}
+
+The McMaster Text-to-Motion database software will collaborate with the rest of
+the University of Guelph group's text-to-motion pipeline. While their
+application is still in a research stage, we can expect that their application
+will be written in Python.
+
+Furthermore, the animation component of Dr.\ Taylor's group's project will be
+using the proprietary software application Muvizu.
+
+\subsection{Off-the-Shelf Software}
+
+There are a number of off-the-shelf libraries that can and should be used by
+this project in order to implement the requirements. In particular, deep
+learning libraries should be used for the training of neural networks and for
+doing numerical computations.
+
+Two notable deep learning frameworks are listed below.
+
+\textbf{Caffe}, originally developed by the Berkeley Vision and Learning Center
+(BVLC),  is a deep learning framework written in C++ with Python and Matlab
+wrappers.
+
+Caffe has a strong ConvNet implementation and is popular amongst the
+computer vision community. However, Caffe's RNN implementation and support for
+language models is lacking compared with other libraries.
+
+Caffe is released under the BSD 2-Clause license.
+
+\textbf{TensorFlow}, originally developed by researchers at Google, is a deep
+learning and numerical computation framework written in C++ and Python.
+
+TensorFlow has a clean, modular architecture and since it provides both Python
+and C++ interfaces, code can be prototyped in a rich high-level interpreted
+language before deployment in a high-performance, scalable environment.
+
+TensorFlow is open sourced under the Apache 2.0 open source license.
+
+It will also be necessary to use a library for accessing video codecs. This is
+in order to convert video streams to and from sets of images, which will be
+input to the human pose estimation software.
+
+\textbf{FFmpeg} is a leading multimedia framework that is able to decode and
+encode video, in addition to having many other features. FFmpeg can be utilized
+for any video encoding and decoding purposes in the project.
+
+To implement search-by-text functionality into the McMaster Text-to-Motion
+Database, it will be helpful to leverage an existing software package that
+implements full-text search.
+
+\textbf{Sphinx} is such a software package, as it implements full-text search.
+Sphinx also integrates well with SQL databases.
+
+Sphinx is licensed under GPL version 2.
+
+\subsection{Anticipated Workplace Environment}
+
+As the McMaster Text-to-Motion Database is a software product, there are no
+requirements considerations specifically pertaining to the anticipated
+workplace environment of users of the product. Any considerations of
+environment, such as operating system environment, have already been covered
+under the ``Implementation Environment'' section.
+
+\subsection{Schedule Constraints}
+\label{req-schedule-constraint}
+
+\requirement
+{Constraint_DemoSchedule}
+{\ref{req-schedule-constraint} Schedule Constraint }
+{software-skeleton-event}
+{A demonstration of the product must be completed by February 13th, 2017.}
+{This is a deadline that is part of the CS 4ZP6 course.}
+{Dr.\ Wen Bo He}
+{By February 13th, 2017, fully functional versions of the web interface,
+ database interface and human pose estimation software must all be working as
+ verified by Dr.\ He.}
+{High}
+{Created September 26th, 2016.}
+
+\requirement
+{Constraint_ProjectDeadline}
+{\ref{req-schedule-constraint} Schedule Constraint}
+{software-skeleton-event}
+{The project must be completed by April 5th, 2017.}
+{The project is part of the CS 4ZP6 Capstone Project course.}
+{Dr.\ Wen Bo He}
+{All documentation, testing and implementation must be completed and checked in
+ to GitHub by April 5th, 2017.}
+{High}
+{Created September 21th, 2016.}
+
+\subsection{Budget Constraints}
+
+There is no budget allocated for this project. As such, hardware requirements
+such as GPUs to carry out the computations required for the project must be
+provided by the client, Dr.\ Taylor, or borrowed through other means such as
+seeking help from McMaster professors.
+
+\section{Naming Conventions and Definitions}
+
+\subsection{Definitions of All Terms, Including Acronyms, Used in the Project}
+
+\textbf{The Project} when used, is referring to the McMaster Text to Motion
+Database project. The project aims to generate a database of human pose
+estimation model information that is linked to videos of human motion
+containing rich text annotations.
+
+\textbf{Human Pose Estimation} is the process of estimating the configuration,
+or pose, of the body based on a single still image or a sequence of images that
+comprise a video. Human pose estimation may find the chin, radius, humerus, and
+other bone and joint positions.
+
+\textbf{Charades} is a dataset composed of approximately 10K videos of daily
+indoor activities, complete with associated action-describing sentences,
+collected through Amazon Mechanical Turk\cite{charades}.
+
+\textbf{MSR-VTT}, standing for ``Microsoft Research Video to Text'', is a
+large-scale video benchmark for the task of translating video to text. MSR-VTT
+provides 10K video clips spanning 41.2 hours and containing 200K clip-sentence
+pairs in total\cite{msr-vtt}.
+
+\textbf{Feedforward Neural Networks} are artifical neural networks where
+connections between the units do \textit{not} form a cycle). They are the
+simplest type of neural network, because information moves in only one
+direction.
+
+\textbf{ConvNets} or \textbf{Convolutional Neural Networks} are a type of
+feed-forward artificial neural network. ConvNets are inspired by the visual
+cortex and are commonly used in visual recognition applications.
+
+\textbf{RNNs} or \textbf{Recurrent Neural Networks} are a class of artificial
+neural networks where units form a directed cycle, in contrast with
+feed-forward neural networks.
+
+\textbf{Deep Belief Networks} are a type of deep neural network composed of
+multiple layers of ``hidden units'' (variables that are not observable), with
+connections between layers but not between units of a given layer.
+
+\textbf{Multi-modal neural language models} are models of natural language that
+can be conditioned on other modalities, e.g. high-level image
+features\cite{DBLP:journals/corr/KirosSZ14}.
+
+\textbf{Muvizu} is an interactive 3D animation package designed for quick storytelling.
+
+An \textbf{autoencoder} is an artificial neural network used to learn a
+representation of a set of data. The simplest form of an autoencoder is a
+feed-forward neural net with an input layer, an output layer, and one or more
+hidden layers. Instead of being trained to predict an output $Y$ from input
+$X$, an autoencoder is trained to reconstruct its own input $X'$ from $X$.
+
+\textbf{Ground truth} refers to the expected classification, i.e. the expected
+output in a machine learning classification problem, based on a given input.
+
+\textbf{CMU Graphics Lab Motion Capture Database} is a dataset of human motions
+that were collected at the Motion Capture Lab of Carnegie Mellon University.
+The motion capture data was collected by recording the movements of humans
+wearing a body suit with 41 markers taped on. The 3D motion data in this
+dataset is available in two formats (.vsk/.v or .asf/.amc), which describe a
+\textit{skeleton and its joints} and \textit{movement data}, respectively.
+
+\subsection{Data Dictionary for any Included Models}
+
+Here we define the different information flows displayed in Figure
+\ref{work-context-diagram}, the work context diagram.
+
+A \textbf{skeleton overlay} refers to a set of human joint and body-part
+estimation data that has been associated with a given video stream. A skeleton
+overlay may also encompass an actual graphical stick-figure, displayed on top
+of the video stream, with circles indicating the position of each joint.
+
+\textbf{Text annotated video} refers to a video that has a time-stamped
+natural-language description associated with it. Similarly, \textbf{text
+annotated motion data} refers to human pose data that is time-stamped and
+coupled with a natural-language description of the actions comprised by those
+human pose data.
+
+\section{Relevant Facts and Assumptions}
+
+\subsection{Facts}
+
+\begin{itemize}
+        \item The training of deep neural networks can take on the order of
+                days to weeks. For example, training two of the different
+                neural network architectures used in
+                \cite{DBLP:journals/corr/PfisterCZ15} on four NVIDIA GTX Titan
+                GPUs took 3 and 7 days, respectively.
+        \item ConvNets take a fixed size input and generate a fixed size
+                output, whereas RNNs can handle arbitrary input/output lengths.
+                This is one reason why ConvNets are more popular in vision
+                applications, while RNNs are used for language applications.
+                However, neural network architectures can be used that combine
+                both ConvNets and RNNs.
+        \item The uncompressed size of the Charades dataset is 55GB at full
+                resolution, and 16GB at 480p.
+        \item The goals of this project, specifically generating a database of
+                text-annotated human motion data, constitute new research and
+                there are no existing solutions available.
+\end{itemize}
+
+\subsection{Assumptions}
+
+\begin{itemize}
+        \item It has been assumed that it is possible to re-use existing
+                software components in order to achieve the human pose
+                estimation use-case, as it would take a full eight months just
+                to implement an algorithm such as that of
+                \cite{DBLP:journals/corr/PfisterCZ15} from scratch.
+        \item It has been assumed that this project will not encompass
+                generating a dataset of videos with text annotations, and that
+                we will be able to rely on an existing dataset such as the
+                Charades dataset.
+        \item It is assumed that a storage format for human pose estimation
+                data already exists, and will be available for this project to
+                leverage.
+\end{itemize}
+
+\chapter{Functional Requirements}
+
+\section{The Scope of the Work}
+
+\subsection{The Current Situation}
+
+There is a large amount of existing research into human pose estimation, which
+this project will leverage. Based on Constraint
+\ref{Constraint_DeepLearningMethods}, we focus on existing solutions that use
+deep learning methods.
+
+\cite{DBLP:journals/corr/PfisterCZ15} present a ConvNet architecture for human
+pose estimation from videos, which is able to benefit from temporal context
+across multiple frames using optical flow. This work is focused on upper-body
+human pose estimation only.
+
+\cite{DBLP:journals/corr/BelagiannisZ16} propose a ConvNet model for predicting
+2D human body poses in an image. This model is able to achieve state-of-the-art
+results using a simple architecture, and draws on the work done in
+\cite{DBLP:journals/corr/PfisterCZ15}.
+
+\cite{DBLP:journals/corr/WeiRKS16} introduces \textit{Convolutional Pose
+Machines (CPMs)} for pose estimation in images. CPMs consist of a sequence of
+ConvNets that iteratively produce 2D belief maps. Source code from this paper
+is available, and makes use of the Caffe deep learning library.
+
+In \cite{zhou2016sparseness}, the authors estimate 3D full-body human poses
+from a monocular image sequence. They train a ConvNet to predict the locations
+of joints in 2D, then estimate human poses in 3D via an
+Expectation-Maximization algorithm over the entire video sequence.
+
+On the animation side of the larger computational storytelling problem our
+project is assisting in solving, \cite{Holden2016} use
+deep learning to synthesize character movements based on high-level parameters
+such as a curve that the character should follow. The learned motion is
+represented by the hidden units of a convolutional autoencoder.
+
+\subsection{The Context of the Work}
+
+The context diagram, displaying adjacent systems to this project, is shown in
+Figure \ref{work-context-diagram}.
+
+\begin{figure}[!ht]
+        \caption{McMaster Text-to-Motion Database Work Context Diagram}
+        \label{work-context-diagram}
+        \centering
+        \includegraphics[width=0.8\textwidth]{../data/mcmaster-text-to-motion-work-context-diagram.png}
+\end{figure}
+
+\subsection{Work Partitioning}
+\label{work-partitioning}
+
+The events/use-cases for the project are laid out in Table \ref{business-event-list-table}.
+
+\begin{table}
+\begin{enumerate}
+\caption{Business Event List}
+\label{business-event-list-table}
+    \begin{tabular}{  p{1cm} | p{3cm} | p{5cm} | p{5cm} }
+    \hline
+    Event \# & Event Name & Input and Output & Summary \\
+    \hline
+    \item \label{web-skeleton-event}
+            & Web Interface Skeleton Overlay
+            & \textbf{IN}: An image or video with humans in it.\newline
+            \textbf{OUT}: The same image or video, with a skeleton overlaid on
+            top of all humans indicating their bone and joint positions.
+            & Allow users to observe the human pose estimation component in
+            real time through a web interface.\\
+    \item \label{web-text-to-motion-event}
+            & Web Interface Text-to-Motion
+            & \textbf{IN}: Word or phrase describing a human pose or action.\newline
+            \textbf{OUT}: Rich-text-annotated video corresponding to the input
+            word/phrase, complete with overlaid skeleton.
+            & Allow users to see the output of searches on the database using
+            pose and/or action keywords, such as ``run'' or ``kneeling''.\\
+    \item \label{software-skeleton-event}
+            & Software Interface Skeleton Overlay
+            & \textbf{IN}: A stream of video with humans depicted.\newline
+            \textbf{OUT}: A set of human pose estimations corresponding to the
+            video, in a standard data format.
+            & Users should be able to use the human pose estimation solution to
+            generate their own motion data set.\\
+    \item \label{database-text-to-motion-event}
+            & Database Interface Text-to-Motion
+            & \textbf{IN}: Word or phrase describing a human pose or action.\newline
+            \textbf{OUT}: Video in common encoding (e.g. MP4), associated
+            rich-text-annotations, and human pose estimations in a standardized
+            format.
+            & Provide users direct access to the raw motion-estimation data
+            format based on action-keyword database lookup.\\
+    \hline
+    \end{tabular}
+\end{enumerate}
+\end{table}
+
+\section{The Scope of the Product}
+
+\subsection{Product Boundary}
+
+We do not include a product boundary diagram, and instead refer to Figure
+\ref{work-context-diagram}.
+
+All interfaces to the McMaster Text-to-Motion Database will be software
+interfaces except the web interfaces, which will have a human component. There
+will be a search box requiring user input to do text-to-motion lookups, and
+there will be a graphical web interface for users to upload videos to use the
+skeleton-overlay functionality.
+
+\subsection{Product Use-case List}
+
+The product use cases correspond exactly to the business events list, and
+therefore to see product use-cases one should refer to Table
+\ref{business-event-list-table}.
+
+\subsection{Individual Product Use Cases}
+
+Use cases \ref{web-skeleton-event} and \ref{web-text-to-motion-event} would be
+used in a scenario where the user is looking to do experiments with immediate
+feedback, in order to gain intuition about the product's functionality. E.g. a
+researcher may want to use the Web Interface Skeleton Overlay feature (use case
+\ref{web-skeleton-event}) to visually gauge the human pose estimation
+software's accuracy before spending the time to process a large amount of video
+data.
+
+Use cases \ref{software-skeleton-event} and \ref{database-text-to-motion-event}
+could be used in a more large scale experiment. E.g. human motion data could be
+attached to a large amount of video data using use case
+\ref{software-skeleton-event}, or a large amount of text-annotated motion data
+could be retrieved from the database programmatically using use case
+\ref{database-text-to-motion-event}.
+
+\section{Functional and Data Requirements}
+
+\subsection{Functional Requirements}
+\label{req-functional-requirement}
+
+\requirement
+{Req_FrameEncodeDecode}
+{\ref{req-functional-requirement} Functional Requirement}
+{software-skeleton-event}
+{The text-to-motion software suite will provide an API to read individual
+ frames in RGB format from a video stream. At least MP4, MP2 and AAC must be
+ supported.}
+{Researchers may wish to do their own processing on RGB frames before feeding
+ those frames into the human pose estimation module.}
+{Brendan Duke}
+{For a given set of test video streams, the frame-capture API must produce RGB
+ frames identical to known reference frames.}
+{Moderate}
+{Created October 5th, 2016.}
+
+\requirement
+{Req_VideoProcessingCorrectness}
+{\ref{req-functional-requirement} Functional Requirement}
+{software-skeleton-event}
+{The skeleton overlay software must output a set of human pose data that is
+ time-stamped and accurate to the ground truth joint positions in the frames
+ corresponding to those time stamps.}
+{If the software does not have accurate output, then the output cannot be used
+ to generate human motion.}
+{Brendan Duke}
+{A set of double-blind tests should be designed that allows test subjects to
+ compare the human pose data output from the McMaster Text-to-Motion software
+ suite again human motion skeletons rendered from the CMU Graphics Lab Motion
+ Capture Database. The fit criterion would be that the human motion data
+ produced by the McMaster software is statistically indistinguishable from
+ CMU's MoCap data from sensors on actual humans.}
+{High}
+{Created September 26th, 2016.}
+
+\requirement
+{Req_EveryVideoRetrievable}
+{\ref{req-functional-requirement} Functional Requirement}
+{database-text-to-motion-event}
+{The domain of inputs to the text-to-motion database search should output a
+ range that covers the entire set of videos in the database.}
+{There is text associated with each video, therefore for every video there
+ should be some set of matching text that can retrieve it.}
+{Brendan Duke}
+{A test application could be designed to intentionally pull text data from the
+ description of each video and assert that the video from which that text data
+ was obtained appears in the output of the search.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoNoFalsePositives}
+{\ref{req-functional-requirement} Functional Requirement}
+{database-text-to-motion-event}
+{The videos retrieved from a text-to-motion search should not contain any
+ results with text descriptions not containing the search terms.}
+{False positives would make the text-to-motion retrieval difficult to use,
+ since returned videos would not reliably match the search terms.}
+{Brendan Duke}
+{A test application could be designed to, for each video, search a random set
+ of terms not in that video's text description and assert that the given video
+ is not returned in the search results.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-functional-requirement} Functional Requirement}
+{database-text-to-motion-event}
+{The videos retrieved from a text-to-motion search should be ordered by relevance.}
+{Users will want to use the motion data that most closely fits the text they
+ have searched for.}
+{Brendan Duke}
+{A smaller set of test data can be created by hand and sorted by a human, and
+ the results can be compared against an expected output, also generated by hand.
+ The output from a larger set of test data could be compared against the output
+ from a known full-text search engine, such as Sphinx, or if we are using
+ Sphinx, then Lucene.}
+{High}
+{Created October 10th, 2016.}
+
+\subsection{Data Requirements}
+
+The McMaster Text-to-Motion project is not strictly adhering to an
+object-oriented design, and therefore there is no class model that must be
+followed as part of the requirements.
+
+Interactions between classes, or modules, will be diagrammed as part of the
+module hierarchy during the design iterations of the project development.
+
+\chapter{Nonfunctional Requirements}
+
+\section{Look and Feel Requirements}
+
+\subsection{Appearance Requirements}
+\label{req-appearance}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-appearance} Appearance Requirement}
+{web-skeleton-event} % add <web-text-to-motion-event>
+{The web interface shall have a color-scheme that is focused on contrast.}
+{A color shceme with bright and dark colors clashing is bound to captivate users of the website.}
+{Udip Patel}
+{At least 6 out of every 10 users should be left with a positive impression of the color scheme.}
+{Low}
+{Created October 8th, 2016.}
+
+\subsection{Style Requirements}
+\label{req-style}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-style} Style Requirement}
+{web-skeleton-event} % add <web-text-to-motion-event>
+{The web interface shall be designed to look minimalistic (in terms of text) and visually informative through graphs and other visual aides.}
+{To be able to convey the complex processes of a deep learning model in a simple way that can be understood by any end user, regardless of their level of knowledge. The amount of text displayed should also be minimized to avoid overwhelming a first-time user with too much information.}
+{Udip Patel}
+{The web interface shall be able to display a graph that tracks how the deep learning model analyzes an input image. This is similar to an open-source website called \href{http://playground.tensorflow.org/}{TensorFlow Playground}.}
+{Low}
+{Created October 8th, 2016.}
+
+\section{Usability and Humanity Requirements}
+
+\subsection{Ease of Use Requirements}
+\label{req-ease-of-use}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-ease-of-use} Ease of Use Requirement}
+{web-skeleton-event} % add <web-text-to-motion-event>
+{The functionalites of the web interface shall be easy to use for any casual internet user above the age of 12 who understands how to upload and download files to a website.}
+{Having a simpler interface can open up this web app to a lot of potential users.}
+{Udip Patel}
+{Any end user at least 12 years of age shall be able know how to upload an image to the web interface within 15 seconds of visiting the website.}
+{Low}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-ease-of-use} Ease of Use Requirement}
+{web-skeleton-event}
+{The user shall not be expected to remember anything to be able to interact with the Web Interface.}
+{This is just to reduce the amount of work that the user has to do in order to be able to get the desired result.}
+{Udip Patel}
+{The Web Interface shall only ask for images, videos or text from the user, and without prompting the user again, it will return the given image or video (with or without text annotations).}
+{Low}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-ease-of-use} Ease of Use Requirement}
+{web-text-to-motion-event}
+{The user shall be able to type in a descriptive word or phrase into a text box that will be easy to find from the web interface.}
+{This way, the functionality provided by the web application will be made obvious and accessible to the user.}
+{Udip Patel}
+{The end user shall be able to input one word or phrase into the text box (written in HTML/CSS) using their keyboard, and be able to click on a 'Submit' button to view the functionality of thew web app.}
+{Medium}
+{Created October 10th, 2016.}
+
+\subsection{Personalization and Internationalization Requirements}
+
+As of Revision 0, there are no requirements for Language support. Since the web Interface and the Software Interface would rely on Natural Language Processing for English, adding language support for multiple languages would be too large of a feature to implement for now.
+
+\subsection{Learning Requirements}
+\label{req-learning}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-learning} Learning Requirement}
+{web-skeleton-event}
+{Any end-user shall be able to use the web application and generate a skeleton-overlay without having any prior training.}
+{This is because all the user needs to be able to do is upload and download a file to/from the website.}
+{Udip Patel}
+{Any user that visits the website shall be able to understand how to use the skeleton-overlay functionality within 1 minute of visiting the website.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-learning} Learning Requirement}
+{web-text-to-motion-event}
+{Any end-user shall be able to use the web application to instantiate a 'text-to-motion' event without having any prior training.}
+{This is because all the user needs to do is type in a descriptive word or phrase into a text box.}
+{Udip Patel}
+{Any user that visits the website shall be able to understand how to use the 'text-to-motion' functionality within 30 seconds of visiting the website.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-learning} Learning Requirement}
+{software-skeleton-event} % ADD <database-text-to-motion-event>
+{The functionalities of the software interface shall be easily understood by programmers who have experience with APIs.}
+{This is because using a command line API still takes some base knowledge of software to set up, and we cannot assume that every user will be able to set up our API without any problems even if they follow all of the detailed steps.}
+{Udip Patel}
+{Any user should be able to set up the Software Interface and be able to use its functionalities (described in events 3 and 4) through the command line interface within 15 minutes.}
+{Medium}
+{Created October 10th, 2016.}
+
+\subsection{Understandability and Politeness Requirements}
+\label{req-understandability-politeness}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-understandability-politeness} Understandability and Politeness Requirement}
+{web-skeleton-event}
+{The end user of the web interface shall not be able to see the inner workings
+of the deep learning model that is used to estimate the human pose or action
+from an image/video}
+{This is because the user should be obscured from having to deal with the
+complexities of deep learning. Furthermore, it would be computationally
+expensive to show the users such low-level detail in a way that they could
+understand it.}
+{Udip Patel}
+{The end user of the web interface shall be able to get a valid output from the
+skeleton-overlay function without seeing any of the deep learning code or
+processes.}
+{High}
+{Created October 10th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-understandability-politeness} Understandability and Politeness Requirement}
+{database-text-to-motion-event}
+{The end user of the software interface shall not know how the program is able
+to map a word or phrase to a human pose or action}
+{Using the software interface should be simple, and if we show these highly
+complex data mappings to the user, we might risk overwhelming the user by
+giving them a large amount of information that is of very little use.}
+{Udip Patel}
+{The end user of the web interface shall be able to get a valid output from the
+software interface without being exposed to the database mappings that are used
+to determine the valid output.}
+{High}
+{Created October 11th, 2016.}
+
+\subsection{Accessibility Requirements}
+\label{req-accessibility}
+As of Revision 9, there are no accessbility requirements for this application.
+Since both interfaces only contain a virtual/visual component and no physical
+mechanisms, there is no need to provide any accessibility requirements for now
+
+\section{Performance Requirements}
+
+\subsection{Speed and Latency Requirements}
+\label{req-speed-latency}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-speed-latency} Speed and Latency Requirement}
+{web-skeleton-event}
+{The web interface shall be able to connect to an external database with no problems and be able to store items and query for them quickly }
+{The speed is necessary here because generating the actual output itself is going to be computationally intensive so the program should not be spend a lot of time waiting on responses from the database.}
+{Udip Patel}
+{The speed can be tested through a test that measures throughput of database updates and queries.}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-speed-latency} Speed and Latency Requirement}
+{software-skeleton-event}
+{The software interface's deep learning model shall be able to process an image (RGB format) in a span of one minute or a set of frames in relative time (ex. 5 frames = 5 minutes)}
+{The deep learning model is the most computationally expensive aspect of the software interface, and thus, should be able to process images/videos quickly enough so that the user does not find the process too time consuming.}
+{Udip Patel}
+{The Quantative goal has been mentioned in the Description. The deep learning model shall be able to process an image in a span of 1 minute}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-speed-latency} Speed and Latency Requirement}
+{web-text-to-motion-event}
+{The web interface, given a word or phrase as input, shall be able to respond with an output of an image/video detailing a pose or action within 2 minutes}
+{The web interface will need a considerable amount of time to process the request since it has to be able to parse the text input, be able to interpret it as a description of a pose or action using a set of defined database mappings. The web interface is is then responsible for constructing a visual object that encapsulates all of the bone and joint positions and exporting the object in a standardized data format. This is a very time consuming set of processes to compute, so it should be expected to take at least 2 minutes.}
+{Udip Patel}
+{The Quantative goal has been mentioned in the Description. The entire workset shall be completed in a span of 2 minutes, the workset itself: 1) parsing input, 2) mapping the text input to a description, 3) generating a visual object based on the description, 4)exporting the object in a data format that is accessible to the user }
+{High}
+{Created October 11th, 2016.}
+
+\subsection{Safety-Critical Requirements}
+\label{req-safety-critical}
+As of Revision 0, there are no safety critical requirements. Both of the interfaces are very simple in terms of the output they produce, and even if the program is fed with bad input, there will be no actual physical or virtual damage to the system.
+
+\subsection{Precision or Accuracy Requirements}
+\label{req-precision-accuracy}
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-precision-accuracy} Precision and Accuracy Requirement}
+{database-text-to-motion-event}
+{The software interface shall be able to deliver a data object that can accurately encapsulate the bone positions and joint angles of a human being's skeleton}
+{The software interface would not be very useful to the end user if it is not able to accurately portray a human bodym, so this is a very high priority requirement.}
+{Udip Patel}
+{The software interface shall be able to create a data object that can use vectors to provide the positions of well-defined bones relative to each other in a 3D grid. The vectors which describe the bones should all be able to correspond to the anatomical proportions of an average human, with an uncertainty of 5 percent.}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-precision-accuracy} Precision and Accuracy Requirement}
+{web-skeleton-event}
+{Given an image or a set of frames as its input, the web interface shall be able to accurately draw a skeleton overlay around a human being, if one is found in the given image or set of frames}
+{This is one of the main use cases of the web interface, so it stands to reason that the web interface should be able to provide an accurate skeleton overlay. This is crucial to the satisfaction of the customer or end user }
+{Udip Patel}
+{The web interface shall be able to draw an outline around a human being in a picture or set of frames with an uncertainty of 20 pixels (+-).}
+{High}
+{Created October 11th, 2016.}
+
+\subsection{Reliability and Availability Requirements}
+\label{req-reliability-availability}
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-reliability-availability} Reliability and Availablilty Requirement}
+{software-skeleton-event}
+{The software interface shall be available for use 24 hours a day, 365 days a year.}
+{This will make it so that the user is able to decide when they want to use the functionality, and will not be constrained by any scheduling issues.}
+{Udip Patel}
+{The quantative goal of this requirement has been stated in the description}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-reliability-availability} Reliability and Availablilty Requirement}
+{web-skeleton-event}
+{The web interface shall be available for use 24 hours a day, 365 days a year, except for when the system has to be audited, tested or migrated to a different environment}
+{Any standard web app should be available for use at any time, this is a major standard in web development, so this project aims to abide by it.}
+{Udip Patel}
+{The quantative goal of this requirement has been stated in the description}
+{High}
+{Created October 11th, 2016.}
+
+\subsection{Robustness or Fault-Tolerance Requirements}
+
+\label{req-robustness}
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-robustness} Robustness or Fault-Tolerance Requirement}
+{web-skeleton-event}
+{The web interface shall throw error messages for every possible exception or error caught}
+{To let the users know when they have done something wrong or are not using the web interface as intended. This will also help the users learn how to interact correctly with the web interface}
+{Udip Patel}
+{The web interface shall be able to recognize when the set of inputs is invalid, and shall alert the user with a error message right away}
+{High}
+{Created October 11th, 2016.}
+
+\requirement
+{Req_RetrievedVideoRelevance}
+{\ref{req-robustness} Robustness or Fault-Tolerance Requirement}
+{web-text-to-motion-event}
+{The web interface shall filter the input word or phrase before passing the text to the database, where it can be processed}
+{This is to avoid making confusing requests to the database. If an unintelligible word or phrase is entered, there is no need to apply the database mapping functionality because it will not be able to return a significant response.}
+{Udip Patel}
+{The web interface shall be able to parse the text input to weed out unintelligible words or curse words and be able to respond to the user with an error message right away }
+{High}
+{Created October 11th, 2016.}
+
+\subsection{Capacity Requirements}
+
+N/A
+
+\subsection{Scaling of Extensibility Requirements}
+
+N/A
+
+\subsection{Longevity Requirements}
+
+N/A
+
+\section{Operational and Environmental Requirements}
+
+\subsection{Expected Physical Environment}
+
+N/A
+
+\subsection{Requirements for Interfacing with Adjacent Systems}
+
+N/A
+
+\subsection{Productization Requirements}
+
+N/A
+
+\subsection{Release Requirements}
+
+N/A
+
+\section{Maintainability and Support Requirements}
+
+\subsection{Maintenance Requirements}
+
+N/A
+
+\subsection{Supportability Requirements}
+
+N/A
+
+\subsection{Adaptability Requirements}
+
+There are currently no plans to adapt the McMaster Text-to-Motion software to
+any platform besides those mentioned in constraints \ref{Constraint_Linux} and
+\ref{Constraint_PythonAPI}.  Therefore we do not consider adaptability
+requirements in the scope of this document.
+
+\section{Security Requirements}
+
+\subsection{Access Requirements}
+
+There is no data considered sensitive in our product. After deployment the
+entire product will be openly available. Therefore we do not consider any
+special access-privilege requirements.
+
+\subsection{Integrity Requirements}
+\label{req-integrity}
+
+\requirement
+{Req_DataIntegrity}
+{\ref{req-integrity} Integrity Requirement}
+{database-text-to-motion-event}
+{The motion data stored on our server should maintain its integrity despite any
+attempts at attack.}
+{Researchers will rely on the integrity of our text and motion data.}
+{Brendan Duke}
+{Since the data is static, it would be possible to keep a hash of the data and
+check periodically that it is the same. The hash of the data should be stored
+somewhere secure where the hash itself cannot be updated.}
+{High}
+{Created October 10th, 2016.}
+
+\subsection{Privacy Requirements}
+
+Users should not be submitting any private or sensitive information to the
+McMaster Text-to-Motion software, and therefore we do not consider any privacy
+requirements for this project.
+
+\subsection{Audit Requirements}
+
+There are no required audit checks that must be complied with by the software.
+
+\subsection{Immunity Requirements}
+
+As the software includes a user-mode program and a web application running in a
+browser, the software cannot introduce security vulnerabilities in users'
+systems that do not already exist in their operating system or browser.
+Therefore we do not consider immunity requirements for the software.
+
+\section{Cultural and Political Requirements}
+
+\subsection{Cultural Requirements}
+
+There are no cultural factors affecting the acceptability of the McMaster
+Text-to-Motion project.
+
+\subsection{Political Requirements}
+
+There are no political factors affecting the acceptability of the McMaster
+Text-to-Motion project.
+
+\section{Legal Requirements}
+
+\subsection{Compliance Requirements}
+\label{req-compliance}
+
+\requirement
+{Req_Licensing}
+{\ref{req-compliance} Compliance Requirement}
+{software-skeleton-event}
+{The licensing conditions of any open-source software included as part of this
+product must be adhered to. E.g., if a GPL 2 component is used, then the source
+code of our product will have to be distributed with the product.}
+{Legal action against us could be pursued by the authors of the open-source
+software if we do not adhere to the conditions of their license.}
+{Brendan Duke}
+{We would require a lawyer to sign off that our product meets the terms and
+conditions of all of the open-source software we are using.}
+{High}
+{Created October 10th, 2016.}
+
+\subsection{Standards Requirements}
+
+There are no standards set by industry bodies, or internal to our group, that
+pertain to this project.
+
+\chapter{Project Issues}
+
+\section{Open Issues}
+
+{Here we discuss issues not addressed in the functional or
+non-functional requirements.}
+
+One open issue common to most machine learning problems is the quality of the
+fit, as this can always be improved upon.
+
+We are using ready-made algorithms, and there are many such options. So
+another open problem is to choose amongst these pose estimation algorithms. A
+possible solution is, since there are multiple options that there could be an
+option where the user can select their own algorithm to analyze the data.
+However due to time constraints we will need to choose one without first
+testing. So one problem is simply choosing an algorithm that will work without
+having tested it first.
+
+A second problem is the hardware that we intend to use for the problem.
+We are analyzing and performing pose estimations on an enormous
+database of video. This is a computationally intensive task so we need
+a fast computer hardware system to perform our computations. One
+problem is choosing the hardware solution to this problem. We will also
+be creating a web application so it may be in our best interest to host
+the application using a server of our creation. In this case we would
+also have to create and maintain this system.
+
+\section{Off-the-Shelf Solutions}
+\label{off-the-shelf-solutions}
+
+\subsection{Ready-Made Products}
+
+{In choosing an algorithm for the pose estimation problem there is
+already software that is available online that implements these
+algorithms. We intend to use these resources in our project.}
+
+\subsection{Reusable Components}
+\label{reusable-components}
+
+{We are creating an intermediate software for pre-processing data and
+placing this data in a database that can be easily queried through a
+user interface. The pre-processing and sorting/searching of data is a
+common task in machine learning development. For this reason it is
+hopeful that the product we develop is not specialized to the
+pre-processing algorithms we use or the database that contains the
+database we analyze.}
+
+{Ideally we will create a multi-tiered system that will have many
+components that could be re-used for future data analysis and viewing
+tasks.}
+
+\subsection{Products That Can Be Copied}
+
+{The product that we aim to create will implement machine learning
+algorithms on a database of media in order to produce a new database of
+processed media.}
+
+{Some popular machine learning algorithms are the Short Long Term Memory
+(LSTM) neural networks. Due to their popularity many web applications
+have been created which allow users to visualize the way that these
+networks learn and they allow them to see the output of the networks for
+given input. Two such web applications are the TensorFlow playground
+produced by Google and Visual Analysis of Recurrent Neural Networks
+offered by Harvard. We will aim to reproduce many of the features that
+are present in these products.}
+
+{The machine learning algorithms typically have many parameters in them
+which can be adjusted to optimize their performance. The previously
+mentioned products let the user choose these parameters through the user
+interface. We will aim to implement these features as well.}
+
+\section{New Problems}
+
+{There are several problems which we wish to avoid when creating our
+system. Our project is a small part of a larger project. Each of the
+sub-projects have been broken down as a modular hierarchy. We hope that
+our system will be able to work with the other modules without
+corrupting their performance and correctness.}
+
+{Our project will house a large database of media data. The database
+will need to be queried and the data manipulated. However through our
+manipulation we will not want the data stored in the database to be
+corrupted so that the performance of our system degrades the more it is
+used. We will also aim to make it so that our program does not cause
+side-effects on the larger projects that make use of it.}
+
+\subsection{Effects on the Current Environment}
+
+{Currently if someone wishes to analyze the video data offered online
+they will have to analyze raw video data. Our application will offer a
+new interface in which this data has been processed in a manner that is
+useful if the user should wish to analyze the human motion in the
+video.}
+
+{The alternative web interface we offer will be different from the previously
+made available systems. However the format of the video will be preserved in
+our transformations.}
+
+{The finished product will exist as a standalone web-application hosted on a
+server. The server will allow queries to be made. We hope that the system
+will thereby be able to exist independently of the larger project of which it
+is a part of, so that our product will not have to be installed on every user's
+computer.}
+
+\subsection{Effects on the Installed Systems}
+
+{The transformations that we will apply to the video data should be very
+useful for machine learning researchers. Having transformed data can
+speed up the learning rate in many machine learning algorithms and we
+expect the product will benefit users.}
+
+\subsection{Potential User Problems}
+
+Users of our software should not suffer any adverse or ill effects due to said
+usage, so this section is not applicable.
+
+\subsection{Limitations in the Anticipated Implementation Environment That May
+            Inhibit the New Product}
+
+We refer here to constraints \ref{Constraint_Linux} and \ref{Constraint_PythonAPI}.
+While the Linux constraint should not inhibit the new product, the limitation
+of using a Python API may present issues with performance, scalability, and
+maintainability in the long term.
+
+\subsection{Follow-Up Problems}
+
+{As we have mentioned this project is a sub-component of a larger project that
+is meant to facilitate the change in representations from text to motion. In
+this current project we are only analyzing the problem of pre-processing the
+data. So, another problem that will need to be considered in the future is
+how the data we generate can be used to train a deep neural network to make the
+previously mentioned transformation from text to motion.}
+
+\section{Tasks}
+
+\subsection{Project Planning}
+
+{To develop our software product we will make use of the iterative and
+incremental software development process shown in Figure~\ref{fig-project-planning}.}
+
+{\begin{figure}[!ht]
+        \label{fig-project-planning}
+        \caption{Iterative and Incremental Software Development Process}
+        \includegraphics[width=0.8\textwidth]{../data/project-planning.png}
+\end{figure}}
+
+\subsection{Planning of the Development Phases}
+
+{We have passed through the initial planning step. In this step we decided on
+a project to pursue, and explored whether or not the idea was achievable by
+talking to researchers and exploring published papers in this area.}
+
+{The next step of the project is the requirements stage where we formally state
+the objectives of our project.}
+
+{An important feature of this stage is that the process: Requirements, Design,
+Implementations, Verification and Evaluation can be run in parallel for each
+module of the product, followed by systems level testing at the end. This
+method of unit testing in parallel with development ensures that each module in
+the system will run without producing errors with the other parts.}
+
+{Our system involves several separate components. It is a web
+application and needs to store a lot of data in a database. So the
+program will consist of a data layer, a layer that performs the machine
+learning algorithm on the data and a layer for the user interface. Each
+of these separate layers can be developed in parallel in our system.}
+
+\section{Migration to the New Product}
+
+\subsection{Requirements for Migration of the New Product}
+
+{As we have mentioned in Reusable Components
+(Section~\ref{reusable-components}) that we plan to use the implemented
+versions of the machine learning algorithms that are already available online
+by the authors of the papers. However much of this code is written in Matlab
+and since the program is to be Python based some of the code will need to be
+rewritten in this language. However since we are re-writing the code we will be
+able to test our output by comparing it to the output of the older code we are
+rewriting.}
+
+\subsection{Data That Has to Be Modified or Translated for the New
+            System}
+
+If we choose to migrate existing software from one deep learning framework to
+another, e.g. from Caffe to Tensorflow, it may be necessary to regenerate the
+model corresponding to the neural network architecture on one framework into a
+model that is compatible with the new framework.
+
+\section{Risks}
+
+{We are taking algorithms that are meant to analyze images and applying
+them to video. The transition from image to video is a step up in
+computational tractability. There is a risk that the increase in volume
+of data will cause performance issues for our program.}
+
+{Another worry is the possibly that algorithms will not generalize well
+from images to video. They have not been tested on these tasks so it is
+possible that they will create very noisy data in their output and will
+not generalise well.}
+
+\section{Costs}
+
+{For our program we will be using freely available and open source programs.
+The list of programs we will make use of was mentioned in Off-the-Shelf
+Solutions (Section~\ref{off-the-shelf-solutions}).}
+
+{However, for our hardware we may wish to run our own server to host the
+application. In this case there will be maintenance and hardware costs.  The
+maintenance cost will be in terms of depreciation of the equipment, the cost of
+connecting to a network and streaming data over the internet and power
+consumption. The power consumption, however, should be low.}
+
+The hardware we would need to purchase would include an NVIDIA GTX 1070 and an
+Intel i5 (\$1600).
+
+The reason for the NVIDIA GPU is to maintain compatibility with deep learning
+libraries, which are relying on NVIDIA's proprietary CUDA hardware abstraction
+layer at the lowest level.
+
+The reason for an Intel i5 is so that the CPU will not bottleneck the GPU's
+performance.
+
+\begin{longtable}[c]{@{}ll@{}}
+\toprule
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Description}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Cost}
+\strut\end{minipage}\tabularnewline\midrule
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{GTX 1070 Intel i5}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{\$1600}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Data Plan (approximate use)}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{\$10/month}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Power}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{\textless{}\$5}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Maintenance of equipment}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Unknown at this point}
+\strut\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
+
+{The second cost that we have to consider is the amount of time that the
+project will require in order to implement. }
+
+{Our project has four use-cases discussed in Section~\ref{work-partitioning} of
+our report. We estimate the amount of time required for one person to complete
+each use-case, assuming they spend 20 hours per week.}
+
+Due to the research nature of the project, these estimates are subject to
+change based on the success or failure of our prototyping efforts.
+
+\begin{longtable}[c]{@{}ll@{}}
+\toprule
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Functional Requirement}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Time Necessary}
+\strut\end{minipage}\tabularnewline\midrule
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Web Interface Skeleton Overlay}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Two weeks implementation, one month testing and debugging.}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Web Interface Text-to-Motion}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{One month implementation, two months of testing and debugging.}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Software Interface Skeleton Overlay}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{One month research, one month implementation, two months of testing and
+        debugging.}
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{Database Interface text to motion}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.47\columnwidth}\raggedright\strut
+{One month implementation, two months of testing and debugging.}
+\strut\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
+
+\section{User Documentation and Training}
+
+\subsection{User Documentation Requirements}
+
+{As one component of our application will be a standalone web application, we
+will have a help feature.}
+
+\begin{enumerate}
+\tightlist
+\item
+  {Technical Specifications document - specifies which algorithms our
+  program uses and their expected accuracy}
+\item
+  {User Manual or help feature - instructs the user on navigating the
+  user interface, provides information on the contents of the database as well
+  as a list of contacts for additional help.}
+\end{enumerate}
+
+\subsection{Training Requirements}
+
+{The intended users of our program will be machine learning experts who
+have plenty of experience working with software interfaces. So the
+training these users will need to use our program will be minimal. The
+software will only have the four use-cases we have mentioned in our
+functional requirements.}
+
+\section{Waiting Room}
+
+{As we have mentioned we are using off the shelf version for the machine
+learning algorithms used in this project. A next step in our project would be
+to improve on these algorithms. The procedures are designed for working on
+images, but it would be interesting to optimize or change the algorithms so they
+take advantage of the fact that the data we are using is video and not strictly
+images.}
+
+{We are at the moment focusing on human motion and labelling body
+parts. The motion of other objects such as cars and animals is also
+interesting. A next interesting step in this project would be to
+consider the motion of a more diverse range of objects.}
+
+\section{Ideas for Solutions}
+
+{The ultimate solution of the product is the generation of animated motion from
+text. This is the step that is to be taken after our project is complete.}
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,SoftwareRequirementsSpecification}
+
+\end{document}
