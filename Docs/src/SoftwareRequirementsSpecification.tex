@@ -959,6 +959,18 @@ mechanisms, there is no need to provide any accessibility requirements for now
 
 \subsection{Safety-Critical Requirements}
 
+As of Revision 0, there are no safety critical requirements. Both of the interfaces are very simple in terms of the output they produce, and even if the program is fed with bad input, there will be no actual physical or virtual damage to the system.
+\requirement
+{Req_RetrievedVideoRelevance}
+{4.3.2. Safety-Critical Requirement}
+{web-text-to-motion-event}
+{The web interface shall filter the input word or phrase before passing the text to the database, where it can be processed}
+{This is to avoid making confusing requests to the database. If an unintelligible word or phrase is entered, there is no need to apply the database mapping functionality because it will not be able to return a significant response.}
+{Udip Patel}
+{The web interface shall be able to parse the text input to weed out unintelligible words, curse words, }
+{High}
+{Created October 11th, 2016.}
+
 \subsection{Precision or Accuracy Requirements}
 
 \subsection{Reliability and Availability Requirements}
