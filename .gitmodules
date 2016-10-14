@@ -1,6 +1,3 @@
-[submodule "caffe-heatmap"]
-	path = caffe-heatmap
-	url = https://github.com/dukebw/caffe-heatmap
 [submodule "srs-tex"]
 	path = srs-tex
 	url = https://github.com/Eisenbarth/SRS-Tex
