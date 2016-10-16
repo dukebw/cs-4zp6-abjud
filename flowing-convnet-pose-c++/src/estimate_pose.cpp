@@ -4,54 +4,44 @@
 #include <memory>
 #include <cstdio>
 
-typedef struct val_location {
-        cv::Point location;
-        double val;
-} val_location;
+constexpr uint32_t NUM_JOINTS = 7;
+constexpr uint32_t NUM_BONES = 4;
 
+/*
+ * Converts the raw data in a Caffe blob into a container of channels.
+ *
+ * @param [out] channels Container of channels corresponding to data from blob.
+ * @param [in] blob Blob containing concatenated multi-channel data.
+ * @param [in] width Width of a channel in blob.
+ * @param [in] height Height of a channel in blob.
+ */
 static void
-channels_from_blob(std::vector<cv::Mat>& input_channels,
+channels_from_blob(std::vector<cv::Mat>& channels,
                    boost::shared_ptr<caffe::Blob<float>> blob,
-                   int32_t width,
-                   int32_t height)
+                   const int32_t width,
+                   const int32_t height)
 {
-        float *input_data = blob->mutable_cpu_data();
+        float *raw_data = blob->mutable_cpu_data();
         for (int32_t channel_index = 0;
              channel_index < blob->channels();
              ++channel_index) {
-                cv::Mat channel{height, width, CV_32FC1, input_data};
-                input_channels.push_back(channel);
-                input_data += width*height;
+                cv::Mat channel{height, width, CV_32FC1, raw_data};
+                channels.push_back(channel);
+                raw_data += width*height;
         }
 }
 
-int main(int argc, char **argv)
+/*
+ * Converts OpenCV BGR format image to 32-bit floating point RGB format and
+ * copies the image to the input blob of heatmap_net.
+ *
+ * @param [out] heatmap_net Network whose input layer should be filled with the
+ * RGB pixel data from image.
+ * @param [in/out] image The image to serve as input layer to heatmap_net
+ */
+static void
+copy_image_to_input_blob(caffe::Net<float>& heatmap_net, cv::Mat& image)
 {
-        if (argc < 4) {
-                printf("Usage: %s image_name model_prototxt model_binaryproto\n",
-                       argv[0]);
-                return EXIT_FAILURE;
-        }
-
-        const std::string image_name{argv[1]};
-        const std::string model_prototxt{argv[2]};
-        const std::string pretrained_weights{argv[3]};
-
-        cv::Mat image = cv::imread(image_name);
-        if (image.empty())
-                return EXIT_FAILURE;
-
-        const std::string window_name = "example1";
-        cv::namedWindow(window_name);
-
-        cv::imshow(window_name, image);
-        cv::waitKey();
-
-        caffe::Caffe::set_mode(caffe::Caffe::CPU);
-        caffe::Net<float> heatmap_net{model_prototxt, caffe::TEST};
-
-        heatmap_net.CopyTrainedLayersFrom(pretrained_weights);
-
         cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
         image.convertTo(image, CV_32FC3);
 
@@ -61,9 +51,21 @@ int main(int argc, char **argv)
                            image.cols,
                            image.rows);
         cv::split(image, input_channels);
+}
 
-        heatmap_net.Forward();
-
+/*
+ * Outputs a set of joint locations from the conv5_fusion layer of the network.
+ *
+ * @param [out] joints The joint locations to be output.
+ * @param [in] channel_size Original joint channel size from output layer of
+ * heatmap network.
+ * @param [in] heatmap_net The heatmap network.
+ */
+static void
+get_joints_from_network(cv::Point *joints,
+                        const cv::Size channel_size,
+                        const caffe::Net<float>& heatmap_net)
+{
         auto heatmap_blob = heatmap_net.blob_by_name("conv5_fusion");
         std::vector<cv::Mat> joints_channels;
         channels_from_blob(joints_channels,
@@ -71,28 +73,34 @@ int main(int argc, char **argv)
                            heatmap_blob->shape(3),
                            heatmap_blob->shape(2));
 
-        constexpr uint32_t NUM_JOINTS = 7;
         assert(joints_channels.size() == NUM_JOINTS);
 
-        image.convertTo(image, CV_8UC3);
-        cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
-
-        val_location joints[NUM_JOINTS];
         for (uint32_t joints_index = 0;
              joints_index < NUM_JOINTS;
              ++joints_index) {
                 cv::Mat& joint = joints_channels.at(joints_index);
                 cv::Mat joint_resized;
-                cv::resize(joint, joint_resized, cv::Size{image.cols, image.rows});
+                cv::resize(joint, joint_resized, channel_size);
 
                 cv::minMaxLoc(joint_resized,
                               NULL,
-                              &joints[joints_index].val,
                               NULL,
-                              &joints[joints_index].location);
+                              NULL,
+                              joints + joints_index);
         }
+}
 
-        constexpr uint32_t NUM_BONES = 4;
+/*
+ * Draws an upper-body skeleton on image based on the joint positions given in
+ * joints.
+ *
+ * @param [out] image Image to draw skeleton on.
+ * @param [in] joints Set of joint locations: wrists, elbows, shoulders and
+ * head.
+ */
+static void
+draw_skeleton(cv::Mat& image, const cv::Point *joints)
+{
         constexpr uint32_t BONE_MAP[NUM_BONES][2] = {
                 {2, 4},
                 {4, 6},
@@ -104,23 +112,56 @@ int main(int argc, char **argv)
              bone_index < NUM_BONES;
              ++bone_index) {
                 cv::line(image,
-                         joints[BONE_MAP[bone_index][0]].location,
-                         joints[BONE_MAP[bone_index][1]].location,
+                         joints[BONE_MAP[bone_index][0]],
+                         joints[BONE_MAP[bone_index][1]],
                          CV_RGB(0, 0xff, 0),
                          3);
         }
-
 
         for (uint32_t joints_index = 0;
              joints_index < NUM_JOINTS;
              ++joints_index) {
                 cv::circle(image,
-                           joints[joints_index].location,
+                           joints[joints_index],
                            5,
                            CV_RGB(0xff, 0, 0),
                            -1);
         }
+}
 
+int main(int argc, char **argv)
+{
+        if (argc < 4) {
+                printf("Usage: %s image_name model_prototxt model_binaryproto\n",
+                       argv[0]);
+                return EXIT_FAILURE;
+        }
+
+        caffe::Caffe::set_mode(caffe::Caffe::CPU);
+        caffe::Net<float> heatmap_net{argv[2], caffe::TEST};
+
+        heatmap_net.CopyTrainedLayersFrom(argv[3]);
+
+        cv::Mat image = cv::imread(argv[1]);
+        if (image.empty())
+                return EXIT_FAILURE;
+
+        copy_image_to_input_blob(heatmap_net, image);
+
+        heatmap_net.Forward();
+
+        cv::Point joints[NUM_JOINTS];
+        get_joints_from_network(joints,
+                                cv::Size{image.cols, image.rows},
+                                heatmap_net);
+
+        image.convertTo(image, CV_8UC3);
+        cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
+
+        draw_skeleton(image, joints);
+
+        const std::string window_name = "example1";
+        cv::namedWindow(window_name);
         cv::imshow(window_name, image);
         cv::waitKey();
 }
