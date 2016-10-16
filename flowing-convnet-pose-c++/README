@@ -1,0 +1,9 @@
+1. Build caffe for CPU_ONLY under the caffe/ submodule in the repo.
+1a. Feel free to generalize the code to work on GPU :).
+2. Be sure to have installed the development files for OpenCV 2.4.
+3. "make"
+4. Run bin/estimate_pose and point it to the "matlab.prototxt" model prototxt
+   layer-definition file and "caffe-heatmap-flic.caffemodel" binary proto
+   weighting definition file, both under data/models/heatmap-flic-fusion.
+   e.g.
+   ./bin/estimate_pose ../data/media/1.png ../data/models/heatmap-flic-fusion/matlab.prototxt ../data/models/heatmap-flic-fusion/caffe-heatmap-flic.caffemodel
