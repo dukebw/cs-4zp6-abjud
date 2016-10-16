@@ -90,11 +90,35 @@ int main(int argc, char **argv)
                               &joints[joints_index].val,
                               NULL,
                               &joints[joints_index].location);
+        }
 
+        constexpr uint32_t NUM_BONES = 4;
+        constexpr uint32_t BONE_MAP[NUM_BONES][2] = {
+                {2, 4},
+                {4, 6},
+                {1, 3},
+                {3, 5}
+        };
+
+        for (uint32_t bone_index = 0;
+             bone_index < NUM_BONES;
+             ++bone_index) {
+                cv::line(image,
+                         joints[BONE_MAP[bone_index][0]].location,
+                         joints[BONE_MAP[bone_index][1]].location,
+                         CV_RGB(0, 0xff, 0),
+                         3);
+        }
+
+
+        for (uint32_t joints_index = 0;
+             joints_index < NUM_JOINTS;
+             ++joints_index) {
                 cv::circle(image,
                            joints[joints_index].location,
                            5,
-                           CV_RGB(0xff, 0, 0));
+                           CV_RGB(0xff, 0, 0),
+                           -1);
         }
 
         cv::imshow(window_name, image);
