@@ -1,8 +1,8 @@
 P=estimate_pose
 
 INCLUDES=-I../caffe/include -I../caffe/build/include -I/usr/include/openblas
-CXXFLAGS=-ggdb3 -Wall -Wextra -Werror -O0 -DCPU_ONLY=1 -DBLAS=open
-LDLIBS=-L../caffe/build/lib -lcaffe -lopencv_core -lopencv_highgui -lboost_system
+CXXFLAGS=-ggdb3 -Wall -Wextra -Werror -O3 -DCPU_ONLY=1 -DBLAS=open
+LDLIBS=-L../caffe/build/lib -lcaffe -lopencv_core -lopencv_highgui -lopencv_imgproc -lboost_system -lglog
 LDFLAGS=-Wl,-R../caffe/build/lib
 CXX=g++
 SOURCE=src/$(P).cpp
