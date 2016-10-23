@@ -1,8 +1,10 @@
 #include "caffe/caffe.hpp"
 #include "caffe/util/math_functions.hpp"
-#include <opencv2/opencv.hpp>
+#include "opencv2/opencv.hpp"
 #include <memory>
 #include <cstdio>
+#include <cstdint>
+#include <cstdlib>
 
 constexpr uint32_t NUM_JOINTS = 7;
 constexpr uint32_t NUM_BONES = 4;
