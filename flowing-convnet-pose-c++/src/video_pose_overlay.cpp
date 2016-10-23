@@ -1,3 +1,4 @@
+#include "estimate_pose.h"
 #include "opencv2/opencv.hpp"
 #include <memory>
 #include <cstdio>
@@ -6,11 +7,16 @@
 
 int main(int argc, char **argv)
 {
-        if (argc < 3) {
-                printf("Usage: %s input_path_to_video output_path_to_video\n",
+        if (argc < 5) {
+                printf("Usage: %s input_path_to_video output_path_to_video "
+                       "model trained_weights\n",
                        argv[0]);
                 return EXIT_FAILURE;
         }
+
+        std::unique_ptr<caffe::Net<float>> heatmap_net =
+                init_pose_estimator_network(std::string{argv[3]},
+                                            std::string{argv[4]});
 
         cv::VideoCapture video_capture;
         video_capture.open(std::string{argv[1]});
@@ -31,10 +37,14 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 
         cv::Mat frame;
-        for (;;) {
+        for (uint32_t frame_count = 0;
+             ;
+             ++frame_count) {
                 video_capture >> frame;
                 if (frame.data == nullptr)
                         break;
+
+                image_pose_overlay(*heatmap_net, frame);
 
                 video_writer << frame;
         }

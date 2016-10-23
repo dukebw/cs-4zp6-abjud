@@ -8,6 +8,8 @@
 
 constexpr uint32_t NUM_JOINTS = 7;
 constexpr uint32_t NUM_BONES = 4;
+constexpr uint32_t NET_IMAGE_WIDTH = 256;
+constexpr uint32_t NET_IMAGE_HEIGHT = 256;
 
 /*
  * Converts the raw data in a Caffe blob into a container of channels.
@@ -131,22 +133,23 @@ draw_skeleton(cv::Mat& image, const cv::Point *joints)
         }
 }
 
-int main(int argc, char **argv)
+std::unique_ptr<caffe::Net<float>>
+init_pose_estimator_network(const std::string& model,
+                            const std::string& trained_weights)
 {
-        if (argc < 4) {
-                printf("Usage: %s image_name model_prototxt model_binaryproto\n",
-                       argv[0]);
-                return EXIT_FAILURE;
-        }
-
         caffe::Caffe::set_mode(caffe::Caffe::CPU);
-        caffe::Net<float> heatmap_net{argv[2], caffe::TEST};
+        auto heatmap_net =
+                std::unique_ptr<caffe::Net<float>>{new caffe::Net<float>{model, caffe::TEST}};
 
-        heatmap_net.CopyTrainedLayersFrom(argv[3]);
+        heatmap_net->CopyTrainedLayersFrom(trained_weights);
 
-        cv::Mat image = cv::imread(argv[1]);
-        if (image.empty())
-                return EXIT_FAILURE;
+        return heatmap_net;
+}
+
+void image_pose_overlay(caffe::Net<float>& heatmap_net, cv::Mat& image)
+{
+        cv::Size image_original_size = cv::Size{image.cols, image.rows};
+        cv::resize(image, image, cv::Size{NET_IMAGE_WIDTH, NET_IMAGE_HEIGHT});
 
         copy_image_to_input_blob(heatmap_net, image);
 
@@ -162,8 +165,5 @@ int main(int argc, char **argv)
 
         draw_skeleton(image, joints);
 
-        const std::string window_name = "example1";
-        cv::namedWindow(window_name);
-        cv::imshow(window_name, image);
-        cv::waitKey();
+        cv::resize(image, image, image_original_size);
 }
