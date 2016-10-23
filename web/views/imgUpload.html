@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    {% module Template("templates/include.html") %}
+    <body class="bg-color">
+        <div class="row">
+            {% module Template("templates/jumbotron.html") %}
+        </div>
+        <div class="row minHeight">
+            {% module Template("templates/sidebar.html") %}
+            <!-- template takes up col-lg-3 -->
+            <div class="col-lg-8 col-md-8 col-sm-7 col-xs-6 paddedFromTop">
+                <div class="panel panel-default">
+                    <div class="panel-heading subHeading-bg">
+                        <h2>Skeleton Overlay</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="fileinput fileinput-new" data-provides="fileinput">
+                            <div class="fileinput-preview thumbnail" data-trigger="fileinput" style="width: 200px; height: 150px;">
+                        </div>
+                        <div>
+                            <span class="btn btn-default btn-file"><span class="fileinput-new">Select image</span><span class="fileinput-exists">Change</span><input type="file" name="..."></span>
+                            <a href="#" class="btn btn-default fileinput-exists" data-dismiss="fileinput">Remove</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% module Template("templates/commonJS.html") %}
+    </body>
+</html>
