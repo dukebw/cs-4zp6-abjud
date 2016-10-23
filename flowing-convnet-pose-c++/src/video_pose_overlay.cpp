@@ -6,8 +6,9 @@
 
 int main(int argc, char **argv)
 {
-        if (argc < 2) {
-                printf("Usage: %s path_to_video\n", argv[0]);
+        if (argc < 3) {
+                printf("Usage: %s input_path_to_video output_path_to_video\n",
+                       argv[0]);
                 return EXIT_FAILURE;
         }
 
@@ -16,8 +17,18 @@ int main(int argc, char **argv)
         if (!video_capture.isOpened())
                 return EXIT_FAILURE;
 
-        const std::string window_name = "example1";
-        cv::namedWindow(window_name);
+        const int32_t frame_width =
+                static_cast<int>(video_capture.get(CV_CAP_PROP_FRAME_WIDTH));
+        const int32_t frame_height =
+                static_cast<int>(video_capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+
+        cv::VideoWriter video_writer;
+        video_writer.open(std::string{argv[2]},
+                          CV_FOURCC('X', 'V', 'I', 'D'),
+                          video_capture.get(CV_CAP_PROP_FPS),
+                          cv::Size{frame_width, frame_height});
+        if (!video_writer.isOpened())
+                return EXIT_FAILURE;
 
         cv::Mat frame;
         for (;;) {
@@ -25,7 +36,9 @@ int main(int argc, char **argv)
                 if (frame.data == nullptr)
                         break;
 
-                cv::imshow(window_name, frame);
-                cv::waitKey(0);
+                video_writer << frame;
         }
+
+        video_writer.release();
+        video_capture.release();
 }
