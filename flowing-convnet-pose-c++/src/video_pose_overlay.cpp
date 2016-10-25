@@ -5,6 +5,11 @@
 #include <cstdint>
 #include <cstdlib>
 
+/*
+ * NOTE(brendan): demo code only, which takes a video stream and does
+ * frame-by-frame human pose estimation, outputting the resultant video stream
+ * in AVI format.
+ */
 int main(int argc, char **argv)
 {
         if (argc < 5) {
