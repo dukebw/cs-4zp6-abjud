@@ -1,2 +1,6 @@
 .ycm_extra_conf.py*
 raw-video-fiddling/read_frame
+flowing-convnet-pose-c++/bin/estimate_pose
+flowing-convnet-pose-c++/bin/video_pose_overlay
+obj/
+.depend

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    {% module Template("templates/include.html") %}
+    <body class="bg-color">
+        <div class="row">
+            {% module Template("templates/jumbotron.html") %}
+        </div>
+        <div class="row minHeight">
+            {% module Template("templates/sidebar.html") %}
+            <!-- template takes up col-lg-3 -->
+            <div class="col-lg-8 col-md-8 col-sm-7 col-xs-6 paddedFromTop">
+                <div class="panel panel-default">
+                    <div class="panel-heading subHeading-bg">
+                        <h2>Text Search</h2>
+                    </div>
+                    <div class="panel-body">
+                        <form id="search" action="/search" method="POST">
+                            <div class="row">
+                                <div class="form-group col-lg-8 col-md-8 col-sm-6 col-xs-6">
+                                    <label>Please enter a word or phrase</label>
+                                    <input id="query" type="text" name="query" class="form-control" />
+                                </div>
+                                <div class="form-group col-lg-3 col-md-3 col-sm-4 col-xs-4">
+                                    <button type="submit" class="btn btn-danger col-lg-12 col-md-12 col-sm-12 col-xs-12 movedDown">Search</button>
+                                </div>
+                                <div class="form-group col-lg-1 col-md-1 col-sm-2 col-xs-2">
+                                    <a id="adv-options" data-trigger="hover" data-placement="bottom" data-content="Advanced Options" class="fa fa-cog btn btn-default col-lg-12 col-md-12 col-sm-12 col-xs-12 movedDown">&#x2b;</a>
+                                </div>
+                            </div>
+                        </forn>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% module Template("templates/commonJS.html") %}
+    </body>
+</html>
