@@ -1,5 +1,6 @@
 SRS=SoftwareRequirementsSpecification
 POC=ProofOfConceptPlan
+TEST=TestPlan
 
 .phony: srs poc
 
@@ -18,6 +19,12 @@ poc:
 	xelatex $(POC).tex
 	$(MAKE) clean
 	mv $(POC).pdf ..
+
+test_plan:
+	xelatex $(TEST).tex
+	xelatex $(TEST).tex
+	$(MAKE) clean
+	mv $(TEST).pdf ..
 
 clean:
 	rm -rf *.acn *.alg *.glg *.glo *.gls *.glsdefs *.ist *.xdy *.acr *.bbl *.blg *.aux *.dvi *.log *.lot *.idx *.toc *.lof *.brf *.out
