@@ -1,3 +1,17 @@
+# Steps to Build and Run TextToMotionWeb
+
+* dotnet restore
+* ASPNETCORE_URLS="http://*:5000" dotnet run
+* Navigate to http://localhost:5000/ImagePoseDraw (or click ImagePoseDraw from
+  the Home page) to see current features.
+
+# Features of TextToMotionWeb
+
+* Database connected through SQLite.
+* Image upload on filesystem using unique ID stored in database.
+
+---
+
 # Welcome to ASP.NET Core
 
 We've made some big updates in this release, so it’s **important** that you spend a few minutes to learn what’s new.
