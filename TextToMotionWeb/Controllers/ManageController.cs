@@ -6,11 +6,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using WebApplication.Models;
-using WebApplication.Models.ManageViewModels;
-using WebApplication.Services;
+using TextToMotionWeb.Models;
+using TextToMotionWeb.Models.ManageViewModels;
+using TextToMotionWeb.Services;
 
-namespace WebApplication.Controllers
+namespace TextToMotionWeb.Controllers
 {
     [Authorize]
     public class ManageController : Controller

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace WebApplication.Models.ManageViewModels
+namespace TextToMotionWeb.Models.ManageViewModels
 {
     public class ConfigureTwoFactorViewModel
     {

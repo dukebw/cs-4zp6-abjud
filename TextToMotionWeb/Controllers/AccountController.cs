@@ -8,11 +8,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
-using WebApplication.Models;
-using WebApplication.Models.AccountViewModels;
-using WebApplication.Services;
+using TextToMotionWeb.Models;
+using TextToMotionWeb.Models.AccountViewModels;
+using TextToMotionWeb.Services;
 
-namespace WebApplication.Controllers
+namespace TextToMotionWeb.Controllers
 {
     [Authorize]
     public class AccountController : Controller

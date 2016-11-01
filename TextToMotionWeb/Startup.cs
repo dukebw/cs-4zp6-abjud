@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using WebApplication.Data;
-using WebApplication.Models;
-using WebApplication.Services;
+using TextToMotionWeb.Data;
+using TextToMotionWeb.Models;
+using TextToMotionWeb.Services;
 
-namespace WebApplication
+namespace TextToMotionWeb
 {
     public class Startup
     {
