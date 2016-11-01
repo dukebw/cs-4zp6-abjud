@@ -167,15 +167,71 @@ November 1, 2015 & 1.2 & Final version for rev 0\\
 
 \section{Demonstration Plan}
 
-
 \section{Proof of Concept Test}
 
 \chapter{System Testing}
 
+\chapter{Constraints Testing}
+
+\section{Solution Constraints Testing}
+
+\testmanual{
+        name = {Deep Learning Methods Test},
+        desc = {Test whether the human pose estimation component of the
+                software uses modern deep learning methods.},
+        type = {Manual},
+        user = {Supervisor (Dr. Taylor)},
+        pass = {Dr. Taylor should confirm that the deep learning methods used
+                are satisfactory and relevant to current research, with a yes
+                or no reponse.},
+        reqnum = {1}
+}
+
+\testauto{
+        name = {Standard Data Format Test},
+        desc = {Tests whether the human pose data format used in the project is
+                standard, and compatible with existing software libraries.},
+        type = {Automated},
+        init = {Initialize database query interface.},
+        input = {Random ID of a record, containing human pose data, in the
+                 database.},
+        output = {Tuple containing data in HDF5 format.},
+        pass = {The human pose datum should be parseable by an existing HDF5
+                data library.},
+        reqnum = {2}
+}
+
+\testauto{
+        name = {Linux Platform Build and Run Test},
+        desc = {Confirms that all nightly build tests, as well as the automated
+                test suite, are working under Linux.},
+        type = {Automated},
+        init = {None (build test).},
+        input = {Commands to begin build and run sequence.},
+        output = {Compile and run success, or errors.},
+        pass = {Compile and run success.},
+        reqnum = {3}
+}
+
+\testauto{
+        name = {Python API Hook Testing},
+        desc = {Confirms that major module interfaces, such as the image pose
+                estimation interface, and database query interface, have working Python
+                hooks.},
+        type = {Automated},
+        init = {Initialization specific to each module interface under test.},
+        input = {Valid parameters for each module interface, written in Python.},
+        output = {Expected success-case outputs for each module interface,
+                  written in Python.},
+        pass = {Interface calls completed without error, and returned their
+                expected outputs.},
+        reqnum = {4}
+}
+
 \chapter{Functional Requirements Testing}
 
 \testauto{
-        name = {Read frames from supported video encodings},
+        name = {Supported Video Encodings Test},
         desc = {Tests whether the ReadFrames API is able to decode MP4, MP2 and
                 AAC video files.},
         type = {Automated},
@@ -187,12 +243,100 @@ November 1, 2015 & 1.2 & Final version for rev 0\\
         reqnum = {7}
 }
 
+\testauto{
+        name = {Frame Reading Timestamp Accuracy Test},
+        desc = {Tests whether the timestamps on the frames returned by the
+                ReadFrames API match their temporal position in the original video
+                stream.},
+        type = {Automated},
+        init = {Call read frames initialization procedure.},
+        input = {30 second MP4 video file at 30 FPS.},
+        output = {A set of 900 $(30\times30)$ frames, which include timestamps.},
+        pass = {The timestamps on the 900 frames match a set of timestamps on a
+                test vector of expected timestamps for the 900 frames.},
+        reqnum = {8}
+}
+
+\testmanual{
+        name = {Video Human Pose Estimation Data Quality Test},
+        desc = {Test to ensure the data quality produced by the human pose
+                estimator component. A set of Charades videos will be processed
+                by the human pose estimator, and skeleton animations
+                corresponding to the generated human pose data will be
+                created (this is a scoped part of the software pipeline). A
+                double-blind test will be ran, where testers will be shown
+                random mixed sets of the skeleton animations produced by
+                McMaster Text to Motion, together with skeletons from actual
+                motion capture data coming from CMU's motion capture lab.
+                Testers will indicate whether they think the motion capture
+                data came from actual motion capture, or from the pose
+                estimation software.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Within a 5\% confidence interval, the McMaster Text to Motion
+                skeletons will be indicated as being actual motion capture data
+                with the same probability that the CMU motion capture skeletons
+                are indicated as being actual motion capture data.},
+        reqnum = {8}
+}
+
+\testauto{
+        name = {Database Output Full Range Coverage Test},
+        desc = {Tests whether the range of the text-to-motion database search
+                is equal to the entire set of data stored in the database.},
+        type = {Automated},
+        init = {Initialize database-query and full text search module interfaces.
+                Populate database with Charades data.},
+        input = {A random matching keyword from the text description of each
+                 video (acquired automatically).},
+        output = {A set of video-pose data from the database that should
+                  include the original datum that the input keyword was taken from.},
+        pass = {The returned set of data contains the original video record.},
+        reqnum = {9}
+}
+
+\testauto{
+        name = {Database No False Positives Test},
+        desc = {Tests whether the results retried from text searches of the
+                database contain any false positives, i.e. results whose text
+                descriptions do not contain any of the searched keywords.},
+        type = {Automated},
+        init = {Initialize database-query and full text search module
+                interfaces. Populate database with Charades data.},
+        input = {For each video, a random set of keywords not in that video's
+                 text description.},
+        output = {A set of video-pose entries.},
+        pass = {The output set of data should not contain the original video
+                that was chosen to be outside the subset of the output range for this
+                input.},
+        reqnum = {10}
+}
+
+\testauto{
+        name = {Full Text Search Order by Relevance Test},
+        desc = {A test of whether the full text search interface is returning a
+                set of entries that are ordered by relevance to the search keywords.},
+        type = {Automated},
+        init = {Initialize database-query and full text search module
+                interfaces. Populate database with Charades data.},
+        input = {A random set of search keywords, drawn automatically from the
+                 set of text descriptions in the database.},
+        output = {A set of entries in the database, in some order.},
+        pass = {The output set of entries should be randomly ordered and input
+                to a reference full text search engine, which will produce an expecteed
+                ordering by relevance. A statistical test of the similarity of
+                the McMaster Text to Motion ordering and the reference ordering
+                should be done, and the McMaster Text to Motion ordering should
+                be expected to be the same within a 5\% confidence interval.},
+        reqnum = {11}
+}
+
 \chapter{Non-Functional Requirements Testing}
 
 \section{Look and Feel Requirements Testing}
 
 \testmanual{
-        name = {Colour scheme test},
+        name = {Colour Scheme Test},
         desc = {Test user satisfaction of the web interface colour scheme.},
         type = {Manual},
         user = {Testing Group},
