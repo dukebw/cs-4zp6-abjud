@@ -2,9 +2,9 @@ SRS=SoftwareRequirementsSpecification
 POC=ProofOfConceptPlan
 TEST=TestPlan
 
-.phony: srs poc
+.phony: srs poc test_plan
 
-all: srs poc
+all: srs poc test_plan
 
 srs:
 	xelatex $(SRS).tex

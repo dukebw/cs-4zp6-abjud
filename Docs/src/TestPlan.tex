@@ -1,4 +1,4 @@
-\documentclass[12pt, titlepage]{article}
+\documentclass{scrreprt}
 
 \usepackage{xcolor} % for different colour comments
 \usepackage{tabto}
@@ -18,12 +18,8 @@
 \usepackage[skip=2pt, labelfont=bf]{caption}
 \usepackage{titlesec}
 \usepackage{graphicx}
+\usepackage[section]{placeins}
 \graphicspath{ {image/} }
-
-
-%% the following adds another section level by redefining the paragraph
-%% source:  http://tex.stackexchange.com/questions/60209/how-to-add-an-extra-level-of-sections-with-headings-below-subsubsection
-\setcounter{secnumdepth}{4}
 
 \titleformat{\paragraph}
 {\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
@@ -57,6 +53,7 @@
 \define@cmdkey      [TP] {test}     {output}     {}
 \define@cmdkey      [TP] {test}     {pass}       {}
 \define@cmdkey      [TP] {test}     {user}       {}
+\define@cmdkey      [TP] {test}     {reqnum}     {}
 
 
 \newcommand{\getCurrentSectionNumber}{%
@@ -92,20 +89,8 @@
 {\bf Initial State:} & \cmdTP@test@init\\[0.5\baselineskip]
 {\bf Input:} & \cmdTP@test@input\\[0.5\baselineskip]
 {\bf Output:} & \cmdTP@test@output\\[0.5\baselineskip]
-{\bf Pass:} & \cmdTP@test@pass
-\end{tabularx}
-\end{mdframed}
-}
-
-\newcommand{\testautob}[1]{
-\setkeys[TP]{test}{#1}
-\refstepcounter{TestNum}
-\begin{mdframed}[linewidth=1pt]
-\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
-{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
-{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
-{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
-{\bf Pass:} & \cmdTP@test@pass
+{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
+{\bf Req. \#:} & \cmdTP@test@reqnum
 \end{tabularx}
 \end{mdframed}
 }
@@ -118,12 +103,12 @@
 {\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
 {\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
 {\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
-{\bf Tester(s):} & \cmdTP@test@user\\[0.5\baselineskip]
-{\bf Pass:} & \cmdTP@test@pass
+{\bf Testers:} & \cmdTP@test@user\\[0.5\baselineskip]
+{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
+{\bf Req. \#:} & \cmdTP@test@reqnum
 \end{tabularx}
 \end{mdframed}
 }
-
 
 \makeatother
 
@@ -162,60 +147,61 @@ November 1, 2015 & 1.2 & Final version for rev 0\\
 
 \pagenumbering{arabic}
 
-\section{Overview}
+\chapter{Overview}
 
-\subsection{Test Case Format}
+\section{Test Case Format}
 
-\subsection{Automated Testing}
+\section{Automated Testing}
 
-\subsubsection{Testing Tools}
+\subsection{Testing Tools}
 
-\subsection{Manual Testing}
+\section{Manual Testing}
 
-\subsubsection{User Experience Testing}
+\subsection{User Experience Testing}
 
-\subsection{List of Constants}
+\section{List of Constants}
 
-\section{Proof of Concept Testing}
+\chapter{Proof of Concept Testing}
 
-\subsection{Significant Risks}
+\section{Significant Risks}
 
-\subsection{Demonstration Plan}
+\section{Demonstration Plan}
 
 
-\subsection{Proof of Concept Test}
+\section{Proof of Concept Test}
 
-\section{System Testing}
+\chapter{System Testing}
 
-\subsection{Game Mechanics Testing}
+\chapter{Functional Requirements Testing}
 
 \testauto{
-    name = Activate pistol weapon,
-    desc = Tests if hero weapon is changed to pistol when corresponding input is received,
-    type = {Unit Test (dynamic, automated)},
-    init = Custom in-game state with a hero object,
-    input = Keyboard function called with simulated `1' key down stroke,
-    output = Hero object (enum) weapon,
-    pass = Hero object weapon is PISTOL
+        name = {Read frames from supported video encodings},
+        desc = {Tests whether the ReadFrames API is able to decode MP4, MP2 and
+                AAC video files.},
+        type = {Automated},
+        init = {Call read frames initialization procedure.},
+        input = {30 second MP4 video file at 30 FPS.},
+        output = {A set of 900 $(30\times30)$ frames.},
+        pass = {The 900 frames match a set of 900 expected frames from a reference
+                frame-reading system.},
+        reqnum = {7}
 }
-\section{Requirements Testing}
 
-\subsection{Functional Requirements Testing}
+\chapter{Non-Functional Requirements Testing}
 
-\subsection{Non-Functional Requirements Testing}
-
-\subsubsection{User Experience Testing}
+\section{Look and Feel Requirements Testing}
 
 \testmanual{
-    name = {Entertainment},
-    desc = Tests that the game is entertaining,
-    type = {Functional (dynamic, manual)},
-    user = {Testing group},
-    pass = {Phase I average survey score of at least $\hyperref[tab:constants]{\Theta}$; Phase II average survey score improves on Phase I score by $\hyperref[tab:constants]{\Phi}$}
+        name = {Colour scheme test},
+        desc = {Test user satisfaction of the web interface colour scheme.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {On a one to ten scale, the average user rating is above six.},
+        reqnum = {12}
 }
 
-\section{Timeline}
+\chapter{Timeline}
 
-\section{Appendix A:  Testing Survey}
+\chapter{Appendix A:  Testing Survey}
 
 \end{document}
