@@ -1,0 +1,9 @@
+Calling C code compiled as shared-object library from C#:
+gcc -fPIC -g -c test.c
+gcc -shared -fPIC -Wl,-soname,libtest.so.1 -o libtest.so.1.0.1 test.o -lc
+
+Use [DllImport(libtest)] (see P/Invoke documentation) to import the function
+declaration.
+
+Put libtest.so.1 in LD_LIBRARY_PATH (e.g. /usr/lib64, or call
+"LD_LIBRARY_PATH=<qualified-path-to-lib> dotnet run").

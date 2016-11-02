@@ -6,6 +6,8 @@ using TextToMotionWeb.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using System.Runtime.InteropServices;
+using System;
 
 namespace TextToMotionWeb.Controllers
 {
@@ -29,12 +31,17 @@ namespace TextToMotionWeb.Controllers
             _environment = environment;
         }
 
+        [DllImport("libtest.so.1.0.1", EntryPoint = "test_print_hello")]
+        private static extern int test_print_hello([MarshalAsAttribute(UnmanagedType.LPStr)] string message);
+
         /*
          * GET: /ImagePoseDraw/
          * The index page shows a list of the names and descriptions of the pose-drawn images in the database.
          */
         public async Task<IActionResult> Index()
         {
+            int result = test_print_hello("Hello from C# world!\n");
+            Console.WriteLine(String.Format($"{result:X}"));
             return View(await _context.PoseDrawnImages.ToListAsync());
         }
  
