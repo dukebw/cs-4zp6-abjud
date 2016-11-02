@@ -13,8 +13,11 @@
 int main(int argc, char **argv)
 {
         if (argc < 5) {
-                printf("Usage: %s input_path_to_video output_path_to_video "
-                       "model trained_weights\n",
+                printf("Usage: %s "
+                       "<input_path_to_video> "
+                       "<output_path_to_video> "
+                       "<model> "
+                       "<trained_weights>\n",
                        argv[0]);
                 return EXIT_FAILURE;
         }
