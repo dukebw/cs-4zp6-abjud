@@ -31,17 +31,12 @@ namespace TextToMotionWeb.Controllers
             _environment = environment;
         }
 
-        [DllImport("libtest.so.1.0.1", EntryPoint = "test_print_hello")]
-        private static extern int test_print_hello([MarshalAsAttribute(UnmanagedType.LPStr)] string message);
-
         /*
          * GET: /ImagePoseDraw/
          * The index page shows a list of the names and descriptions of the pose-drawn images in the database.
          */
         public async Task<IActionResult> Index()
         {
-            int result = test_print_hello("Hello from C# world!\n");
-            Console.WriteLine(String.Format($"{result:X}"));
             return View(await _context.PoseDrawnImages.ToListAsync());
         }
  
@@ -71,6 +66,10 @@ namespace TextToMotionWeb.Controllers
             return View();
         }
 
+        [DllImport("libestimate_pose_wrapper.so.1.0.1", EntryPoint = "estimate_pose_wrapper")]
+        private static extern int
+        estimate_pose_wrapper([MarshalAsAttribute(UnmanagedType.LPArray)] byte[] image, int size_bytes, int max_size_bytes);
+
         /*
          * POST: /ImagePoseDraw/Create
          * Inserts a new entry into the posed-image database.
@@ -90,14 +89,43 @@ namespace TextToMotionWeb.Controllers
         {
             if (ModelState.IsValid && (image != null) && (image.Length > 0))
             {
+                byte[] rawImage;
+                int resultSizeBytes;
+                using (Stream imageStream = image.OpenReadStream())
+                {
+                    // TODO(brendan): better way of assuring that we have allocated enough space
+                    // to store the output image.
+                    rawImage = new byte[imageStream.Length];
+                    int numBytesRead = 0;
+                    do
+                    {
+                        numBytesRead += imageStream.Read(rawImage,
+                                                         numBytesRead,
+                                                         (int)imageStream.Length - numBytesRead);
+                    } while (numBytesRead < imageStream.Length);
+                }
+
+                bool maxSizeExceeded;
+                do
+                {
+                    resultSizeBytes = estimate_pose_wrapper(rawImage, rawImage.Length, rawImage.Length);
+                    Console.WriteLine($"estimate_pose_wrapper result: {resultSizeBytes}");
+
+                    maxSizeExceeded = (resultSizeBytes < 0);
+                    if (maxSizeExceeded)
+                    {
+                        Array.Resize(ref rawImage, 2*rawImage.Length);
+                    }
+                } while (maxSizeExceeded);
+
                 _context.Add(posedImage);
                 await _context.SaveChangesAsync();
 
                 var uploads = Path.Combine(_environment.WebRootPath, "uploads");
-                string imageName = posedImage.ID.ToString() + Path.GetExtension(image.FileName);
+                string imageName = posedImage.ID.ToString() + ".png";
                 using (var fileStream = new FileStream(Path.Combine(uploads, imageName), FileMode.Create))
                 {
-                    await image.CopyToAsync(fileStream);
+                    await fileStream.WriteAsync(rawImage, 0, resultSizeBytes);
                 }
 
                 return RedirectToAction("Index");
