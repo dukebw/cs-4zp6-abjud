@@ -25,5 +25,3 @@ Brendan Duke
 David Pitkanen
 
 Jordan Viveiros
-
-Udip Patel

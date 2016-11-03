@@ -4,6 +4,9 @@
 #include "caffe/net.hpp"
 #include <memory>
 
+constexpr int32_t ESTIMATE_POSE_SUCCESS = 0;
+constexpr int32_t ESTIMATE_POSE_ERROR = (-1);
+
 /*
  * Initializes the heatmap regressor network from the Flowing ConvNets paper.
  *

@@ -1,3 +1,4 @@
+#include "estimate_pose.h"
 #include "caffe/caffe.hpp"
 #include "caffe/util/math_functions.hpp"
 #include "opencv2/opencv.hpp"
@@ -10,6 +11,8 @@ constexpr uint32_t NUM_JOINTS = 7;
 constexpr uint32_t NUM_BONES = 4;
 constexpr uint32_t NET_IMAGE_WIDTH = 256;
 constexpr uint32_t NET_IMAGE_HEIGHT = 256;
+constexpr char MODEL_DEFAULT[] = "../data/models/heatmap-flic-fusion/matlab.prototxt";
+constexpr char TRAINED_WEIGHTS_DEFAULT[] = "../data/models/heatmap-flic-fusion/caffe-heatmap-flic.caffemodel";
 
 /*
  * Converts the raw data in a Caffe blob into a container of channels.
@@ -166,4 +169,53 @@ void image_pose_overlay(caffe::Net<float>& heatmap_net, cv::Mat& image)
         draw_skeleton(image, joints);
 
         cv::resize(image, image, image_original_size);
+}
+
+extern "C" int32_t estimate_pose_from_c(void *image,
+					uint32_t size_bytes,
+					uint32_t max_size_bytes);
+
+int32_t estimate_pose_from_c(void *image, uint32_t size_bytes, uint32_t max_size_bytes)
+{
+        if (image == NULL)
+                return ESTIMATE_POSE_ERROR;
+
+	try {
+		std::unique_ptr<caffe::Net<float>> heatmap_net =
+			init_pose_estimator_network(std::string{MODEL_DEFAULT},
+						    std::string{TRAINED_WEIGHTS_DEFAULT});
+
+		cv::InputArray image_input_array{image, static_cast<int32_t>(size_bytes)};
+
+		cv::Mat image_mat = imdecode(image_input_array, cv::IMREAD_COLOR);
+
+		image_pose_overlay(*heatmap_net, image_mat);
+
+		std::vector<int> compression_params;
+		compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
+		compression_params.push_back(9);
+
+		std::vector<uint8_t> posed_image_png;
+		cv::imencode(".png",
+			     cv::InputArray{image_mat},
+			     posed_image_png,
+			     compression_params);
+
+		if (posed_image_png.size() > max_size_bytes) {
+			fprintf(stderr,
+				"estimate_pose_from_c input buffer size too small\n"
+				"require %lu but got %d\n",
+				posed_image_png.size(),
+				max_size_bytes);
+			return ESTIMATE_POSE_ERROR;
+		}
+
+		std::memcpy(image, &posed_image_png[0], posed_image_png.size());
+
+		return posed_image_png.size();
+	} catch (std::exception e) {
+		fprintf(stderr, "estimate_pose_from_c exception: %s\n",
+			e.what());
+		return ESTIMATE_POSE_ERROR;
+	}
 }
