@@ -17,3 +17,29 @@ declaration.
 
 Put libtest.so.1 in LD_LIBRARY_PATH (e.g. /usr/lib64, or call
 "LD_LIBRARY_PATH=<qualified-path-to-lib> dotnet run").
+
+
+
+
+
+###NOTES for Ubuntu###
+
+1) Initialize and Install caffe
+
+initialize the caffe submodule:
+    navigate to the caffe directory
+    >sudo git submodule update --init--recursive
+
+before installing caffe:
+    download all of the dependencies using sudo apt-get install ...
+    http://caffe.berkeleyvision.org/install_apt.html
+
+    now, in the caffe directory, to install:
+    >make all
+
+(the estimation_pose executable can't be run yet so will add to this later)
+2)To run the flowing-convnets program for pose estimation
+
+    in the 'flowing-convnets' directory, the Makefile needs to be changed to be able to run on Ubuntu
+    the clang++ command will not run, you have to install clang as a package
+        >sudo apt-get install libclang-3.5-dev

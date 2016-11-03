@@ -1,5 +1,8 @@
 import tornado.ioloop
 import tornado.web
+import os, uuid
+
+__UPLOADS__ = 'uploads/'
 
 class SearchHandler(tornado.web.RequestHandler):
     def get(self):
@@ -15,7 +18,17 @@ class SkeltonOverlayHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('imgUpload.html')
     def post(self):
-        self.render('uploadResult.html')
+        fileInfo = self.request.files['image'][0]
+        #you can also print the binary representation of the image
+        #print fileInfo
+        fileName = fileInfo['filename']
+        extn = os.path.splitext(fileName)[1]
+        #uuid just produces a unique id string + .<ext> (ex. png, jpg, mp4)
+        uniqueName = str(uuid.uuid4()) + extn
+        #writes the file to the 'uploads/' directory
+        fileHandler = open(__UPLOADS__ + uniqueName, 'w')
+        fileHandler.write(fileInfo['body'])
+        self.finish(uniqueName + ' is uploaded')
 
 
 def main():

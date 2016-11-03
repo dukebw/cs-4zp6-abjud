@@ -1,11 +1,11 @@
 P=video_pose_overlay
 
 INCLUDES=-I../caffe/include -I../caffe/build/include -I/usr/include/openblas -I./inc
-CXXFLAGS=-ggdb3 -Wall -Wextra -O3 -DCPU_ONLY=1 -DBLAS=open -std=gnu++14 -fcolor-diagnostics -fPIC $(INCLUDES) # -Werror
+CXXFLAGS=-ggdb3 -Wall -Wextra -O3 -DCPU_ONLY=1 -DBLAS=open -std=gnu++11 -fcolor-diagnostics -fPIC $(INCLUDES) # -Werror
 LDLIBS=-L../caffe/build/lib -lcaffe -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video -lboost_system -lglog
 LDFLAGS=-Wl,-R../caffe/build/lib
-CXX=clang++
-CC=clang++
+CXX=clang++-3.5
+CC=clang++-3.5
 SOURCE=src/$(P).cpp src/estimate_pose.cpp
 OBJECTS=$(patsubst %.cpp,obj/%.o,$(notdir $(SOURCE)))
 EXECUTABLE=bin/$(P)

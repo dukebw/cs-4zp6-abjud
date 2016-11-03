@@ -2,8 +2,11 @@ Steps to run the website with Python: (most likely will use a different framewor
 These steps are meant for Linux systems
 
 Basic Requirements:
-1)Python 2.7 (3+ is risky because pip has also been updated)
+1)Python 2.7 (tensorflow might be risky with python 3+)
 2) pip => python package manager
+    -->for windows, it comes with python 2.7 or 3+, link: http://stackoverflow.com/questions/4750806/how-do-i-install-pip-on-windows
+
+
 
 (optional, worst case) virtualenv => for setting up a python version if your locally installed python does not work with tornado
     -> this is very easy to install and use with pip. will put up the info later
@@ -13,6 +16,15 @@ Basic Requirements:
 
 here is a link detailing the steps for fedora:
 http://tutorialforlinux.com/2015/03/08/how-to-getting-started-with-python-tornado-on-fedora-linuxgnu-easy-guide/
+
+
+For windows (can't gaurantee because i havent tried it):
+https://pypi.python.org/pypi/tornado
+--> you can download the .whl file that best fits your computer
+
+http://stackoverflow.com/questions/27885397/how-do-i-install-a-python-package-with-a-whl-file
+ --> how to install the .whl file
+
 
 
 then, all you'd need to do is navigate to the directory with the <app>.py file and run "python <app>.py"
