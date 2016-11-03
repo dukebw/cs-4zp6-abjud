@@ -158,7 +158,9 @@ The current clients for this project are Dr.\ Taylor and his graduate student
 Thor Jonsson. Dr.\ Taylor is the primary driver to develop a website and
 database where annotated motion information can be generated and pulled from as
 a growth point into the larger text to motion project. They will be using the
-database to train Recurrent Neural Networks (RNNs) that will pair actions and
+database to train % deep neural networks rather than recurrent neural networks - we might use convolutional neural
+% networks for example, these are not recurrent (don't have feedback connections between the weights)
+Recurrent Neural Networks (RNNs) that will pair actions and
 their pose found within the database to words or combinations found in the
 input story.
 
@@ -175,7 +177,10 @@ learning community who are interested in multi-modal learning, and specifically
 in systems that link text to human motion. Said customers will have a high
 degree of knowledge related to machine learning theory. However, they cannot be
 assumed to have a high degree of skill in any programming language with a steep
-skill curve, such as C++ or Haskell. Also, the customer is unlikely to be
+skill curve, such as C++ or Haskell. % in a way, but I would not outrule them entirely, the machine learning community is very broad and many people
+% would be interested in seeing Haskell used. People have drawn links between functional programming and deep learning.
+% If you can do deep learning in haskell, try it!
+Also, the customer is unlikely to be
 willing to invest a large amount of time in learning how to use the software
 produced by the McMaster Text-to-Motion project.
 
@@ -447,13 +452,17 @@ large-scale video benchmark for the task of translating video to text. MSR-VTT
 provides 10K video clips spanning 41.2 hours and containing 200K clip-sentence
 pairs in total\cite{msr-vtt}.
 
+\textbf{Artificial Neural Network}: A computational model that is made by performing a series of affine transformations
+and non-linear activation functions in a biologically inspired manner.
+
+% Forgot to define ANN
 \textbf{Feedforward Neural Networks} are artifical neural networks where
 connections between the units do \textit{not} form a cycle). They are the
 simplest type of neural network, because information moves in only one
 direction.
 
 \textbf{ConvNets} or \textbf{Convolutional Neural Networks} are a type of
-feed-forward artificial neural network. ConvNets are inspired by the visual
+feed-forward artificial neural networks which convolve data between layers. ConvNets are inspired by the visual
 cortex and are commonly used in visual recognition applications.
 
 \textbf{RNNs} or \textbf{Recurrent Neural Networks} are a class of artificial
