@@ -68,7 +68,7 @@ namespace TextToMotionWeb.Controllers
 
         [DllImport("libestimate_pose_wrapper.so.1.0.1", EntryPoint = "estimate_pose_wrapper")]
         private static extern int
-        estimate_pose_wrapper([MarshalAsAttribute(UnmanagedType.LPArray)] byte[] image, int size_bytes, int max_size_bytes);
+        estimate_pose_wrapper([MarshalAs(UnmanagedType.LPArray)] byte[] image, ref int size_bytes, int max_size_bytes);
 
         /*
          * POST: /ImagePoseDraw/Create
@@ -82,19 +82,16 @@ namespace TextToMotionWeb.Controllers
          * @return Asynchronous task that will result in a view showing the Index, or a re-display
          * of the create form on error.
          */
-        [HttpPostAttribute]
-        [ValidateAntiForgeryTokenAttribute]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult>
-        Create([BindAttribute("ID,Name,Description")] PoseDrawnImage posedImage, IFormFile image)
+        Create([Bind("ID,Name,Description")] PoseDrawnImage posedImage, IFormFile image)
         {
             if (ModelState.IsValid && (image != null) && (image.Length > 0))
             {
                 byte[] rawImage;
-                int resultSizeBytes;
                 using (Stream imageStream = image.OpenReadStream())
                 {
-                    // TODO(brendan): better way of assuring that we have allocated enough space
-                    // to store the output image.
                     rawImage = new byte[imageStream.Length];
                     int numBytesRead = 0;
                     do
@@ -105,19 +102,19 @@ namespace TextToMotionWeb.Controllers
                     } while (numBytesRead < imageStream.Length);
                 }
 
-                bool maxSizeExceeded;
-                do
+                int bytesWritten = rawImage.Length;
+                int status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
+                if (bytesWritten > rawImage.Length)
                 {
-                    resultSizeBytes = estimate_pose_wrapper(rawImage, rawImage.Length, rawImage.Length);
-                    Console.WriteLine($"estimate_pose_wrapper result: {resultSizeBytes}");
+                    Array.Resize(ref rawImage, bytesWritten);
+                    status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
+                }
 
-                    maxSizeExceeded = (resultSizeBytes < 0);
-                    if (maxSizeExceeded)
-                    {
-                        Array.Resize(ref rawImage, 2*rawImage.Length);
-                    }
-                } while (maxSizeExceeded);
-
+                if (status < 0)
+                {
+                    return View(posedImage);
+                }
+                
                 _context.Add(posedImage);
                 await _context.SaveChangesAsync();
 
@@ -125,7 +122,7 @@ namespace TextToMotionWeb.Controllers
                 string imageName = posedImage.ID.ToString() + ".png";
                 using (var fileStream = new FileStream(Path.Combine(uploads, imageName), FileMode.Create))
                 {
-                    await fileStream.WriteAsync(rawImage, 0, resultSizeBytes);
+                    await fileStream.WriteAsync(rawImage, 0, bytesWritten);
                 }
 
                 return RedirectToAction("Index");
@@ -189,8 +186,8 @@ namespace TextToMotionWeb.Controllers
          * Since the GET and POST methods for Delete have the same function signature,
          *  we have renamed the POST method to "DeleteConfirmed".
          */
-        [HttpPostAttribute, ActionNameAttribute("Delete")]
-        [ValidateAntiForgeryTokenAttribute]
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var image = await _context.PoseDrawnImages.SingleOrDefaultAsync(m => m.ID == id);
