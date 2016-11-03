@@ -443,6 +443,244 @@ Each deliverable has a test case that should be passed in order to determine how
         reqnum = {12}
 }
 
+\section{Style Requirements}
+
+\testmanual{
+        name = {Minimalistic Web Design},
+        desc = {The website should use a minimalistic and visually informed design through visual aids.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {An average rank of 6 with a one to ten rating scale from the test group.},
+        reqnum = {13}
+}
+
+\section{Ease of Use Requirements}
+
+\testmanual{
+        name = {Upload/Download media},
+        desc = {Through the web interface a casual user should be able to upload and download files to the database with ease.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Observe the test group and ask them to upload and download an image in order to record the time required. Any time below 30 seconds for each task will be considered a pass.},
+        reqnum = {14}
+}
+
+\testmanual{
+        name = {User Interaction Test},
+        desc = {The user should be able to interact with the website without any previous knowledge},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {On a scale or questionaire the users will be asked to determine the ease of use when interacting with the website.},
+        reqnum = {15}
+}
+
+\testmanual{
+        name = {Text Box Functionality},
+        desc = {The user should be able to input a descriptive word or phrase into a textbox from within the web interface.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Observing the test group when asked to search for a video and record the time taken to find and input text. Anything below 15 seconds will be considered a pass.},
+        reqnum = {16}
+}
+
+\section{Learing Requirements}
+
+\testmanual{
+        name = {End-User Prior Training},
+        desc = {Any end-user should be able to use the website without any previous training or understanding of the components.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Users will use the website and rate how easy it was to use on a one to ten scale, an average of 6 will be required to pass.},
+        reqnum = {17}
+}
+
+\testmanual{
+        name = {Text To Motion Training},
+        desc = {Users should be able to instantiate a text to motion event without having any prior training.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Users will be asked to instaniate a text to motion event and record the time it takes. Any time below 30 seconds will be considered a pass.},
+        reqnum = {18}
+}
+
+\testmanual{
+        name = {Software API},
+        desc = {Anyone familiar with software APIs should be able to easily understand },
+        type = {Manual},
+        user = {Testing Group (Programmers)},
+        pass = {Users will be asked to set up the Software Interface and use some base functionalities within 15 minutes to be considered a pass.},
+        reqnum = {19}
+}
+
+\section{Understandability and Politeness Requirements}
+
+\testmanual{
+        name = {Hidding The Inner Workings},
+        desc = {Users should not be able to see the deep learning model and its training when using the pose estimation. When prompted the website should display the correct skeletons without any low-level detail.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {When using the web interface to get a pose estimatation from media the output should only be a video with the skeleton overlay. Beyond this there should not be any additonal information or access to any infromation.},
+        reqnum = {20}
+}
+
+\section{Speed and Latency Requirements}
+
+\testauto{
+        name = {External Database Connection Response Time},
+        desc = {The web interface should be able to connect to an external database and store or query items.},
+        type = {Automated},
+        init = {Initialize the web interface.},
+        input = {An image or video with a human in frame.},
+        output = {The output from the web interface would be a confirmation of the image or video being uploaded, along with an associated database query.},
+        pass = {In order for this test to be considered a pass the confirmation of the image being uploaded would have to occur within 30 seconds so that additonal resources are not wasted by the database.},
+        reqnum = {21}
+}
+
+\testauto{
+        name = {Deep Learning Model Response Time},
+        desc = {The deep learning model should be able to process an image in a relative time of one frame per minute.},
+        type = {Automated},
+        init = {Initialize the web interface.},
+        input = {An image or video with a human in frame.},
+        output = {A pose estimated image with a skeleton overlay of each joint in a frame by frame instances.},
+        pass = {In order to pass this test the deep learning model would have to adhear to the frame per minute rule set in the description, and a five frame video would take a maximum of five minutes.},
+        reqnum = {22}
+}
+
+\testauto{
+        name = {Website Search Responiveness},
+        desc = {When given a word or phrase the web interface will be able to respond with an image or video of a pose or action within a reasonable time.},
+        type = {Automated},
+        init = {Intialize the web interface.},
+        input = {Text of a word or phrase within the search field.},
+        output = {An image or video matching the input description.},
+        pass = {Providing a matching video or image within two minutes will constitute a passed test as the web interface has to parse the input, interpert the pose that best matches and output the match.},
+        reqnum = {23}
+}
+
+\chapter{Precision or Accuracy Requirements}
+
+\testmanual{
+        name = {Bone and Joint Position},
+        desc = {The project must be able to accurately encapsulate and represent the bone and joint positioning of the human that is found within the frame.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {In order to pass this test the program must accurately represent the positioning of bones and joints with regards to an average human. This will be determined through visual confirmation that the bone or joint positioning overlay is within an uncertiancy of 20 pixels.},
+        reqnum = {24}
+}
+
+\chapter{Reliability and Availability Requirements}
+
+\testauto{
+        name = {Software Availability},
+        desc = {The software component of the project should be available 24 hours a day, and 365 days a year.},
+        type = {Automated},
+        init = {Initial software interface during a scheduling constraint.},
+        input = {Any command that requires the API.},
+        output = {The correct response to the input command.},
+        pass = {If the ouput matches the input and correctly responds it can be assumed that the software will work during a scheduling constraint and be considered a pass.},
+        reqnum = {25}
+}
+
+\testauto{
+        name = {Website Availability},
+        desc = {The web component of the project should be available 24 hours a day, and 365 days a year. The only exception to this is scheduled maintence or migriation},
+        type = {Automated},
+        init = {Initial web interface.},
+        input = {A call to the web server.},
+        output = {A response that signifies the call has been processed and the server is still up and running.},
+        pass = {In order for this test to be passed the call would have to return a HTTP verified response like 2xx in order to represent a successful connection.},
+        reqnum = {26}
+}
+
+\chapter{Robustness or Fault-Tolerance Requirements}
+
+\testauto{
+        name = {Web Interface Error Handeling},
+        desc = {The web interface should respond to unhandled exceptions by throwing the coressponding error messages.},
+        type = {Automated},
+        init = {Initial web interface.},
+        input = {A known error or missuse of the web interface.},
+        output = {The corresponding error message to the input.},
+        pass = {If the error message correctly responds to the input or contains a catch all the test can be considered a pass.},
+        reqnum = {27}
+}
+
+\testauto{
+        name = {Web Interface Text Parsing},
+        desc = {The web interface will have to parse the text that is input in order to determine if the input is unintelligible.},
+        type = {Automated},
+        init = {Initial web interface.},
+        input = {An unintelligible word or phrase.},
+        output = {An error message containing the unintelligible word.},
+        pass = {In order for this test to pass the web interface must respond to the faulty input with a corresponding error message.},
+        reqnum = {28}
+}
+
+\chapter{Capacity Requirements}
+
+\testauto{
+        name = {Multiple Connections},
+        desc = {The web interface should be able to serve multiple connections.},
+        type = {Automated},
+        init = {Initial web interfaces.},
+        input = {5 web interfaces that are open.},
+        output = {5 web interfaces that continue to run and function as intended.},
+        pass = {If each web interface can fully serve the 5 users and respond to each action as intended then the test can be considered a pass.},
+        reqnum = {29}
+}
+
+\testmanual{
+        name = {Database Capacity},
+        desc = {The database should contain a large amount of information when first created in order to facilitate growth.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {The development team should have at least 5GB of data stored in the database when complete to be considered a pass.},
+        reqnum = {30}
+}
+
+\chapter{Scaling of Extensibility Requirements}
+
+\testmanual{
+        name = {Deep Learning Training},
+        desc = {The deep learning model should be put through a rigorous training set in order to accurately reprsent the pose estimation on humans.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {The pass for this test will come from a training set that should contain thousands of pictures to be trained with. In addition to this training set the success of other tests or core functionality will prove if the deep learning model was properly trained or not.},
+        reqnum = {31}
+}
+
+\chapter{Operational and Environmental Requirements}
+
+\testmanual{
+        name = {Linux Friendly Tensorflow},
+        desc = {The web interface should be run on a Linux friendly server that can access the tensorflow model either directly or indirectly.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {The development team will design the web interface to run on an Apache or ngnix server and will be considered a pass when functioning correctly.},
+        reqnum = {32}
+}
+
+\testauto{
+        name = {Tensorflow Library and Model},
+        desc = {The web interface should interact with the tensorflow library as the deep leanring model can not be run on the web interface alone.},
+        type = {Automated},
+        init = {Intial web interface},
+        input = {An image or video.},
+        output = {A yes or no response to the question 'Is there a person in this media?'.},
+        pass = {If the tensorflow model can correctly determine if there is a person within the media provided the test will be passed.},
+        reqnum = {33}
+}
+
+\testmanual{
+        name = {Export types},
+        desc = {The project should be able to export multiple types of media (JPEG, PNG, etc) in order to support all major operating systems.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {The development team should be able to export an image as multiple types such as JPES, PNG, DDS and more in order to pass this test.},
+        reqnum = {34}
+}
+
 \chapter{Timeline}
 
 \chapter{Appendix A:  Testing Survey}
