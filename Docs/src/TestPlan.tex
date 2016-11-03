@@ -1,0 +1,680 @@
+\documentclass{scrreprt}
+
+\usepackage{xcolor} % for different colour comments
+\usepackage{tabto}
+\usepackage{mdframed}
+\mdfsetup{nobreak=true}
+\usepackage{xkeyval}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=red,
+    urlcolor=blue
+}
+\usepackage[skip=2pt, labelfont=bf]{caption}
+\usepackage{titlesec}
+\usepackage{graphicx}
+\usepackage[section]{placeins}
+\graphicspath{ {image/} }
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+
+%% Comments
+\newif\ifcomments\commentstrue
+
+\ifcomments
+\newcommand{\authornote}[3]{\textcolor{#1}{[#3 ---#2]}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\else
+\newcommand{\authornote}[3]{}
+\newcommand{\todo}[1]{}
+\fi
+
+\newcommand{\wss}[1]{\authornote{magenta}{SS}{#1}}
+\newcommand{\ds}[1]{\authornote{blue}{DS}{#1}}
+
+
+%% The following are used for pretty printing of events and requirements
+\makeatletter
+
+\define@cmdkey      [TP] {test}     {name}       {}
+\define@cmdkey      [TP] {test}     {desc}       {}
+\define@cmdkey      [TP] {test}     {type}       {}
+\define@cmdkey      [TP] {test}     {init}       {}
+\define@cmdkey      [TP] {test}     {input}      {}
+\define@cmdkey      [TP] {test}     {output}     {}
+\define@cmdkey      [TP] {test}     {pass}       {}
+\define@cmdkey      [TP] {test}     {user}       {}
+\define@cmdkey      [TP] {test}     {reqnum}     {}
+
+
+\newcommand{\getCurrentSectionNumber}{%
+  \ifnum\c@section=0 %
+  \thechapter
+  \else
+  \ifnum\c@subsection=0 %
+  \thesection
+  \else
+  \ifnum\c@subsubsection=0 %
+  \thesubsection
+  \else
+  \thesubsubsection
+  \fi
+  \fi
+  \fi
+}
+
+\newcounter{TestNum}
+
+\@addtoreset{TestNum}{section}
+\@addtoreset{TestNum}{subsection}
+\@addtoreset{TestNum}{subsubsection}
+
+\newcommand{\testauto}[1]{
+\setkeys[TP]{test}{#1}
+\refstepcounter{TestNum}
+\begin{mdframed}[linewidth=1pt]
+\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
+{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
+{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
+{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
+{\bf Initial State:} & \cmdTP@test@init\\[0.5\baselineskip]
+{\bf Input:} & \cmdTP@test@input\\[0.5\baselineskip]
+{\bf Output:} & \cmdTP@test@output\\[0.5\baselineskip]
+{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
+{\bf Req. \#:} & \cmdTP@test@reqnum
+\end{tabularx}
+\end{mdframed}
+}
+
+\newcommand{\testmanual}[1]{
+\setkeys[TP]{test}{#1}
+\refstepcounter{TestNum}
+\begin{mdframed}[linewidth=1pt]
+\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
+{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
+{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
+{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
+{\bf Testers:} & \cmdTP@test@user\\[0.5\baselineskip]
+{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
+{\bf Req. \#:} & \cmdTP@test@reqnum
+\end{tabularx}
+\end{mdframed}
+}
+
+\makeatother
+
+\newcommand{\ZtoT}{
+\begin{tabularx}{3.85cm}{@{}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}@{}}
+0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10
+\end{tabularx}
+}
+
+\begin{document}
+\title{\bf Text to Motion Database\\[\baselineskip]\Large Test Plan}
+\author{Brendan Duke\\Andrew Kohnen\\Udip Patel\\David Pitkanen\\Jordan Viveiros}
+\date{\today}
+	
+\maketitle
+
+\pagenumbering{roman}
+\tableofcontents
+% \listoftables
+% \listoffigures
+
+
+\begin{table}[bp]
+\caption*{\bf Revision History}
+\begin{tabularx}{\textwidth}{p{3.5cm}p{2cm}X}
+\toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
+\midrule
+October 31, 2016 & 0.0 & File created\\
+November 2, 2016 & 0.1 & Revision 0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\newpage
+
+\pagenumbering{arabic}
+
+\chapter{Overview}
+The purpose of this document is to provide a detailed test plan for the McMaster Text to Motion Database including each subsection that makes up the combined project. The content of this document is covered below:
+
+\begin{itemize}
+  \item Our proof of concept is described in Section 2.
+  \item The set of tests that will test the system as a whole are in Section 3.
+  \item The tests that ensure proper constraints on the system are in Section 4.
+  \item The set of tests that verify functional requirements have been met are in Section 5.
+  \item The set of tests that verify non-functional requirements have been met are in Section 6.
+  \item A timeline of the test plan is given in Section 7.
+  \item Appendix is found in Section 8.
+\end{itemize} 
+
+\section{Test Case Format}
+The format for the automated test case and manual test case can be found below with descriptions for each section of a test case:
+
+\testauto{
+        name = {Test Name},
+        desc = {A description of what is being automatically tested},
+        type = {The type of test (Automated)},
+        init = {The initial state of the system for the test},
+        input = {The input that is required to complete the test},
+        output = {The desired output from the system},
+        pass = {What conditions must be met in order to be a success},
+        reqnum = {The requirement number}
+}
+
+\testmanual{
+        name = {Test Name},
+        desc = {A description of what is being manually tested},
+        type = {The type of test (Manual)},
+        user = {The user who will perform the test},
+        pass = {What the user will use to determine if the test was passed},
+        reqnum = {The requirement number}
+}
+
+\section{Automated Testing}
+Automated testing for this project will be utilized in each testing section, and will require some software or custom application in order to perform the testing. This testing is critical to each section of the project and is divided into separate requirement sections. The division is required in order to ensure that testing can occur while still in development, i.e. tests for leaf modules can be executed first.
+
+\subsection{Testing Tools}
+
+\section{Manual Testing}
+Manual testing will be used in the project when automated testing would require too much additional development, or expertise that cannot be represented through an application. These tests will be done by the external supervisor and his research team along with user test groups in order to remove any bias that the development team would have.
+
+\subsection{User Experience Testing}
+Some manual testing will consist of a user experience test in order to assess the experience of the project. They will be asked about the look and feel of the project website, gathering information, and other functionality that is incorporated. Because of the range of complexity within the project the test groups will have to contain different expertise and knowledge about software development.
+
+\chapter{Proof of Concept Testing}
+Before the project can enter a serious stage of development, a proof of concept must be accomplished in order to prove that difficulties can be overcome in order to prove the need for and usefulness of the project. Sections of this proof of concept are explained in more detail below.
+
+\section{Significant Risks}
+The significant risks of this project can be separated into three sections represented by the website, database, and deep learning network. The significant risks for each section and for the project as a whole are shown below:
+
+\begin{itemize}
+  \item Linking the three major sections together in order to have them working in tandem is the largest risk to the project's success, as one failing will directly impact the others.
+  \item The website must use a form of query to the database in order to correctly return the desired information.
+  \item The database must contain a pairing of video and text descriptions in order to provide the correct information to the users and developers.
+  \item Deep learning and pose estimation are active areas of research and have
+          steep learning curves.
+\end{itemize}
+
+\section{Demonstration Plan}
+In order to show that the significant risks can be overcome the demonstration will have a set of deliverables that will provide the base for how successful the proof of concept is. Each key deliverable can be found below:
+
+\begin{itemize}
+  \item A functional website, as an interface for running pose estimation.
+  \item Said website should contain a database.
+  \item The ability to upload images and videos, and to update the database with those uploaded data.
+  \item The ability to run human pose estimation on any uploaded image and video. Human pose estimation can be explained as follows: the skeletons and joints of any humans in the uploaded media will be indicated visually.
+  \item The ability to search for uploaded images and videos through some means, e.g. by tag or name.
+\end{itemize}
+
+\section{Proof of Concept Test}
+Each deliverable has a test case that should be passed in order to determine how successful the proof of concept is. The test cases are considered to be simple manual tests as the group members will be performing them in isolation or during the demonstration.
+
+\testmanual{
+        name = {Functional website for pose estimation},
+        desc = {A website that contains the ability to run pose estimation on a video or image},
+        type = {Manual},
+        user = {Development team},
+        pass = {The user should be able to run some form of pose estimation
+                through the web interface that is presented to them},
+        reqnum = {N/A}
+}
+
+\testmanual{
+        name = {Database and website pairing},
+        desc = {The database will be paired to the website in order to provide videos or images through the website},
+        type = {Manual},
+        user = {Development team},
+        pass = {If the user can access data that is stored within the database through the web interface, then the test can be considered a pass},
+        reqnum = {N/A}
+}
+
+\testmanual{
+        name = {Updating the database},
+        desc = {The ability to upload images or videos and update the database through the website},
+        type = {Manual},
+        user = {Development team},
+        pass = {If the user can upload an image or video through the web interface and the user can later access the uploaded image or video the test can be considered passed},
+        reqnum = {N/A}
+}
+
+\testmanual{
+        name = {Running pose estimation},
+        desc = {The ability to run pose estimation on an uploaded image or video, which entails that the skeleton and joints of any human, will be clearly visualized},
+        type = {Manual},
+        user = {Development team},
+        pass = {In order for this test to be considered passed the user will have to upload an image or video and see that the humans are correctly represented by their respective joint positions},
+        reqnum = {N/A}
+}
+
+\testmanual{
+        name = {Search by tag or name},
+        desc = {The ability to search through the database by either an associated tag or name.},
+        type = {Manual},
+        user = {Development team},
+        pass = {In order for this test the user will have to search for an image or video that was uploaded with a specific tag or name and be directed to the correct image or video},
+        reqnum = {N/A}
+}
+
+\section{Solution Constraints Testing}
+
+\testmanual{
+        name = {Deep Learning Methods Test},
+        desc = {Test whether the human pose estimation component of the
+                software uses modern deep learning methods.},
+        type = {Manual},
+        user = {Supervisor (Dr. Taylor)},
+        pass = {Dr. Taylor should confirm that the deep learning methods used
+                are satisfactory and relevant to current research, with a yes
+                or no response.},
+        reqnum = {1}
+}
+
+\testauto{
+        name = {Standard Data Format Test},
+        desc = {Tests whether the human pose data format used in the project is
+                standard, and compatible with existing software libraries.},
+        type = {Automated},
+        init = {Initialize database query interface.},
+        input = {Random ID of a record, containing human pose data, in the
+                 database.},
+        output = {Tuple containing data in HDF5 format.},
+        pass = {The human pose datum should be parse-able by an existing HDF5
+                data library.},
+        reqnum = {2}
+}
+
+\testauto{
+        name = {Linux Platform Build and Run Test},
+        desc = {Confirms that all nightly build tests, as well as the automated
+                test suite, are working under Linux.},
+        type = {Automated},
+        init = {None (build test).},
+        input = {Commands to begin build and run sequence.},
+        output = {Compile and run success, or errors.},
+        pass = {Compile and run success.},
+        reqnum = {3}
+}
+
+\testauto{
+        name = {Python API Hook Testing},
+        desc = {Confirms that major module interfaces, such as the image pose
+                estimation interface, and database query interface, have working Python
+                hooks.},
+        type = {Automated},
+        init = {Initialization specific to each module interface under test.},
+        input = {Valid parameters for each module interface, written in Python.},
+        output = {Expected success-case outputs for each module interface,
+                  written in Python.},
+        pass = {Interface calls completed without error, and returned their
+                expected outputs.},
+        reqnum = {4}
+}
+
+\chapter{Functional Requirements Testing}
+
+\testauto{
+        name = {Supported Video Encodings Test},
+        desc = {Tests whether the ReadFrames API is able to decode MP4, MP2 and
+                AAC video files.},
+        type = {Automated},
+        init = {Call read frames initialization procedure.},
+        input = {30 second MP4 video file at 30 FPS.},
+        output = {A set of 900 $(30\times30)$ frames.},
+        pass = {The 900 frames match a set of 900 expected frames from a reference
+                frame-reading system.},
+        reqnum = {7}
+}
+
+\testauto{
+        name = {Frame Reading Timestamp Accuracy Test},
+        desc = {Tests whether the timestamps on the frames returned by the
+                ReadFrames API match their temporal position in the original video
+                stream.},
+        type = {Automated},
+        init = {Call read frames initialization procedure.},
+        input = {30 second MP4 video file at 30 FPS.},
+        output = {A set of 900 $(30\times30)$ frames, which include timestamps.},
+        pass = {The timestamps on the 900 frames match a set of timestamps on a
+                test vector of expected timestamps for the 900 frames.},
+        reqnum = {8}
+}
+
+\testmanual{
+        name = {Video Human Pose Estimation Data Quality Test},
+        desc = {Test to ensure the data quality produced by the human pose
+                estimator component. A set of Charades videos will be processed
+                by the human pose estimator, and skeleton animations
+                corresponding to the generated human pose data will be
+                created (this is a scoped part of the software pipeline). A
+                double-blind test will be ran, where testers will be shown
+                random mixed sets of the skeleton animations produced by
+                McMaster Text to Motion, together with skeletons from actual
+                motion capture data coming from CMU's motion capture lab.
+                Testers will indicate whether they think the motion capture
+                data came from actual motion capture, or from the pose
+                estimation software.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Within a 5\% confidence interval, the McMaster Text to Motion
+                skeletons will be indicated as being actual motion capture data
+                with the same probability that the CMU motion capture skeletons
+                are indicated as being actual motion capture data.},
+        reqnum = {8}
+}
+
+\testauto{
+        name = {Database Output Full Range Coverage Test},
+        desc = {Tests whether the range of the text-to-motion database search
+                is equal to the entire set of data stored in the database.},
+        type = {Automated},
+        init = {Initialize database-query and full text search module interfaces.
+                Populate database with Charades data.},
+        input = {A random matching keyword from the text description of each
+                 video (acquired automatically).},
+        output = {A set of video-pose data from the database that should
+                  include the original datum that the input keyword was taken from.},
+        pass = {The returned set of data contains the original video record.},
+        reqnum = {9}
+}
+
+\testauto{
+        name = {Database No False Positives Test},
+        desc = {Tests whether the results retrieved from text searches of the
+                database contain any false positives, i.e. results whose text
+                descriptions do not contain any of the searched keywords.},
+        type = {Automated},
+        init = {Initialize database-query and full text search module
+                interfaces. Populate database with Charades data.},
+        input = {For each video, a random set of keywords not in that video's
+                 text description.},
+        output = {A set of video-pose entries.},
+        pass = {The output set of data should not contain the original video
+                that was chosen to be outside the subset of the output range for this
+                input.},
+        reqnum = {10}
+}
+
+\testauto{
+        name = {Full Text Search Order by Relevance Test},
+        desc = {A test of whether the full text search interface is returning a
+                set of entries that are ordered by relevance to the search keywords.},
+        type = {Automated},
+        init = {Initialize database-query and full text search module
+                interfaces. Populate database with Charades data.},
+        input = {A random set of search keywords, drawn automatically from the
+                 set of text descriptions in the database.},
+        output = {A set of entries in the database, in some order.},
+        pass = {The output set of entries should be randomly ordered and input
+                to a reference full text search engine, which will produce an expected
+                ordering by relevance. A statistical test of the similarity of
+                the McMaster Text to Motion ordering and the reference ordering
+                should be done, and the McMaster Text to Motion ordering should
+                be expected to be the same within a 5\% confidence interval.},
+        reqnum = {11}
+}
+
+\chapter{Non-Functional Requirements Testing}
+
+\section{Look and Feel Requirements Testing}
+
+\testmanual{
+        name = {Colour Scheme Test},
+        desc = {Test user satisfaction of the web interface colour scheme.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {On a one to ten scale, the average user rating is above six.},
+        reqnum = {12}
+}
+
+\section{Style Requirements}
+
+\testmanual{
+        name = {Minimalistic Web Design},
+        desc = {The website should use a minimalistic and visually informed design through visual aids.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {An average rank of 6 with a one to ten rating scale from the test group.},
+        reqnum = {13}
+}
+
+\newpage
+\section{Ease of Use Requirements}
+
+\testmanual{
+        name = {Upload/Download media},
+        desc = {Through the web interface a casual user should be able to upload and download files to the database with ease.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Observe the test group and ask them to upload and download an image in order to record the time required. Any time below 30 seconds for each task will be considered a pass.},
+        reqnum = {14}
+}
+
+\testmanual{
+        name = {User Interaction Test},
+        desc = {The user should be able to interact with the website without any previous knowledge},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {On a scale or questionnaire the users will be asked to determine the ease of use when interacting with the website.},
+        reqnum = {15}
+}
+
+\testmanual{
+        name = {Text Box Functionality},
+        desc = {The user should be able to input a descriptive word or phrase into a text-box from within the web interface.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Observing the test group when asked to search for a video and record the time taken to find and input text. Anything below 15 seconds will be considered a pass.},
+        reqnum = {16}
+}
+
+\section{Learning Requirements}
+
+\testmanual{
+        name = {End-User Prior Training},
+        desc = {Any end-user should be able to use the website without any previous training or understanding of the components.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Users will use the website and rate how easy it was to use on a one to ten scale. An average of 6 will be required to pass.},
+        reqnum = {17}
+}
+
+\testmanual{
+        name = {Text To Motion Training},
+        desc = {Users should be able to instantiate a text to motion event without having any prior training.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {Users will be asked to instantiate a text to motion event and record the time it takes. Any time below 30 seconds will be considered a pass.},
+        reqnum = {18}
+}
+
+\testmanual{
+        name = {Software API},
+        desc = {Anyone familiar with software APIs should be able to easily understand },
+        type = {Manual},
+        user = {Testing Group (Programmers)},
+        pass = {Users will be asked to set up the Software Interface and use some base functionalities within 15 minutes to be considered a pass.},
+        reqnum = {19}
+}
+
+\section{Understandability and Politeness Requirements}
+
+\testmanual{
+        name = {Hiding The Inner Workings},
+        desc = {Users should not be able to see the deep learning model and its training when using the pose estimation. When prompted the website should display the correct skeletons without any low-level detail.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {When using the web interface to get a pose estimation from media, the output should only be a video with the skeleton overlay. Beyond this there should not be any additional information or access to any information.},
+        reqnum = {20}
+}
+
+\section{Speed and Latency Requirements}
+
+\testauto{
+        name = {External Database Connection Response Time},
+        desc = {The web interface should be able to connect to an external database and store or query items.},
+        type = {Automated},
+        init = {Initialize the web interface.},
+        input = {An image or video with a human in frame.},
+        output = {The output from the web interface would be a confirmation of the image or video being uploaded, along with an associated database query.},
+        pass = {In order for this test to be considered a pass the confirmation of the image being uploaded would have to occur within 30 seconds so that additional resources are not wasted by the database.},
+        reqnum = {21}
+}
+
+\testauto{
+        name = {Deep Learning Model Response Time},
+        desc = {The deep learning model should be able to process an image in a relative time of one frame per minute.},
+        type = {Automated},
+        init = {Initialize the web interface.},
+        input = {An image or video with a human in frame.},
+        output = {A pose estimated image with a skeleton overlay of each joint in a frame by frame instances.},
+        pass = {In order to pass this test the deep learning model would have to adhere to the frame per minute rule set in the description, and a five frame video would take a maximum of five minutes.},
+        reqnum = {22}
+}
+
+\testauto{
+        name = {Website Search Responsiveness},
+        desc = {When given a word or phrase the web interface will be able to respond with an image or video of a pose or action within a reasonable time.},
+        type = {Automated},
+        init = {Initialize the web interface.},
+        input = {Text of a word or phrase within the search field.},
+        output = {An image or video matching the input description.},
+        pass = {Providing a matching video or image within two minutes will constitute a passed test as the web interface has to parse the input, interpret the pose that best matches, and output the match.},
+        reqnum = {23}
+}
+
+\chapter{Precision or Accuracy Requirements}
+
+\testmanual{
+        name = {Bone and Joint Position},
+        desc = {The project must be able to accurately encapsulate and represent the bone and joint positioning of the human that is found within the frame.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {In order to pass this test the program must accurately represent the positioning of bones and joints with regards to an average human. This will be determined through visual confirmation that the bone or joint positioning overlay is within an uncertainty of 20 pixels.},
+        reqnum = {24}
+}
+
+\chapter{Reliability and Availability Requirements}
+
+\testauto{
+        name = {Software Availability},
+        desc = {The software component of the project should be available 24 hours a day, and 365 days a year.},
+        type = {Automated},
+        init = {Initial software interface during a scheduling constraint.},
+        input = {Any command that requires the API.},
+        output = {The correct response to the input command.},
+        pass = {If the output matches the input and correctly responds, it can be assumed that the software will work during a scheduling constraint and be considered a pass.},
+        reqnum = {25}
+}
+
+\testauto{
+        name = {Website Availability},
+        desc = {The web component of the project should be available 24 hours a day, and 365 days a year. The only exception to this is scheduled maintenance or migration},
+        type = {Automated},
+        init = {Initial web interface.},
+        input = {A call to the web server.},
+        output = {A response that signifies the call has been processed and the server is still up and running.},
+        pass = {In order for this test to be passed the call would have to return a HTTP verified response like 2xx in order to represent a successful connection.},
+        reqnum = {26}
+}
+
+\chapter{Robustness or Fault-Tolerance Requirements}
+
+\testauto{
+        name = {Web Interface Error Handling},
+        desc = {The web interface should respond to unhandled exceptions by throwing the corresponding error messages.},
+        type = {Automated},
+        init = {Initial web interface.},
+        input = {A known error or misuse of the web interface.},
+        output = {The corresponding error message to the input.},
+        pass = {If the error message correctly responds to the input or contains a catch all, then the test can be considered a pass.},
+        reqnum = {27}
+}
+
+\testauto{
+        name = {Web Interface Text Parsing},
+        desc = {The web interface will have to parse the text that is input in order to determine if the input is unintelligible.},
+        type = {Automated},
+        init = {Initial web interface.},
+        input = {An unintelligible word or phrase.},
+        output = {An error message containing the unintelligible word.},
+        pass = {In order for this test to pass the web interface must respond to the faulty input with a corresponding error message.},
+        reqnum = {28}
+}
+
+\chapter{Capacity Requirements}
+
+\testauto{
+        name = {Multiple Connections},
+        desc = {The web interface should be able to serve multiple connections.},
+        type = {Automated},
+        init = {Initial web interfaces.},
+        input = {5 web interfaces that are open.},
+        output = {5 web interfaces that continue to run and function as intended.},
+        pass = {If each web interface can fully serve the 5 users and respond to each action as intended, then the test can be considered a pass.},
+        reqnum = {29}
+}
+
+\testmanual{
+        name = {Database Capacity},
+        desc = {The database should contain a large amount of information when first created in order to facilitate growth.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {The development team should have at least 5GB of data stored in the database when complete to be considered a pass.},
+        reqnum = {30}
+}
+
+\chapter{Scaling of Extensibility Requirements}
+
+\testmanual{
+        name = {Deep Learning Training},
+        desc = {The deep learning model should be put through a rigorous test set, with expected outputs, in order to accurately represent the pose estimation on humans.},
+        type = {Manual},
+        user = {Testing Group},
+        pass = {The pass for this test will come from a test set that should contain thousands of pictures to be trained with. In addition to this test set, the success of other tests or core functionality will prove if the deep learning model was properly trained or not.},
+        reqnum = {31}
+}
+
+\chapter{Operational and Environmental Requirements}
+
+\testmanual{
+        name = {Linux Friendly Tensorflow},
+        desc = {The web interface should be run on a Linux friendly server that can access the Tensorflow model either directly or indirectly.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {The development team will design the web interface to run on an Apache or NGINX server. This test case will be considered a pass when said server is functioning correctly.},
+        reqnum = {32}
+}
+
+\testauto{
+        name = {Tensorflow Library and Model},
+        desc = {The web interface should interact with the Tensorflow library, as the deep learning model cannot be run on the web interface alone.},
+        type = {Automated},
+        init = {Initial web interface},
+        input = {An image or video.},
+        output = {A yes or no response to the question `Is there a person in this media?'},
+        pass = {If the Tensorflow model can correctly determine if there is a person within the media provided the test will be passed.},
+        reqnum = {33}
+}
+
+\testmanual{
+        name = {Export types},
+        desc = {The project should be able to export multiple types of media (JPEG, PNG, etc) in order to support all major operating systems.},
+        type = {Manual},
+        user = {Development Team},
+        pass = {The development team should be able to export an image as multiple types such as JPEs, PNG, DDS, and more in order to pass this test.},
+        reqnum = {34}
+}
+
+\end{document}
