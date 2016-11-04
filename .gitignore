@@ -3,6 +3,7 @@ raw-video-fiddling/read_frame
 flowing-convnet-pose-c++/bin/estimate_pose
 flowing-convnet-pose-c++/bin/video_pose_overlay
 obj/
+lib/
 .depend
 
 ## Ignore Visual Studio temporary files, build results, and
