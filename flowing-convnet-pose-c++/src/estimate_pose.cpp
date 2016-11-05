@@ -172,10 +172,10 @@ void image_pose_overlay(caffe::Net<float>& heatmap_net, cv::Mat& image)
 }
 
 extern "C" int32_t estimate_pose_from_c(void *image,
-					uint32_t size_bytes,
+					uint32_t *size_bytes,
 					uint32_t max_size_bytes);
 
-int32_t estimate_pose_from_c(void *image, uint32_t size_bytes, uint32_t max_size_bytes)
+int32_t estimate_pose_from_c(void *image, uint32_t *size_bytes, uint32_t max_size_bytes)
 {
         if (image == NULL)
                 return ESTIMATE_POSE_ERROR;
@@ -185,7 +185,7 @@ int32_t estimate_pose_from_c(void *image, uint32_t size_bytes, uint32_t max_size
 			init_pose_estimator_network(std::string{MODEL_DEFAULT},
 						    std::string{TRAINED_WEIGHTS_DEFAULT});
 
-		cv::InputArray image_input_array{image, static_cast<int32_t>(size_bytes)};
+		cv::InputArray image_input_array{image, static_cast<int32_t>(*size_bytes)};
 
 		cv::Mat image_mat = imdecode(image_input_array, cv::IMREAD_COLOR);
 
@@ -207,6 +207,9 @@ int32_t estimate_pose_from_c(void *image, uint32_t size_bytes, uint32_t max_size
 				"require %lu but got %d\n",
 				posed_image_png.size(),
 				max_size_bytes);
+
+			*size_bytes = posed_image_png.size();
+
 			return ESTIMATE_POSE_ERROR;
 		}
 
