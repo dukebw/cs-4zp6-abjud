@@ -17,17 +17,19 @@ The test.cpp file will be compiled to make an object (.o) file and a shared obje
 The makefile does this using g++ and some -options --> see makefile for details
 
 
-the shared object will be used by the python code
+the shared object will be used by the python code, run the program by typing:
+>python wrapper.py
 
-In the python file => wrapper.py
+
+Description of the python file => wrapper.py
 
 the .so file is loaded as a cdll lib and the functions defined are called
 ->asks for an angle, calls the cosine function on the given input
 
-To make your own test python file, all you'd need to do:
+To make your own test python file that calls a C function, all you'd need to do:
 
     you need to import ctypes:
-    >>from ctypes import cdll
+    >>from ctypes import *
 
     then ctypes can load a shared object as a library:
     >>lib = cdll.LoadLibrary('<path to shared object file>')
