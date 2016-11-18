@@ -1,6 +1,7 @@
 import tornado.ioloop
 import tornado.web
 import os, uuid
+from PIL import Image
 
 __UPLOADS__ = 'uploads/'
 
@@ -28,6 +29,13 @@ class SkeltonOverlayHandler(tornado.web.RequestHandler):
         #writes the file to the 'uploads/' directory
         fileHandler = open(__UPLOADS__ + uniqueName, 'w')
         fileHandler.write(fileInfo['body'])
+
+        #can do this for the image that is saved above, but need a try/catch b/c some images raise exceptions
+        imageRGB = Image.open(__UPLOADS__ + 'bird.jpg')
+        im = imageRGB.convert('RGB')
+        print im
+        im.save(__UPLOADS__ + 'test.png')
+
         self.finish(uniqueName + ' is uploaded')
 
 
