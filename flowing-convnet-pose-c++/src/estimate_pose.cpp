@@ -151,7 +151,6 @@ init_pose_estimator_network(const std::string& model,
 
 void image_pose_overlay(caffe::Net<float>& heatmap_net, cv::Mat& image)
 {
-        cv::Size image_original_size = cv::Size{image.cols, image.rows};
         cv::resize(image, image, cv::Size{NET_IMAGE_WIDTH, NET_IMAGE_HEIGHT});
 
         copy_image_to_input_blob(heatmap_net, image);
@@ -167,8 +166,41 @@ void image_pose_overlay(caffe::Net<float>& heatmap_net, cv::Mat& image)
         cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
 
         draw_skeleton(image, joints);
+}
 
-        cv::resize(image, image, image_original_size);
+/*
+ * @desc If image_mat is not already square, expands image_mat out to a square
+ * image with black borders where necessary.
+ *
+ * The purpose of this function is so that images are not distorted when they
+ * are resized to 256x256 as input to the pose estimation conv-net.
+ *
+ * @param [in/out] image_mat Input matrix of an image that is to be expanded
+ * out to be square.
+ */
+static void
+square_image_with_borders(cv::Mat& image_mat)
+{
+        int32_t padding = std::abs(image_mat.cols - image_mat.rows)/2;
+        if (image_mat.cols > image_mat.rows) {
+                cv::copyMakeBorder(image_mat,
+                                   image_mat,
+                                   padding,
+                                   padding,
+                                   0,
+                                   0,
+                                   cv::BORDER_CONSTANT,
+                                   cv::Scalar(0, 0, 0));
+        } else if (image_mat.rows > image_mat.cols) {
+                cv::copyMakeBorder(image_mat,
+                                   image_mat,
+                                   0,
+                                   0,
+                                   padding,
+                                   padding,
+                                   cv::BORDER_CONSTANT,
+                                   cv::Scalar(0, 0, 0));
+        }
 }
 
 extern "C" int32_t estimate_pose_from_c(void *image,
@@ -188,6 +220,8 @@ int32_t estimate_pose_from_c(void *image, uint32_t *size_bytes, uint32_t max_siz
 		cv::InputArray image_input_array{image, static_cast<int32_t>(*size_bytes)};
 
 		cv::Mat image_mat = imdecode(image_input_array, cv::IMREAD_COLOR);
+
+                square_image_with_borders(image_mat);
 
 		image_pose_overlay(*heatmap_net, image_mat);
 
