@@ -40,7 +40,6 @@ class SkeltonOverlayHandler(tornado.web.RequestHandler):
 
 
 def main():
-
     settings = {
         "template_path": 'views/',
         "static_path": 'static/',
