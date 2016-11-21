@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using System.Runtime.InteropServices;
 using System;
+using System.Net.Http;
 
 namespace TextToMotionWeb.Controllers
 {
@@ -87,9 +88,29 @@ namespace TextToMotionWeb.Controllers
         public async Task<IActionResult>
         Create([Bind("ID,Name,Description")] PoseDrawnImage posedImage, IFormFile image)
         {
-            if (ModelState.IsValid && (image != null) && (image.Length > 0))
+            if (!ModelState.IsValid)
             {
-                byte[] rawImage;
+                return View(posedImage);
+            }
+
+            byte[] rawImage;
+            bool urlSelected = (String.Compare(Request.Form["url-selected"], "1") == 0);
+            if (urlSelected)
+            {
+                string imageUrl = Request.Form["image-url"];
+
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    rawImage = await httpClient.GetByteArrayAsync(imageUrl);
+                }
+            }
+            else
+            {
+                if ((image == null) || (image.Length <= 0))
+                {
+                    return View(posedImage);
+                }
+
                 using (Stream imageStream = image.OpenReadStream())
                 {
                     rawImage = new byte[imageStream.Length];
@@ -101,34 +122,32 @@ namespace TextToMotionWeb.Controllers
                                                          (int)imageStream.Length - numBytesRead);
                     } while (numBytesRead < imageStream.Length);
                 }
-
-                int bytesWritten = rawImage.Length;
-                int status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
-                if (bytesWritten > rawImage.Length)
-                {
-                    Array.Resize(ref rawImage, bytesWritten);
-                    status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
-                }
-
-                if (status < 0)
-                {
-                    return View(posedImage);
-                }
-                
-                _context.Add(posedImage);
-                await _context.SaveChangesAsync();
-
-                var uploads = Path.Combine(_environment.WebRootPath, "uploads");
-                string imageName = posedImage.ID.ToString() + ".png";
-                using (var fileStream = new FileStream(Path.Combine(uploads, imageName), FileMode.Create))
-                {
-                    await fileStream.WriteAsync(rawImage, 0, bytesWritten);
-                }
-
-                return RedirectToAction("Index");
             }
 
-            return View(posedImage);
+            int bytesWritten = rawImage.Length;
+            int status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
+            if (bytesWritten > rawImage.Length)
+            {
+                Array.Resize(ref rawImage, bytesWritten);
+                status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
+            }
+
+            if (status < 0)
+            {
+                return View(posedImage);
+            }
+            
+            _context.Add(posedImage);
+            await _context.SaveChangesAsync();
+
+            var uploads = Path.Combine(_environment.WebRootPath, "uploads");
+            string imageName = posedImage.ID.ToString() + ".png";
+            using (var fileStream = new FileStream(Path.Combine(uploads, imageName), FileMode.Create))
+            {
+                await fileStream.WriteAsync(rawImage, 0, bytesWritten);
+            }
+
+            return RedirectToAction("Index");
         }
 
         // GET: /ImagePoseDraw/Edit/5
