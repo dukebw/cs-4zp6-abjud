@@ -1,7 +1,34 @@
 @{
     ViewData["Title"] = "About";
 }
+
+@{ 
+    ViewData["Message"] = "McMaster Text to Motion Database";
+}
 <h2>@ViewData["Title"].</h2>
 <h3>@ViewData["Message"]</h3>
 
-<p>Use this area to provide additional information.</p>
+<h2>Project Overview</h2>
+<p>This is part of a larger project that is being undertaken by Dr.Taylor and
+is a subcomponent of a larger collaboration between his own university -- the
+University of Guelph, SRI (a non-profit research organization in the US), and
+other institutions. This aforementioned collaboration was established with the
+goal of producing a Computational Storytelling system.</p>
+
+<h2>Problem Statement</h2>
+<p>
+The problem that we seek to overcome in this project is that in order to
+implement the overall Computational Storytelling, there is no good existing
+database linking videos, rich text annotations, and descriptions of motions
+(e.g. human pose estimations via joint positions).
+</p>
+
+<h2>This Website's Function</h2>
+<p>
+As our team's contribution to the overall Computational Storytelling project,
+we propose to use video as an intermediate modality in order to harvest motion
+data with rich text annotations since large video databases do exist (with
+dialogue, script, or closed-captioning annotations). We will use one (or
+several) of such databases, in concert with off-the-shelf pose estimation and
+tracking methods to capture a large database of text-motion pairs.
+</p>

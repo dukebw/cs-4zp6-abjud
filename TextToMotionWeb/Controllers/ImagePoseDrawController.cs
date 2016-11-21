@@ -6,6 +6,9 @@ using TextToMotionWeb.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using System.Runtime.InteropServices;
+using System;
+using System.Net.Http;
 
 namespace TextToMotionWeb.Controllers
 {
@@ -13,6 +16,19 @@ namespace TextToMotionWeb.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IHostingEnvironment _environment;
+
+        //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        //******************NEWLY ADDED*******************************
+
+        public IActionResult DataTable(){
+            return View();
+        }
+
+
+        //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+
 
         private async Task<bool> DoesImageExist(int id)
         {
@@ -37,7 +53,7 @@ namespace TextToMotionWeb.Controllers
         {
             return View(await _context.PoseDrawnImages.ToListAsync());
         }
- 
+
         /*
          * GET: /ImagePoseDraw/Details/5
          * Returns a view showing the details for the image given by id, or a NotFound page.
@@ -64,6 +80,10 @@ namespace TextToMotionWeb.Controllers
             return View();
         }
 
+        [DllImport("libestimate_pose_wrapper.so.1.0.1", EntryPoint = "estimate_pose_wrapper")]
+        private static extern int
+        estimate_pose_wrapper([MarshalAs(UnmanagedType.LPArray)] byte[] image, ref int size_bytes, int max_size_bytes);
+
         /*
          * POST: /ImagePoseDraw/Create
          * Inserts a new entry into the posed-image database.
@@ -76,27 +96,71 @@ namespace TextToMotionWeb.Controllers
          * @return Asynchronous task that will result in a view showing the Index, or a re-display
          * of the create form on error.
          */
-        [HttpPostAttribute]
-        [ValidateAntiForgeryTokenAttribute]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult>
-        Create([BindAttribute("ID,Name,Description")] PoseDrawnImage posedImage, IFormFile image)
+        Create([Bind("ID,Name,Description")] PoseDrawnImage posedImage, IFormFile image)
         {
-            if (ModelState.IsValid && (image != null) && (image.Length > 0))
+            if (!ModelState.IsValid)
             {
-                _context.Add(posedImage);
-                await _context.SaveChangesAsync();
-
-                var uploads = Path.Combine(_environment.WebRootPath, "uploads");
-                string imageName = posedImage.ID.ToString() + Path.GetExtension(image.FileName);
-                using (var fileStream = new FileStream(Path.Combine(uploads, imageName), FileMode.Create))
-                {
-                    await image.CopyToAsync(fileStream);
-                }
-
-                return RedirectToAction("Index");
+                return View(posedImage);
             }
 
-            return View(posedImage);
+            byte[] rawImage;
+            bool urlSelected = (String.Compare(Request.Form["url-selected"], "1") == 0);
+            if (urlSelected)
+            {
+                string imageUrl = Request.Form["image-url"];
+
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    rawImage = await httpClient.GetByteArrayAsync(imageUrl);
+                }
+            }
+            else
+            {
+                if ((image == null) || (image.Length <= 0))
+                {
+                    return View(posedImage);
+                }
+
+                using (Stream imageStream = image.OpenReadStream())
+                {
+                    rawImage = new byte[imageStream.Length];
+                    int numBytesRead = 0;
+                    do
+                    {
+                        numBytesRead += imageStream.Read(rawImage,
+                                                         numBytesRead,
+                                                         (int)imageStream.Length - numBytesRead);
+                    } while (numBytesRead < imageStream.Length);
+                }
+            }
+
+            int bytesWritten = rawImage.Length;
+            int status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
+            if (bytesWritten > rawImage.Length)
+            {
+                Array.Resize(ref rawImage, bytesWritten);
+                status = estimate_pose_wrapper(rawImage, ref bytesWritten, rawImage.Length);
+            }
+
+            if (status < 0)
+            {
+                return View(posedImage);
+            }
+            
+            _context.Add(posedImage);
+            await _context.SaveChangesAsync();
+
+            var uploads = Path.Combine(_environment.WebRootPath, "uploads");
+            string imageName = posedImage.ID.ToString() + ".png";
+            using (var fileStream = new FileStream(Path.Combine(uploads, imageName), FileMode.Create))
+            {
+                await fileStream.WriteAsync(rawImage, 0, bytesWritten);
+            }
+
+            return RedirectToAction("Index");
         }
 
         // GET: /ImagePoseDraw/Edit/5
@@ -104,7 +168,7 @@ namespace TextToMotionWeb.Controllers
         {
             return await Details(id);
         }
- 
+
         /*
          * POST: ImagePoseDraw/Edit/5
          * Update the content of the pose-drawn image database entry.
@@ -154,13 +218,13 @@ namespace TextToMotionWeb.Controllers
          * Since the GET and POST methods for Delete have the same function signature,
          *  we have renamed the POST method to "DeleteConfirmed".
          */
-        [HttpPostAttribute, ActionNameAttribute("Delete")]
-        [ValidateAntiForgeryTokenAttribute]
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var image = await _context.PoseDrawnImages.SingleOrDefaultAsync(m => m.ID == id);
             _context.PoseDrawnImages.Remove(image);
-            
+
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index");

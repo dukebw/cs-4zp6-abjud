@@ -1,3 +1,4 @@
+#include "estimate_pose.h"
 #include "caffe/caffe.hpp"
 #include "caffe/util/math_functions.hpp"
 #include "opencv2/opencv.hpp"
@@ -10,6 +11,8 @@ constexpr uint32_t NUM_JOINTS = 7;
 constexpr uint32_t NUM_BONES = 4;
 constexpr uint32_t NET_IMAGE_WIDTH = 256;
 constexpr uint32_t NET_IMAGE_HEIGHT = 256;
+constexpr char MODEL_DEFAULT[] = "../data/models/heatmap-flic-fusion/matlab.prototxt";
+constexpr char TRAINED_WEIGHTS_DEFAULT[] = "../data/models/heatmap-flic-fusion/caffe-heatmap-flic.caffemodel";
 
 /*
  * Converts the raw data in a Caffe blob into a container of channels.
@@ -148,7 +151,6 @@ init_pose_estimator_network(const std::string& model,
 
 void image_pose_overlay(caffe::Net<float>& heatmap_net, cv::Mat& image)
 {
-        cv::Size image_original_size = cv::Size{image.cols, image.rows};
         cv::resize(image, image, cv::Size{NET_IMAGE_WIDTH, NET_IMAGE_HEIGHT});
 
         copy_image_to_input_blob(heatmap_net, image);
@@ -164,6 +166,93 @@ void image_pose_overlay(caffe::Net<float>& heatmap_net, cv::Mat& image)
         cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
 
         draw_skeleton(image, joints);
+}
 
-        cv::resize(image, image, image_original_size);
+/*
+ * @desc If image_mat is not already square, expands image_mat out to a square
+ * image with black borders where necessary.
+ *
+ * The purpose of this function is so that images are not distorted when they
+ * are resized to 256x256 as input to the pose estimation conv-net.
+ *
+ * @param [in/out] image_mat Input matrix of an image that is to be expanded
+ * out to be square.
+ */
+static void
+square_image_with_borders(cv::Mat& image_mat)
+{
+        int32_t padding = std::abs(image_mat.cols - image_mat.rows)/2;
+        if (image_mat.cols > image_mat.rows) {
+                cv::copyMakeBorder(image_mat,
+                                   image_mat,
+                                   padding,
+                                   padding,
+                                   0,
+                                   0,
+                                   cv::BORDER_CONSTANT,
+                                   cv::Scalar(0, 0, 0));
+        } else if (image_mat.rows > image_mat.cols) {
+                cv::copyMakeBorder(image_mat,
+                                   image_mat,
+                                   0,
+                                   0,
+                                   padding,
+                                   padding,
+                                   cv::BORDER_CONSTANT,
+                                   cv::Scalar(0, 0, 0));
+        }
+}
+
+extern "C" int32_t estimate_pose_from_c(void *image,
+					uint32_t *size_bytes,
+					uint32_t max_size_bytes);
+
+int32_t estimate_pose_from_c(void *image, uint32_t *size_bytes, uint32_t max_size_bytes)
+{
+        if (image == NULL)
+                return ESTIMATE_POSE_ERROR;
+
+	try {
+		std::unique_ptr<caffe::Net<float>> heatmap_net =
+			init_pose_estimator_network(std::string{MODEL_DEFAULT},
+						    std::string{TRAINED_WEIGHTS_DEFAULT});
+
+		cv::InputArray image_input_array{image, static_cast<int32_t>(*size_bytes)};
+
+		cv::Mat image_mat = imdecode(image_input_array, cv::IMREAD_COLOR);
+
+                square_image_with_borders(image_mat);
+
+		image_pose_overlay(*heatmap_net, image_mat);
+
+		std::vector<int> compression_params;
+		compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
+		compression_params.push_back(9);
+
+		std::vector<uint8_t> posed_image_png;
+		cv::imencode(".png",
+			     cv::InputArray{image_mat},
+			     posed_image_png,
+			     compression_params);
+
+		if (posed_image_png.size() > max_size_bytes) {
+			fprintf(stderr,
+				"estimate_pose_from_c input buffer size too small\n"
+				"require %lu but got %d\n",
+				posed_image_png.size(),
+				max_size_bytes);
+
+			*size_bytes = posed_image_png.size();
+
+			return ESTIMATE_POSE_ERROR;
+		}
+
+		std::memcpy(image, &posed_image_png[0], posed_image_png.size());
+
+		return posed_image_png.size();
+	} catch (std::exception e) {
+		fprintf(stderr, "estimate_pose_from_c exception: %s\n",
+			e.what());
+		return ESTIMATE_POSE_ERROR;
+	}
 }
