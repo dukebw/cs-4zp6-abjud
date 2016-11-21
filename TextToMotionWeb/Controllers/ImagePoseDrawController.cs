@@ -17,6 +17,19 @@ namespace TextToMotionWeb.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IHostingEnvironment _environment;
 
+        //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        //******************NEWLY ADDED*******************************
+
+        public IActionResult DataTable(){
+            return View();
+        }
+
+
+        //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+
+
         private async Task<bool> DoesImageExist(int id)
         {
             return await _context.PoseDrawnImages.AnyAsync(m => m.ID == id);
@@ -40,7 +53,7 @@ namespace TextToMotionWeb.Controllers
         {
             return View(await _context.PoseDrawnImages.ToListAsync());
         }
- 
+
         /*
          * GET: /ImagePoseDraw/Details/5
          * Returns a view showing the details for the image given by id, or a NotFound page.
@@ -155,7 +168,7 @@ namespace TextToMotionWeb.Controllers
         {
             return await Details(id);
         }
- 
+
         /*
          * POST: ImagePoseDraw/Edit/5
          * Update the content of the pose-drawn image database entry.
@@ -211,7 +224,7 @@ namespace TextToMotionWeb.Controllers
         {
             var image = await _context.PoseDrawnImages.SingleOrDefaultAsync(m => m.ID == id);
             _context.PoseDrawnImages.Remove(image);
-            
+
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index");
