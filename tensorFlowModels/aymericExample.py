@@ -8,7 +8,7 @@ learning_rate = 0.001
 training_iters = 200000
 batch_size = 20
 display_step = 10
-num_parts = 1
+num_parts = 7
 num_channels = 3
 
 # Network Parameters
@@ -23,7 +23,7 @@ n_output_size = heat_map_size * heat_map_size
 x = tf.placeholder(tf.float32, [None, n_input, num_channels])
 x = tf.reshape(x, shape=[-1, img_size, img_size, num_channels])
 print(x.get_shape())
-y = tf.placeholder(tf.float32, [None, n_output_size])
+y = tf.placeholder(tf.float32, [None, n_output_size, num_parts])
 y_heat_map = tf.reshape(y, [-1, heat_map_size, heat_map_size, num_parts])
 
 keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
@@ -219,14 +219,21 @@ print(weights['wc1'])
 pred = conv_net(x, weights, biases)
 
 print(pred.get_shape())
-'''
+
 # Define loss and optimizer
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y))
+output = tf.sub(pred, y_heat_map)
+output = tf.square(pred, name = None)
+print(output.get_shape())
+
+cost = tf.reduce_mean(output)
+
+# I'm not sure if the AdamOptimizer should be used?
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Evaluate model
-correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+#correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+#accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+'''
 
 # Initializing the variables
 init = tf.initialize_all_variables()
