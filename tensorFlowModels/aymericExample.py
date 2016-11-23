@@ -8,6 +8,8 @@ learning_rate = 0.001
 training_iters = 200000
 batch_size = 20
 display_step = 10
+num_parts = 1
+num_channels = 3
 
 # Network Parameters
 img_size = 256
@@ -18,9 +20,12 @@ n_output_size = heat_map_size * heat_map_size
 #dropout = 0.75 # Dropout, probability to keep units
 
 # tf Graph input
-x = tf.placeholder(tf.float32, [None, n_input])
+x = tf.placeholder(tf.float32, [None, n_input, num_channels])
+x = tf.reshape(x, shape=[-1, img_size, img_size, num_channels])
+print(x.get_shape())
 y = tf.placeholder(tf.float32, [None, n_output_size])
-y_heat_map = y
+y_heat_map = tf.reshape(y, [-1, heat_map_size, heat_map_size, num_parts])
+
 keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 
 
@@ -54,14 +59,15 @@ def conv_net(x, weights, biases):
     # not sure about this but since there are 3 channels in the jpg
     # this means the input dimension should be 3
     # Reshape input picture
-    x = tf.reshape(x, shape=[-1, img_size, img_size, 1])
+    #x = tf.reshape(x, shape=[-1, img_size, img_size, num_channels, 1])
 
     # Convolution Layer
+    print(x.get_shape())
     conv1 = conv2d(x, weights['wc1'], biases['bc1'])
     # Max Pooling (down-sampling)
     conv1 = maxpool2d(conv1, k=2)
     conv1 = tf.nn.relu(conv1)
-
+    print(conv1.get_shape())
     # test this!
 
     # Convolution Layer2
@@ -71,6 +77,7 @@ def conv_net(x, weights, biases):
     # Max Pooling (down-sampling)
     conv2 = maxpool2d(conv2, k=2)
     conv2 = tf.nn.relu(conv2)
+    print(conv2.get_shape())
 
 
     # layer3
@@ -83,7 +90,9 @@ def conv_net(x, weights, biases):
     # initial weight filler is gaussian deviation is 0.01
     conv3 = conv2d(conv2, weights['wc3'], biases['bc3'])
     conv3 = tf.nn.relu(conv3)
-    
+    print(conv3.get_shape())
+
+ 
 
 
     # layer4
@@ -99,7 +108,9 @@ def conv_net(x, weights, biases):
     # initial weight filler is gaussian deviation is 0.01
     conv4 = conv2d(conv3, weights['wc4'], biases['bc4'])
     conv4 = tf.nn.relu(conv4)
-    
+    print(conv4.get_shape())
+
+
     # layer5
     # num output 512
     # kernel size is 9
@@ -113,8 +124,10 @@ def conv_net(x, weights, biases):
     # initial weight filler is gaussian deviation is 0.01
     conv5 = conv2d(conv4, weights['wc5'], biases['bc5'])
     conv5 = tf.nn.relu(conv5)
+    print(conv5.get_shape())
 
-    
+
+
     # layer6
     # num output 256
     # kernel size is 1
@@ -129,6 +142,7 @@ def conv_net(x, weights, biases):
     conv6 = conv2d(conv5, weights['wc6'], biases['bc6'])
     conv6 = tf.nn.relu(conv6)
 
+
     # layer7
     # num output 512
     # kernel size is 9
@@ -142,6 +156,8 @@ def conv_net(x, weights, biases):
     # initial weight filler is gaussian deviation is 0.01
     conv7 = conv2d(conv6, weights['wc7'], biases['bc7'])
     conv7 = tf.nn.relu(conv7)
+
+
     
     # layer8
     # num output 7
@@ -155,23 +171,15 @@ def conv_net(x, weights, biases):
     # initial weight filler is gaussian deviation is 0.01
     conv8 = conv2d(conv7, weights['wc8'], biases['bc8'])
     conv8 = tf.nn.relu(conv8)
+    print(conv8.get_shape())
+    return conv8
+
     
-    
-    return out
+  
+
 
 # Store layers weight & bias
 weights = {
-    '''
-    # 5x5 conv, 1 input, 32 outputs
-    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 32])),
-    # 5x5 conv, 32 inputs, 64 outputs
-    'wc2': tf.Variable(tf.random_normal([5, 5, 32, 64])),
-    # fully connected, 7*7*64 inputs, 1024 outputs
-    'wd1': tf.Variable(tf.random_normal([7*7*64, 1024])),
-    # 1024 inputs, 10 outputs (class prediction)
-    'out': tf.Variable(tf.random_normal([1024, n_classes]))
-    '''
-        
     # layer1 5x5 conv, 1 input, 128 outputs
     'wc1': tf.Variable(tf.random_normal([5, 5, 3, 128])),
     # layer2 5x5 conv, 128 inputs, 128 outputs
@@ -199,13 +207,19 @@ biases = {
     'bc4': tf.Variable(tf.random_normal([256])), # 1
     'bc5': tf.Variable(tf.random_normal([512])), # 1
     'bc6': tf.Variable(tf.random_normal([256])), # 1
-    'bc7': tf.Variable(tf.random_normal([256]), 
+    'bc7': tf.Variable(tf.random_normal([256])), 
     'bc8': tf.Variable(tf.random_normal([7]))
 }
 
+
+
 # Construct model
+
+print(weights['wc1'])
 pred = conv_net(x, weights, biases)
 
+print(pred.get_shape())
+'''
 # Define loss and optimizer
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y))
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
@@ -243,3 +257,4 @@ with tf.Session() as sess:
         sess.run(accuracy, feed_dict={x: mnist.test.images[:256],
                                       y: mnist.test.labels[:256],
 keep_prob: 1.}))
+'''
