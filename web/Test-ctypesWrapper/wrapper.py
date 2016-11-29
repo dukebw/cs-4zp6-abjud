@@ -13,11 +13,11 @@ class Test(object):
     def cosine(self, param):
         lib.Test_cosine(self.obj, param)
 
-    def loadArrayIntoPointer(self, pointer):
-        lib.Test_load(self.obj, pointer)
+    def LoadRandomVals(self, pointer, arraySize):
+        lib.Test_load(self.obj, pointer, arraySize)
 
-    def loadVoidArr(self, arrayToLoad, pointer):
-        lib.Test_voidLoad(self.obj, arrayToLoad, pointer)
+    def loadVoidArr(self, arrayToLoad, pointer, arraySize):
+        lib.Test_voidLoad(self.obj, arrayToLoad, pointer, arraySize)
 
 def main():
 
@@ -38,23 +38,37 @@ def main():
     simpleTest.cosine(degrees)
 
 
-    #simple 1D int array
-    pointerToArr = (c_uint*5)()
+    #simple 1D int array --> let the user decide what the size is
+    arraySize = int(raw_input('\nPlease enter an array size to be created and loaded (no error checks):\n'))
+
+
+    pointerToArr = (c_uint*arraySize)()
+    print '\n'
     print pointerToArr
-    cast(pointerToArr, POINTER(c_uint*5))
-    print '\nPre-Randomized string repr: {0} {1} {2} {3} {4}\n'.format(pointerToArr[0], pointerToArr[1], pointerToArr[2], pointerToArr[3], pointerToArr[4])
-    simpleTest.loadArrayIntoPointer(pointerToArr)
+    #this cast function is from the ctypes library, and can allow the variable to represent a C pointer
+    cast(pointerToArr, POINTER(c_uint*arraySize))
 
-    print '\nPost-Randomized string repr: {0} {1} {2} {3} {4}\n'.format(pointerToArr[0], pointerToArr[1], pointerToArr[2], pointerToArr[3], pointerToArr[4])
+    print '\nPre-Randomized string repr\n'
+    string = ''
+    for arrayElement in pointerToArr[0:arraySize-1]:
+        string +=  "{0} ".format(arrayElement)
+    print string
 
+    #note that we must cast arraySize as a ctype type before sending it to the shared object file
+    simpleTest.LoadRandomVals(pointerToArr, c_uint(arraySize))
 
-    #Loading the int32_t data into an array pointed to by a void pointer
+    print '\nPost-Randomized string repr\n'
+    string = ''
+    for arrayElement in pointerToArr[0:arraySize-1]:
+        string += "{0} ".format(arrayElement)
+    print string + '\n'
 
-    voidPointer = (c_void_p*5)()
+    #loading the values of the randomized array above into a void pointer
+    voidPointer = (c_void_p*arraySize)()
     print voidPointer
-    cast(voidPointer, POINTER(c_void_p*5))
+    cast(voidPointer, POINTER(c_void_p*arraySize))
 
-    simpleTest.loadVoidArr(voidPointer, pointerToArr)
+    simpleTest.loadVoidArr(voidPointer, pointerToArr, c_uint(arraySize))
 
 
 

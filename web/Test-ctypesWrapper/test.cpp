@@ -19,19 +19,18 @@ class Test{
             printf("\nThe cosine of %f degrees is %f.\n", param, res);
         }
 
-        void loadArray(uint32_t *pointer){
-            for(int i=0; i < 5; i++){
+        void loadArray(uint32_t *pointer, uint32_t arraySize){
+            for(int i=0; i < arraySize; i++){
                 pointer[i] = rand() % 1000;
             }
         }
 
-        void loadVoidArr(void *arrayToLoad, uint32_t *data){
+        void loadVoidArr(void *arrayToLoad, uint32_t *data, uint32_t arraySize){
             int *tmp = (int*)arrayToLoad;
-            for(int i = 0; i < 5; i++){
-                tmp[i] = data[i];
-                printf("\n %i", tmp[i]);
+            string arr("");
+            for(int i = 0; i < arraySize; i++){
+                printf("%i", tmp[i]);
             }
-            printf("\n");
         }
 };
 
@@ -39,6 +38,6 @@ extern "C" {
     Test* Test_new(){ return new Test(); }
     void Test_hello(Test* t){ t->hello(); }
     void Test_cosine(Test* t, double param){ t->cosine(param); }
-    void Test_load(Test* t, uint32_t *pointer ){ t->loadArray(pointer); }
-    void Test_voidLoad(Test *t, void *arrayToLoad, uint32_t *data){ t->loadVoidArr(arrayToLoad, data); }
+    void Test_load(Test* t, uint32_t *pointer, uint32_t arraySize){ t->loadArray(pointer, arraySize); }
+    void Test_voidLoad(Test *t, void *arrayToLoad, uint32_t *data, uint32_t arraySize){ t->loadVoidArr(arrayToLoad, data, arraySize); }
 }
