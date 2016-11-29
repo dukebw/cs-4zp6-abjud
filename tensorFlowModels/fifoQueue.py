@@ -1,5 +1,6 @@
 import sqlite3
 import tensorflow as tf
+import numpy as np
 import random
 import math
 import PIL
@@ -114,6 +115,10 @@ def encode_label(label1, label2): # here I should create a 64x64 sized Gaussian
     return label1, label2
 
 
+
+# here need to put the data into a numby array
+# then a feed can be used
+
 def encode_gauss_map(x_avg, y_avg): # here I should create a 64x64 sized array
     labels = []
     for x in range(1, 65):
@@ -134,7 +139,7 @@ def rddude():
 
 # constructor has these issues:
 # 1. capacity, dtypes, shapes
-q = tf.FIFOQueue(3, dtypes=[tf.string, tf.float32], shapes=[[1],[4,4]])
+q = tf.FIFOQueue(3, dtypes=[tf.string, tf.float32], shapes=[[1],[64*64]])
 #init = q.enqueue_many(([0,0,0],))
 '''
 x = q.dequeue()
@@ -144,9 +149,22 @@ q_inc = q.enqueue([y])
 # now what I can try to do is get data from the database and 
 
 with tf.Session() as sess:
-    print(read_label_file("pose_DB.sqlite"))
-    print(read_label_file("pose_DB.sqlite"))
-    print(read_label_file("pose_DB.sqlite"))
+    
+
+    # put this in a np array
+    # how you can work on this is just put the data into
+    # these np_arrays and then
+    # sess.run(model, feed_dict={X: trY, Y: trY})
+    # where trY and trX are 
+    a = np.array(encode_gauss_map(0,0))
+    
+    # put this a into a queue
+    # you can only enqueue a tensor
+    q.enqueue("right on", a)
+    #print(encode_gauss_map(0,0))
+    #print(read_label_file("pose_DB.sqlite"))
+    #print(read_label_file("pose_DB.sqlite"))
+    #print(read_label_file("pose_DB.sqlite"))
     sess.close()
     
 '''
