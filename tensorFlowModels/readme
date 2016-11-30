@@ -1,0 +1,65 @@
+imanolspipeline.py now can read from the pos_DB.sqlite database and get 
+files and coordinates to produce training data for a session that trains a
+neuarl network
+
+Problems: 1) FLIC images have to be rescaled to 256 x 256 and the pose 
+coordinates haven't been changed after the scaling so the coordinates are
+currently wrong
+
+	2) it is supposed to also generate a test set to test the 
+	optimization but it doesn't do this yet.
+
+	3) it grabs the same 20 files each time it's called I should 
+	randomize the files it grabs (which is easy to do because the
+	files are in a database with a primary key which ranges between 0 and 24000)
+
+	4) currently the Guassian it creates is only for one limb position -- I need
+	to create a label for each limb we are considering but it made sense to start
+	with just one
+
+
+The pose_DB.sqlite contains entries for the pose values of the 
+
+updateDatabase.py - adds all the columns for the pose parts in the database but doesn't add any data
+
+putRightWrist.py - adds all of the data in PoseData folder into the database but the 
+filepaths it uses are absolute so will only work on my computer unless the pathnames
+are changed ( I set the filepath around line 101 if you want to change this)
+
+printIt.py - this is the file I used just to check to see if the database entries
+made sense
+
+putFilesInDatabase I used to put the names of the jpeg files into the database
+
+Also the database contains: columns
+lwristx = 'left_x_wrist'
+lwristy = 'left_y_wrist'
+rwristx = 'right_x_wrist'
+rwristy = 'right_y_wrist'
+lelbowx = 'left_x_elbow'
+lelbowy = 'left_y_elbow'
+relbowx = 'right_x_elbow'
+relbowy = 'right_y_elbow'
+headx = 'x_head'
+heady = 'y_head'
+lshoulderx = 'left_x_shoulder'
+lshouldery = 'left_y_shoulder'
+rshoulderx = 'right_x_shoulder'
+rshouldery = 'right_y_shoulder'
+rhipx = "right_hip_x"
+rhipy = "right_hip_y"
+lhipx = "left_hip_x"
+lhipy = "left_hip_y"
+rknex = "right_knee_x"
+rkney = "right_knee_y"
+lknex = "left_knee_x"
+lkney = "left_knee_y"
+rankx =  "right_ankle_x"
+ranky = "right_ankle_y"
+lankx = "left_ankle_x"
+lanky = "left_ankle_y"
+
+as well as a filename column for the jpeg file in the FLIC database and a primary key index column.
+
+
+
