@@ -5,6 +5,9 @@ Dataset](http://human-pose.mpi-inf.mpg.de/).
 import sys
 import scipy.io
 
+class Joints(object):
+    pass
+
 class MpiiDataset(object):
     """
     Representation of the entire MPII Dataset.
@@ -28,8 +31,16 @@ class MpiiDataset(object):
         return self._joints
 
 def mpii_read(mpii_dataset_filepath):
+    """
+    Note that the images are assumed to reside in a folder one up from the .mat
+    file that is being parsed (i.e. ../images).
+    """
     mpii_dataset_mat = scipy.io.loadmat(mpii_dataset_filepath)
     mpii_annotations = mpii_dataset_mat['RELEASE']['annolist'][0, 0]
+    images = mpii_annotations['image']
+
+    for img_index in range(mpii_annotations.shape[1]):
+        img_filename = images[0, img_index][0, 0]['name'][0]
 
 if __name__ == "__main__":
     assert len(sys.argv) == 1
