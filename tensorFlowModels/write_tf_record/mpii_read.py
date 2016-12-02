@@ -5,7 +5,7 @@ Dataset](http://human-pose.mpi-inf.mpg.de/).
 import sys
 import scipy.io
 
-class MpiiDataset:
+class MpiiDataset(object):
     """
     Representation of the entire MPII Dataset.
 
