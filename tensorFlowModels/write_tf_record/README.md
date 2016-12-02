@@ -1,5 +1,15 @@
 # `write_tf_record` Related Information
 
+## MPII Dataset
+
+The dataset is a set of 25 000 images, containing annotations for 40 000 people
+in total. The images are colour and of various dimensions (e.g. 1280x720,
+640x480 etc.).
+
+The 'scale' and 'objpos' of each annotation can be used to find the scale of
+the human in the image (with respect to a height of 200px), and the rough human
+position in the image.
+
 ## Writing TensorFlow Records
 
 It is possible to write TFRecords using the `tf.python_io.TFRecordWriter`

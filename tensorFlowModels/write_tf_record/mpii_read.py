@@ -3,6 +3,8 @@ A module for reading the [MPII Human Pose
 Dataset](http://human-pose.mpi-inf.mpg.de/).
 """
 import sys
+import os
+import cv2
 import scipy.io
 
 class Joints(object):
@@ -41,6 +43,15 @@ def mpii_read(mpii_dataset_filepath):
 
     for img_index in range(mpii_annotations.shape[1]):
         img_filename = images[0, img_index][0, 0]['name'][0]
+        mpii_dataset_dir = os.path.dirname(mpii_dataset_filepath)
+        img_abs_filepath = os.path.join(mpii_dataset_dir,
+                                        '../images',
+                                        img_filename)
+
+        image = cv2.imread(img_abs_filepath)
+
+        cv2.imshow('image', image)
+        cv2.waitKey(0)
 
 if __name__ == "__main__":
     assert len(sys.argv) == 1
