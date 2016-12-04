@@ -20,14 +20,51 @@ equal to 1, have corresponding labels. Joint labels can be found from the
 (TODO(brendan): point labels explanation). Coordinates of the head rectangle
 can be found from the `x1`, `y1`, `x2`, and `y2` fields of `annorect`.
 """
-
 import sys
 import os
-import cv2
 import scipy.io
+import tensorflow as tf
+import PIL.Image
+import numpy as np
 
-class Joints(object):
-    pass
+class Person(object):
+    """
+    The joints should be a list of (x, y) tuples where x and y are both in the
+    range [0.0, 1.0], and the joint ids are as follows,
+
+    0 - r ankle
+    1 - r knee
+    2 - r hip
+    3 - l hip
+    4 - l knee
+    5 - l ankle
+    6 - pelvis
+    7 - thorax
+    8 - upper neck
+    9 - head top
+    10 - r wrist
+    11 - r elbow
+    12 - r shoulder
+    13 - l shoulder
+    14 - l elbow
+    15 - l wrist
+    """
+    NUM_JOINTS = 16
+
+    def __init__(self, joints, head_rect):
+        self._joints = Person.NUM_JOINTS*[None]
+        for joint in joints:
+            self._joints[joint.id] = (joint.x, joint.y)
+
+        self._headrect = head_rect
+
+    @property
+    def joints(self):
+        return self._joints
+
+    @property
+    def head_rect(self):
+        return self._head_rect
 
 class MpiiDataset(object):
     """
@@ -39,52 +76,60 @@ class MpiiDataset(object):
     Currently only the images and person-centric body joint annotations are
     taken from the dataset.
     """
-    def __init__(self, images, joints):
+    def __init__(self, images, people):
         self._images = images
-        self._joints = joints
+        self._people = people
 
     @property
     def images(self):
         return self._images
 
     @property
-    def joints(self):
-        return self._joints
+    def people(self):
+        return self._people
 
 def mpii_read(mpii_dataset_filepath):
     """
     Note that the images are assumed to reside in a folder one up from the .mat
     file that is being parsed (i.e. ../images).
     """
-    mpii_dataset_mat = scipy.io.loadmat(mpii_dataset_filepath)['RELEASE']
-    mpii_annotations = mpii_dataset_mat['annolist'][0, 0]
-    images = mpii_annotations['image']
-    train_or_test = mpii_dataset_mat['img_train'][0, 0]
-    annorect = mpii_annotations['annorect']
+    mpii_dataset_mat = scipy.io.loadmat(mpii_dataset_filepath,
+                                        struct_as_record = False,
+                                        squeeze_me = True)['RELEASE']
+    mpii_annotations = mpii_dataset_mat.annolist
+    train_or_test = mpii_dataset_mat.img_train
 
-    for img_index in range(mpii_annotations.shape[1]):
-        if train_or_test[0, img_index] == 1:
-            img_filename = images[0, img_index][0, 0]['name'][0]
+    img_filenames = []
+    people = []
+    for img_index in range(len(mpii_annotations)):
+        if train_or_test[img_index] == 1:
+            img_annotation = mpii_annotations[img_index]
+
             mpii_dataset_dir = os.path.dirname(mpii_dataset_filepath)
             img_abs_filepath = os.path.join(mpii_dataset_dir,
                                             '../images',
-                                            img_filename)
+                                            img_annotation.image.name)
+            img_filenames.append(img_abs_filepath)
 
-            image = cv2.imread(img_abs_filepath)
+            if not hasattr(img_annotation.annorect, '__iter__'):
+                img_annotation.annorect = [img_annotation.annorect]
 
-            img_annorect = annorect[0, img_index]
-            for person_index in range(img_annorect['x1'].shape[1]):
-                x1 = img_annorect['x1'][0, person_index][0, 0]
-                y1 = img_annorect['y1'][0, person_index][0, 0]
-                x2 = img_annorect['x2'][0, person_index][0, 0]
-                y2 = img_annorect['y2'][0, person_index][0, 0]
+            for img_annorect in img_annotation.annorect:
+                head_rect = (img_annorect.x1, img_annorect.y1,
+                             img_annorect.x2, img_annorect.y2)
 
-                cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0xFF, 0), 3)
+                people.append(Person(img_annorect.annopoints.point, head_rect))
 
-            cv2.imshow('image', image)
-            cv2.waitKey(0)
+    # TODO(brendan): augment? draw?
+
+    return img_filenames, people
 
 if __name__ == "__main__":
     assert len(sys.argv) == 1
 
-    mpii_read(sys.argv[0])
+    img_filenames, people = mpii_read(sys.argv[0])
+
+    _, img_jpeg = tf.WholeFileReader().read(img_filenames)
+    image = tf.image.decode_jpeg(img_jpeg)
+
+    sess = tf.InteractiveSession()
