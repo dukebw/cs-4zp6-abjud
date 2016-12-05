@@ -66,7 +66,7 @@ class Person(object):
     def __init__(self, joints, head_rect):
         self._joints = Person.NUM_JOINTS*[None]
 
-        joints = make_iterable(joints)
+        joints = _make_iterable(joints)
 
         for joint in joints:
             self._joints[joint.id] = (joint.x, joint.y)
@@ -108,7 +108,7 @@ class MpiiDataset(object):
     def people_in_imgs(self):
         return self._people_in_imgs
 
-def make_iterable(maybe_iterable):
+def _make_iterable(maybe_iterable):
     """Checks whether `maybe_iterable` is iterable, and if not returns an
     iterable structure containing `maybe_iterable`.
 
@@ -125,6 +125,40 @@ def make_iterable(maybe_iterable):
 
     return maybe_iterable
 
+def _parse_annotation(img_annotation, mpii_images_dir):
+    """Parses a single image annotation from the MPII dataset.
+
+    Looks at the annotations for a single image, and returns the people in the
+    image along with the full filepath of the image.
+
+    Args:
+        img_annotation: The annotations coming from annolist(index) from the
+            MPII dataset.
+        mpii_images_dir: Path to the directory where the MPII images are.
+
+    Returns:
+        img_abs_filepath: Filepath of the image corresponding to
+            `img_annotation`.
+        people: A list of `Person`s corresponding to the annotated people in
+            the image.
+    """
+    img_abs_filepath = os.path.join(mpii_images_dir,
+                                    img_annotation.image.name)
+
+    img_annotation.annorect = _make_iterable(img_annotation.annorect)
+
+    people = []
+    for img_annorect in img_annotation.annorect:
+        head_rect = (img_annorect.x1, img_annorect.y1,
+                     img_annorect.x2, img_annorect.y2)
+
+        try:
+            people.append(Person(img_annorect.annopoints.point, head_rect))
+        except AttributeError:
+            people.append(Person([], head_rect))
+
+    return img_abs_filepath, people
+
 def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
     """Parses the training data out of `mpii_dataset_mat` into a `MpiiDataset`
     Python object.
@@ -139,6 +173,9 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
             `squeeze_me = True` must be set in the `loadmat` call.
         mpii_images_dir: The path of the directory where all the MPII images
             are stored.
+
+    Returns: An `MpiiDataset` Python object correspodning to
+        `mpii_dataset_mat`.
     """
     mpii_annotations = mpii_dataset_mat.annolist
     train_or_test = mpii_dataset_mat.img_train
@@ -147,22 +184,15 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
     people_in_imgs = []
     for img_index in range(len(mpii_annotations)):
         if train_or_test[img_index] == 1:
-            img_annotation = mpii_annotations[img_index]
+            img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
+                                                         mpii_images_dir)
 
-            img_abs_filepath = os.path.join(mpii_images_dir,
-                                            img_annotation.image.name)
-
-            img_annotation.annorect = make_iterable(img_annotation.annorect)
-
-            people = []
-            for img_annorect in img_annotation.annorect:
-                head_rect = (img_annorect.x1, img_annorect.y1,
-                             img_annorect.x2, img_annorect.y2)
-
-                try:
-                    people.append(Person(img_annorect.annopoints.point, head_rect))
-                except AttributeError:
-                    people.append(Person([], head_rect))
+            # NOTE(brendan): There are annotations in the MPII dataset for
+            # which the file corresponding to image.name does not exist.
+            # Therefore we have to check that the image is present before
+            # adding it to our structure.
+            if not os.path.exists(img_abs_filepath):
+                continue
 
             img_filenames.append(img_abs_filepath)
             people_in_imgs.append(people)
@@ -181,8 +211,8 @@ def mpii_read(mpii_dataset_filepath):
     Returns: Parsed `MpiiDataset` object from `parse_mpii_data_from_mat`.
     """
     mpii_dataset_mat = scipy.io.loadmat(mpii_dataset_filepath,
-                                        struct_as_record = False,
-                                        squeeze_me = True)['RELEASE']
+                                        struct_as_record=False,
+                                        squeeze_me=True)['RELEASE']
 
     mpii_dataset_dir = os.path.dirname(mpii_dataset_filepath)
     mpii_images_dir = os.path.join(mpii_dataset_dir, '../images')
