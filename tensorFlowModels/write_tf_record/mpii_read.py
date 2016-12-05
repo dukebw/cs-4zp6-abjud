@@ -17,8 +17,9 @@ respect to a height of 200px), and the rough human position in the image.
 
 Only training images, i.e. images with field `img_train` of structure `RELEASE`
 equal to 1, have corresponding labels. Joint labels can be found from the
-(TODO(brendan): point labels explanation). Coordinates of the head rectangle
-can be found from the `x1`, `y1`, `x2`, and `y2` fields of `annorect`.
+annolist[index].annorect.annopoints.point field. Coordinates of the head
+rectangle can be found from the `x1`, `y1`, `x2`, and `y2` fields of
+`annorect`.
 
 Out of the total dataset of 24987 images, 18079 of those are training images.
 Of those images marked as training, 233 actually have no joint annotations, and
@@ -30,7 +31,9 @@ import scipy.io
 import numpy as np
 
 class Person(object):
-    """
+    """A class representing each person in a given image, including their head
+    rectangle and joints.
+
     The joints should be a list of (x, y) tuples where x and y are both in the
     range [0.0, 1.0], and the joint ids are as follows,
 
@@ -50,6 +53,13 @@ class Person(object):
     13 - l shoulder
     14 - l elbow
     15 - l wrist
+
+    Attributes:
+        joints: A list of 16 joints for the person, which all default to
+            `None`. Their values are potentially filled in from the MPII
+            dataset annotations.
+        head_rect: A tuple of four values (x1, y1, x2, y2) defining a rectangle
+            around the head of the person in the image.
     """
     NUM_JOINTS = 16
 
@@ -72,14 +82,19 @@ class Person(object):
         return self._head_rect
 
 class MpiiDataset(object):
-    """
-    Representation of the entire MPII dataset.
+    """Representation of the entire MPII dataset.
 
     The annotation description can be found
     [here](http://human-pose.mpi-inf.mpg.de/#download).
 
     Currently only the images and person-centric body joint annotations are
     taken from the dataset.
+
+    Attributes:
+        img_filenames: A list of the names of the paths of each image.
+        people_in_imgs: A list of lists of the `Person` class, where each list
+            of `Person`s represents all the people in the image at the same
+            list index. Must be the same length as `img_filenames`.
     """
     def __init__(self, img_filenames, people_in_imgs):
         self._img_filenames = img_filenames
@@ -94,13 +109,26 @@ class MpiiDataset(object):
         return self._people_in_imgs
 
 def make_iterable(maybe_iterable):
+    """Checks whether `maybe_iterable` is iterable, and if not returns an
+    iterable structure containing `maybe_iterable`.
+
+    Args:
+        maybe_iterable: An object that may or may not be iterable.
+
+    Returns:
+        maybe_iterable: If `maybe_iterable` was iterable, then it is returned,
+        otherwise an iterable structure containing `maybe_iterable` is
+        returned.
+    """
     if not hasattr(maybe_iterable, '__iter__'):
         maybe_iterable = [maybe_iterable]
 
     return maybe_iterable
 
 def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
-    """
+    """Parses the training data out of `mpii_dataset_mat` into a `MpiiDataset`
+    Python object.
+
     To save time during debugging sessions, you can manually get
     `mpii_dataset_mat` using `scipy.io.loadmat` once, and then iteratively call
     this function as you make changes, without reloading the .mat file.
@@ -109,6 +137,8 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
         mpii_dataset_mat: A dictionary of MATLAB structures loaded using
             `scipy.io.loadmat`. The arguments `struct_as_record = False` and
             `squeeze_me = True` must be set in the `loadmat` call.
+        mpii_images_dir: The path of the directory where all the MPII images
+            are stored.
     """
     mpii_annotations = mpii_dataset_mat.annolist
     train_or_test = mpii_dataset_mat.img_train
@@ -116,7 +146,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
     img_filenames = []
     people_in_imgs = []
     for img_index in range(len(mpii_annotations)):
-        if train_or_test[img_index]:
+        if train_or_test[img_index] == 1:
             img_annotation = mpii_annotations[img_index]
 
             img_abs_filepath = os.path.join(mpii_images_dir,
@@ -145,8 +175,10 @@ def mpii_read(mpii_dataset_filepath):
     file that is being parsed (i.e. ../images).
 
     Args:
-        mpii_dataset_filepath: The absolute filepath to the .mat file provided
-            from the MPII Human Pose website.
+        mpii_dataset_filepath: The filepath to the .mat file provided from the
+            MPII Human Pose website.
+
+    Returns: Parsed `MpiiDataset` object from `parse_mpii_data_from_mat`.
     """
     mpii_dataset_mat = scipy.io.loadmat(mpii_dataset_filepath,
                                         struct_as_record = False,

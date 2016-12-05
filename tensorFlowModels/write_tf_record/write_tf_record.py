@@ -3,9 +3,25 @@ from mpii_read import mpii_read
 import tensorflow as tf
 
 def clamp01(value):
+    """Clamps value to the range [0.0, 1.0].
+
+    Args:
+        value: A number to be clamped.
+
+    Return:
+        value if value is in [0.0, 1.0], otherwise whichever of 0.0 or 1.0 is
+        closer to value.
+    """
     return max(0, min(value, 1))
 
 def show_image_with_joints(next_image, people_in_img):
+    """Debug function to display an image with the head rectangle and joints.
+
+    Args:
+        next_image: The image to display.
+        people_in_img: the list of `Person`s corresponding to next_image from
+            the MpiiDataset class.
+    """
     image = Image.fromarray(next_image)
     draw = ImageDraw.Draw(image)
 
@@ -37,10 +53,8 @@ def write_tf_record(mpii_dataset):
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(coord = coord)
 
-    for img_index in range(4):
+    for img_index in range(len(mpii_dataset.img_filenames)):
         next_image = session.run(img_tensor)
-        show_image_with_joints(next_image,
-                               mpii_dataset.people_in_imgs[img_index])
 
     coord.request_stop()
     coord.join(threads)
