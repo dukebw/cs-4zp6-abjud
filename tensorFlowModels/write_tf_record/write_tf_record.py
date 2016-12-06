@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 from mpii_read import mpii_read
 import tensorflow as tf
 
-def clamp01(value):
+def _clamp01(value):
     """Clamps value to the range [0.0, 1.0].
 
     Args:
@@ -14,7 +14,7 @@ def clamp01(value):
     """
     return max(0, min(value, 1))
 
-def show_image_with_joints(next_image, people_in_img):
+def _show_image_with_joints(next_image, people_in_img):
     """Debug function to display an image with the head rectangle and joints.
 
     Args:
@@ -42,22 +42,39 @@ def show_image_with_joints(next_image, people_in_img):
 
     image.show()
 
+def _bytes_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+def _int64_feature(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
 def write_tf_record(mpii_dataset):
-    session = tf.InteractiveSession()
+    with tf.Session() as session:
+        filename_queue = tf.train.string_input_producer(mpii_dataset.img_filenames,
+                                                        shuffle=False)
+        _, img_jpeg = tf.WholeFileReader().read(filename_queue)
+        img_tensor = tf.image.decode_jpeg(img_jpeg)
 
-    filename_queue = tf.train.string_input_producer(mpii_dataset.img_filenames,
-                                                    shuffle=False)
-    _, img_jpeg = tf.WholeFileReader().read(filename_queue)
-    img_tensor = tf.image.decode_jpeg(img_jpeg)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
 
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(coord=coord)
+        # TODO(brendan): Compare with TF record reading and writing used for
+        # https://github.com/tensorflow/models/tree/master/inception.
+        # In particular, are raw images written directly into the TFRecord, or
+        # just filenames? How are files read back?
+        with tf.python_io.TFRecordWriter('train.tfrecord') as writer:
+            for img_index in range(128): # range(len(mpii_dataset.img_filenames)):
+                next_image = session.run(img_tensor)
+                image_raw = next_image.tostring()
+                example = tf.train.Example(
+                        features=tf.train.Features(
+                            feature={
+                                'image_raw': _bytes_feature(image_raw),
+                            }))
+                writer.write(example.SerializeToString())
 
-    for img_index in range(len(mpii_dataset.img_filenames)):
-        next_image = session.run(img_tensor)
-
-    coord.request_stop()
-    coord.join(threads)
+        coord.request_stop()
+        coord.join(threads)
 
 def main(argv):
     assert len(argv) == 1

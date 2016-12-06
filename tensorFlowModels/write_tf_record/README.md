@@ -96,7 +96,7 @@ A `oneof` field can be thought of as a `union` type in C, where each field in a
 `oneof` block shares memory, and at most one field can be set at the same time.
 Setting a `oneof` field will automatically clear all other members of the
 `oneof` block, so if we have a `Feature` and set its `bytes_list` field, that
-value will be deleted if then set its `float_list` field.
+value will be deleted if we then set its `float_list` field.
 
 The `map` syntax is a shortcut for generating key, value pairs, where the key
 type is any integral or string type and the value can be anything. The
