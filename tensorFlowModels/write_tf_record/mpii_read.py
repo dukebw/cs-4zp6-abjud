@@ -182,6 +182,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
 
     img_filenames = []
     people_in_imgs = []
+    filenames_on_disk = set(os.listdir(mpii_images_dir))
     for img_index in range(len(mpii_annotations)):
         if train_or_test[img_index] == 1:
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
@@ -191,7 +192,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
             # which the file corresponding to image.name does not exist.
             # Therefore we have to check that the image is present before
             # adding it to our structure.
-            if not os.path.exists(img_abs_filepath):
+            if not os.path.basename(img_abs_filepath) in filenames_on_disk:
                 continue
 
             img_filenames.append(img_abs_filepath)
