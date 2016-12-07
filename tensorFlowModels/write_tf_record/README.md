@@ -15,33 +15,41 @@ output file. We want to call the `tf.python_io.TFRecordWriter.write` method on
 Using only a single Python thread, the following performance results were
 obtained from `write_tf_record` (note that all times are approximate):
 
-Using TensorFlow `QueueRunner` to read files (note that this seems to start two
-threads, but decoding is done in serial via the `tf.decode_jpeg` call):
+#### Using TensorFlow `QueueRunner` to read files
+
+Note that this seems to start two threads, but decoding is done in serial via
+the `tf.decode_jpeg` call.
 
 512 images: 43s
+
 1024 images: 105s
+
 2048 images: 208s
 
-Using Python to read files (i.e. `open(file, 'rb')`):
+#### Using Python to read files (i.e. `open(file, 'rb')`):
 
-With one thread:
+##### With one thread:
 
 2048 images: 140s
 
-With two threads:
+##### With two threads:
 
 512 images: 34s
+
 1024 images: 56s
+
 2048 images: 111s
 
-With three threads:
+##### With three threads:
 
 2048 images: 90s
 
-With four threads:
+##### With four threads:
 
 512 images: 24s
+
 1024 images: 47s
+
 2048 images: 90s
 
 The filename list passed to `write_tf_record` was re-shuffled each run.
