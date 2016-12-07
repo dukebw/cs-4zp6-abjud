@@ -10,6 +10,66 @@ A `tf.python_io.TFRecordWriter` object is initialized with the filename of the
 output file. We want to call the `tf.python_io.TFRecordWriter.write` method on
 (TODO(brendan): refer to Features protobuf format)
 
+### Some Profiling
+
+Using only a single Python thread, the following performance results were
+obtained from `write_tf_record` (note that all times are approximate):
+
+Using TensorFlow `QueueRunner` to read files (note that this seems to start two
+threads, but decoding is done in serial via the `tf.decode_jpeg` call):
+
+512 images: 43s
+1024 images: 105s
+2048 images: 208s
+
+Using Python to read files (i.e. `open(file, 'rb')`):
+
+With one thread:
+
+2048 images: 140s
+
+With two threads:
+
+512 images: 34s
+1024 images: 56s
+2048 images: 111s
+
+With three threads:
+
+2048 images: 90s
+
+With four threads:
+
+512 images: 24s
+1024 images: 47s
+2048 images: 90s
+
+The filename list passed to `write_tf_record` was re-shuffled each run.
+
+The results suggest that there is some overhead to the `QueueRunner` method,
+probably since we decode only one image at a time before processing it from
+Python.
+
+There was also some speed-up from multi-threading up to three threads, which
+makes sense since the machine has four hardware threads in total (two cores,
+each with two hardware threads), and at the time of experiment one of those
+hardware threads was used to run at 100% usage running a MATLAB program.
+
+### Reference to [Inception](https://github.com/tensorflow/models/tree/master/inception) TF Record Writing Code
+
+Under `data/build_image_data.py`, multiple threads are used to run the function
+`_process_image_files_batch`.
+
+All threads use the same `coder` object, an instance of `ImageCoder`, which is
+a wrapper to pass in a TF session used to run all the image decoding.
+
+The training data are split up into shards, which are processed in per-thread
+batches. So for instance if there were 4 threads and 128 shards, then the first
+thread would process shards \[0, 32)
+
+Within each thread, the images are decoded and raw image data, along with
+labels, is written as protobuf to a different TFRecord for each shard.
+
 ### <a name="protobuf-heading"></a>Google Protobuf Format
 
 #### Introduction

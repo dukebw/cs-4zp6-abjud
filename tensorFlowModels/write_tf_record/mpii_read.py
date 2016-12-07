@@ -97,6 +97,8 @@ class MpiiDataset(object):
             list index. Must be the same length as `img_filenames`.
     """
     def __init__(self, img_filenames, people_in_imgs):
+        assert len(img_filenames) == len(people_in_imgs)
+
         self._img_filenames = img_filenames
         self._people_in_imgs = people_in_imgs
 
@@ -159,6 +161,36 @@ def _parse_annotation(img_annotation, mpii_images_dir):
 
     return img_abs_filepath, people
 
+def _shuffle_list(list_l, shuffled_indices):
+    """Shuffles list_l by re-ordering the list based on the indices in
+    shuffled_indices.
+
+    Args:
+        list_l: List to be shuffled.
+        shuffled_indices: Set of indices containing [0:len(list_l)), which is
+            assumed to have already been shuffled.
+
+    Returns:
+        List with all the same elements as `list_l`, in the shuffled order given
+        by `shuffled_indices`.
+    """
+    return [list_l[index] for index in shuffled_indices]
+
+def _shuffle_dataset(img_filenames, people_in_imgs):
+    """Shuffles the list of filenames and labels in the MPII dataset.
+
+    Args:
+        img_filenames: List of filenames in the MPII dataset to be shuffled.
+        people_in_imgs: List of `Person`s in the MPII dataset, to be shuffled.
+    """
+    img_indices = list(range(len(img_filenames)))
+    np.random.shuffle(img_indices)
+
+    img_filenames = _shuffle_list(img_filenames, img_indices)
+    people_in_imgs = _shuffle_list(people_in_imgs, img_indices)
+
+    return img_filenames, people_in_imgs
+
 def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
     """Parses the training data out of `mpii_dataset_mat` into a `MpiiDataset`
     Python object.
@@ -197,6 +229,9 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
 
             img_filenames.append(img_abs_filepath)
             people_in_imgs.append(people)
+
+    img_filenames, people_in_imgs = _shuffle_dataset(img_filenames,
+                                                     people_in_imgs)
 
     return MpiiDataset(img_filenames, people_in_imgs)
 
