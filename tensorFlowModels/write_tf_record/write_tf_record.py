@@ -70,23 +70,99 @@ def _show_image_with_joints(next_image, people_in_img):
 
 
 def _bytes_feature(value):
+    """Wrapper for inserting bytes feature into Example proto"""
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
+def _float_feature(value):
+    """Wrapper for inserting FloatList feature into Example proto"""
+    if not isinstance(value, list):
+        value = [value]
+
+    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
+
+
 def _int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+    """Wrapper for inserting Int64 features into Example proto"""
+    if not isinstance(value, list):
+        value = [value]
+
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
 
-def _write_example(image, writer):
-    """Writes an example.
+def _append_scaled_joint(joints, joint_dim, max_joint_dim):
+    """Appends to joints the value of joint_dim, scaled down to be in the range [0.0, 1.0].
+
+    Args:
+        joints: List of joints, in the order [x0, y0, x1, y1, ...]
+        joint_dim: Next either xi or yi to append.
+        max_joint_dim: Maximum dimension of the image in which the joint
+            appears, e.g. height of 1080 in a 1920x1080 image.
     """
-    # TODO(brendan): Docstring
+    scaled_joint = _clamp01(joint_dim/max_joint_dim)
+    joints.append(scaled_joint)
+
+
+def _extract_labeled_joints(people_in_img, image_shape):
+    """Extracts all of the joints for all of the people in image, and puts them
+    in a list in the format [x0, y0, x1, y1, ...].
+
+    Not all joints are labeled for each person, so this function also returns a
+    list of int64 bitmaps, one for each person, where the first 16 bits are 1
+    if the joint is labeled, and 0 if the joint is not labeled.
+
+    Args:
+        people_in_img: List of people in this image.
+        image_shape: The shape of the given image, in the format (y, x) or
+            (rows, cols).
+
+    Returns:
+        (joints, joints_bitmaps) tuple, where both are lists. `joints` is a
+        flat list with all of the joints in the image in sequence. The order
+        can be determined from `joints_bitmaps`. Each int64 in `joints_bitmaps`
+        corresponds to a person, so the joints for each person can be found by
+        iterating over `joints` and extracting (x0, y0) pairs for each 1 bit in
+        the `joints_bitmaps[i]` value for each person.
+
+        Visually: `joints` [x0, y0, x1, y1, x2, y2]
+                  `joints_bitmaps` [0b11, 0b10]
+
+                  The above corresponds to two people, where (x0, y0) and
+                  (x1, y1) are joints 0 and 1 for person 0, respectively, and
+                  (x2, y2) is joint 1 for person 1.
+    """
+    joints = []
+    joints_bitmaps = []
+    for person in people_in_img:
+        joint_bitmap = 0
+        for joint_index in range(len(person.joints)):
+            joint = person.joints[joint_index]
+            if joint is not None:
+                _append_scaled_joint(joints, joint[0], image_shape[1])
+                _append_scaled_joint(joints, joint[1], image_shape[0])
+                joint_bitmap = joint_bitmap | (1 << joint_index)
+
+        joints_bitmaps.append(joint_bitmap)
+
+    return joints, joints_bitmaps
+
+
+def _write_example(image, people_in_img, writer):
+    """Writes an example to the TFRecord file owned by `writer`.
+
+    See `_extract_labeled_joints` for the format of `joints` and
+    `joints_bitmaps`.
+    """
     image_raw = image.tostring()
+
+    joints, joints_bitmaps = _extract_labeled_joints(people_in_img, image.shape)
 
     example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     'image_raw': _bytes_feature(image_raw),
+                    'joints_bitmaps': _int64_feature(joints_bitmaps),
+                    'joints': _float_feature(joints)
                 }))
     writer.write(example.SerializeToString())
 
@@ -109,7 +185,9 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
                 image_jpeg = f.read()
 
             image = coder.decode_jpeg(image_jpeg)
-            _write_example(image, writer)
+            _write_example(image,
+                           mpii_dataset.people_in_imgs[img_index],
+                           writer)
             
 
 def _process_image_files_with_filename_queue(mpii_dataset,
@@ -140,6 +218,7 @@ def _process_image_files_with_filename_queue(mpii_dataset,
 
     coord.request_stop()
     coord.join(threads)
+
 
 def _process_image_files(mpii_dataset, num_examples, session):
     """Processes the image files in `mpii_dataset`, using multiple threads to
