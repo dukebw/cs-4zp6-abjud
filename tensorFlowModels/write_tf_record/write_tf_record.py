@@ -40,35 +40,6 @@ def _clamp01(value):
     return max(0, min(value, 1))
 
 
-def _show_image_with_joints(next_image, people_in_img):
-    """Debug function to display an image with the head rectangle and joints.
-
-    Args:
-        next_image: The image to display.
-        people_in_img: the list of `Person`s corresponding to next_image from
-            the MpiiDataset class.
-    """
-    image = Image.fromarray(next_image)
-    draw = ImageDraw.Draw(image)
-
-    for person in people_in_img:
-        draw.rectangle(person.head_rect, outline=(0, 0xFF, 0))
-
-        for joint_index in range(len(person.joints)):
-            joint = person.joints[joint_index]
-
-            if joint:
-                red = int(0xFF*(joint_index % 5)/5)
-                green = int(0xFF*(joint_index % 10)/10)
-                blue = int(0xFF*joint_index/16)
-                colour = (red, green, blue)
-                box = (joint[0] - 5, joint[1] - 5,
-                       joint[0] + 5, joint[1] + 5)
-                draw.ellipse(box, fill=colour)
-
-    image.show()
-
-
 def _bytes_feature(value):
     """Wrapper for inserting bytes feature into Example proto"""
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -189,36 +160,6 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
                            mpii_dataset.people_in_imgs[img_index],
                            writer)
             
-
-def _process_image_files_with_filename_queue(mpii_dataset,
-                                             num_examples,
-                                             session):
-    """Creates a TF Queue (queue of Tensors) of filenames, reads and decodes
-    them by running the default graph, then writes the example to a TF Record.
-
-    Currently unused.
-    """
-    # TODO(brendan): The performance of this method is more than 2x slower than
-    # running multiple Python threads (the `_process_image_files` method). See
-    # README.md.
-    # It may be an interesting experiment to see if the entire TFRecord writing
-    # process can be moved to TensorFlow, and whether that is faster.
-    filename_queue = tf.train.string_input_producer(mpii_dataset.img_filenames,
-                                                    shuffle=False)
-    _, img_jpeg = tf.WholeFileReader().read(filename_queue)
-    img_tensor = tf.image.decode_jpeg(img_jpeg)
-
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(coord=coord)
-
-    with tf.python_io.TFRecordWriter('train.tfrecord') as writer:
-        for img_index in range(num_examples):
-            next_image = session.run(img_tensor)
-            _write_example(next_image, writer)
-
-    coord.request_stop()
-    coord.join(threads)
-
 
 def _process_image_files(mpii_dataset, num_examples, session):
     """Processes the image files in `mpii_dataset`, using multiple threads to
