@@ -1,5 +1,4 @@
 import threading
-from PIL import Image, ImageDraw
 import numpy as np
 import tensorflow as tf
 from mpii_read import mpii_read
@@ -118,20 +117,23 @@ def _extract_labeled_joints(people_in_img, image_shape):
     return joints, joints_bitmaps
 
 
-def _write_example(image, people_in_img, writer):
+def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
 
     See `_extract_labeled_joints` for the format of `joints` and
     `joints_bitmaps`.
     """
-    image_raw = image.tostring()
-
+    image = coder.decode_jpeg(image_jpeg)
     joints, joints_bitmaps = _extract_labeled_joints(people_in_img, image.shape)
 
+    # TODO(brendan): height and width are known from JPEG format; don't encode
+    # in TFRecord?
     example = tf.train.Example(
             features=tf.train.Features(
                 feature={
-                    'image_raw': _bytes_feature(image_raw),
+                    'image_jpeg': _bytes_feature(image_jpeg),
+                    'height': _int64_feature(image.shape[0]),
+                    'width': _int64_feature(image.shape[1]),
                     'joints_bitmaps': _int64_feature(joints_bitmaps),
                     'joints': _float_feature(joints)
                 }))
@@ -155,8 +157,8 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
             with tf.gfile.FastGFile(mpii_dataset.img_filenames[img_index], 'rb') as f:
                 image_jpeg = f.read()
 
-            image = coder.decode_jpeg(image_jpeg)
-            _write_example(image,
+            _write_example(coder,
+                           image_jpeg,
                            mpii_dataset.people_in_imgs[img_index],
                            writer)
             
