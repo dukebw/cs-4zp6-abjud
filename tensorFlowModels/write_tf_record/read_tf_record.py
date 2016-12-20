@@ -1,4 +1,6 @@
+from PIL import Image, ImageDraw
 import tensorflow as tf
+import mpii_read
 
 INITIAL_LEARNING_RATE = 0.1
 LEARNING_RATE_DECAY_FACTOR = 0.1
@@ -38,6 +40,15 @@ def main(argv=None):
             reader = tf.TFRecordReader()
             _, example_serialized = reader.read(filename_queue)
 
+            feature_map = {
+                'image_jpeg': tf.FixedLenFeature([], tf.string),
+                'joints_bitmaps': tf.VarLenFeature(tf.int64),
+                'joints': tf.VarLenFeature(tf.float32)
+            }
+            features = tf.parse_single_example(example_serialized, feature_map)
+            img_tensor = tf.image.decode_jpeg(features['image_jpeg'],
+                                              channels=3)
+
             init = tf.initialize_all_variables()
 
             session = tf.Session()
@@ -46,24 +57,41 @@ def main(argv=None):
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(session, coord)
 
-            # TODO(brendan): Make sense of the `SparseTensorValue` returned
-            # from evaluating `features`, parse out the joint locations
-            # properly, and draw the joints.
-            feature_map = {
-                'image_jpeg': tf.FixedLenFeature([], tf.string),
-                'height': tf.FixedLenFeature([], tf.int64),
-                'width': tf.FixedLenFeature([], tf.int64),
-                'joints_bitmaps': tf.VarLenFeature(tf.int64),
-                'joints': tf.VarLenFeature(tf.float32)
-            }
-            features = tf.parse_single_example(example_serialized, feature_map)
-            img_tensor = tf.image.decode_jpeg(features['image_jpeg'],
-                                              channels=3)
+            for _ in range(4):
+                [image, joints, joints_bitmaps] = session.run(
+                    [img_tensor, features['joints'], features['joints_bitmaps']])
 
-            image = session.run(img_tensor)
+                pil_image = Image.fromarray(image)
+                draw = ImageDraw.Draw(pil_image)
+
+                sparse_joint_index = 0
+                for joint_bitmap in joints_bitmaps.values:
+                    joint_index = 0
+                    while joint_bitmap > 0:
+                        if (joint_bitmap & 0x1) == 0x1:
+                            red = int(0xFF*(joint_index % 5)/5)
+                            green = int(0xFF*(joint_index % 10)/10)
+                            blue = int(0xFF*joint_index/16)
+                            colour = (red, green, blue)
+
+                            x = joints.values[sparse_joint_index]
+                            x_scaled = int(x*image.shape[1])
+                            y = joints.values[sparse_joint_index + 1]
+                            y_scaled = int(y*image.shape[0])
+                            box = (x_scaled - 5, y_scaled - 5,
+                                   x_scaled + 5, y_scaled + 5)
+                            draw.ellipse(box, colour)
+
+                            sparse_joint_index += 2
+
+                        joint_bitmap >>= 1
+                        joint_index += 1
+
+                pil_image.show()
 
             coord.request_stop()
             coord.join(threads)
+
 
 if __name__ == "__main__":
     tf.app.run()

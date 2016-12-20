@@ -128,12 +128,11 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
 
     # TODO(brendan): height and width are known from JPEG format; don't encode
     # in TFRecord?
+    # Rename `joints_bitmaps` to `joint_bitmaps`
     example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     'image_jpeg': _bytes_feature(image_jpeg),
-                    'height': _int64_feature(image.shape[0]),
-                    'width': _int64_feature(image.shape[1]),
                     'joints_bitmaps': _int64_feature(joints_bitmaps),
                     'joints': _float_feature(joints)
                 }))
