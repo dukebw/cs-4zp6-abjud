@@ -14,16 +14,32 @@ class ImageCoder(object):
     """
     def __init__(self, session):
         self._sess = session
-        self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
-        self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
 
-    def decode_jpeg(self, image_data):
-        image = self._sess.run(self._decode_jpeg,
-                               feed_dict={self._decode_jpeg_data: image_data})
+        self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
+        self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data,
+                                                 channels=3)
+        shape = tf.shape(self._decode_jpeg)
+
+        target_dim = tf.maximum(shape[0], shape[1])
+        pad_image = tf.image.pad_to_bounding_box(self._decode_jpeg,
+                                                 0,
+                                                 0,
+                                                 target_dim,
+                                                 target_dim)
+
+        resize_image = tf.image.resize_image_with_crop_or_pad(
+            pad_image, 220, 220)
+
+        self._scaled_image_jpeg = tf.image.encode_jpeg(resize_image)
+
+    def decode_scale_encode(self, image_data):
+        fetches = [self._decode_jpeg, self._scaled_image_jpeg]
+        image, scaled_image_jpeg = self._sess.run(
+            fetches, feed_dict={self._decode_jpeg_data: image_data})
         assert len(image.shape) == 3
         assert image.shape[2] == 3
 
-        return image
+        return image, scaled_image_jpeg
 
 
 def _clamp01(value):
@@ -123,7 +139,7 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
     See `_extract_labeled_joints` for the format of `joints` and
     `joints_bitmaps`.
     """
-    image = coder.decode_jpeg(image_jpeg)
+    image, scaled_image_jpeg = coder.decode_scale_encode(image_jpeg)
     joints, joints_bitmaps = _extract_labeled_joints(people_in_img, image.shape)
 
     # TODO(brendan): height and width are known from JPEG format; don't encode
@@ -132,7 +148,7 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
     example = tf.train.Example(
             features=tf.train.Features(
                 feature={
-                    'image_jpeg': _bytes_feature(image_jpeg),
+                    'image_jpeg': _bytes_feature(scaled_image_jpeg),
                     'joints_bitmaps': _int64_feature(joints_bitmaps),
                     'joints': _float_feature(joints)
                 }))
@@ -160,7 +176,7 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
                            image_jpeg,
                            mpii_dataset.people_in_imgs[img_index],
                            writer)
-            
+
 
 def _process_image_files(mpii_dataset, num_examples, session):
     """Processes the image files in `mpii_dataset`, using multiple threads to
