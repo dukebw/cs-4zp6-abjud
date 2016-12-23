@@ -42,7 +42,7 @@ def main(argv=None):
 
             feature_map = {
                 'image_jpeg': tf.FixedLenFeature([], tf.string),
-                'joints_bitmaps': tf.VarLenFeature(tf.int64),
+                'joint_bitmaps': tf.VarLenFeature(tf.int64),
                 'joints': tf.VarLenFeature(tf.float32)
             }
             features = tf.parse_single_example(example_serialized, feature_map)
@@ -57,15 +57,17 @@ def main(argv=None):
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(session, coord)
 
+            image_dim = 220
+            image_center = 110
             for _ in range(4):
-                [image, joints, joints_bitmaps] = session.run(
-                    [img_tensor, features['joints'], features['joints_bitmaps']])
+                [image, joints, joint_bitmaps] = session.run(
+                    [img_tensor, features['joints'], features['joint_bitmaps']])
 
                 pil_image = Image.fromarray(image)
                 draw = ImageDraw.Draw(pil_image)
 
                 sparse_joint_index = 0
-                for joint_bitmap in joints_bitmaps.values:
+                for joint_bitmap in joint_bitmaps.values:
                     joint_index = 0
                     while joint_bitmap > 0:
                         if (joint_bitmap & 0x1) == 0x1:
@@ -75,11 +77,11 @@ def main(argv=None):
                             colour = (red, green, blue)
 
                             x = joints.values[sparse_joint_index]
-                            x_scaled = int(x*image.shape[1])
+                            x_scaled = int(x*image_dim + image_center)
                             y = joints.values[sparse_joint_index + 1]
-                            y_scaled = int(y*image.shape[0])
-                            box = (x_scaled - 5, y_scaled - 5,
-                                   x_scaled + 5, y_scaled + 5)
+                            y_scaled = int(y*image_dim + image_center)
+                            box = (x_scaled - 2, y_scaled - 2,
+                                   x_scaled + 2, y_scaled + 2)
                             draw.ellipse(box, colour)
 
                             sparse_joint_index += 2

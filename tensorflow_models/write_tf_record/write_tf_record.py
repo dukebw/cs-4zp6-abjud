@@ -20,39 +20,64 @@ class ImageCoder(object):
                                                  channels=3)
         shape = tf.shape(self._decode_jpeg)
 
-        target_dim = tf.maximum(shape[0], shape[1])
+        height = shape[0]
+        width = shape[1]
+        target_dim = tf.maximum(height, width)
+
+        self._height_pad = _get_pad_clamp_zero(height, width)
+        self._width_pad = _get_pad_clamp_zero(width, height)
+
         pad_image = tf.image.pad_to_bounding_box(self._decode_jpeg,
-                                                 0,
-                                                 0,
+                                                 self._height_pad,
+                                                 self._width_pad,
                                                  target_dim,
                                                  target_dim)
+        scaled_image_tensor = tf.cast(
+            tf.image.resize_images(pad_image, 220, 220), tf.uint8)
 
-        resize_image = tf.image.resize_image_with_crop_or_pad(
-            pad_image, 220, 220)
-
-        self._scaled_image_jpeg = tf.image.encode_jpeg(resize_image)
+        self._scaled_image_jpeg = tf.image.encode_jpeg(scaled_image_tensor)
 
     def decode_scale_encode(self, image_data):
-        fetches = [self._decode_jpeg, self._scaled_image_jpeg]
-        image, scaled_image_jpeg = self._sess.run(
+        fetches = [self._decode_jpeg,
+                   self._scaled_image_jpeg,
+                   self._height_pad,
+                   self._width_pad]
+        image, scaled_image_jpeg, height_pad, width_pad = self._sess.run(
             fetches, feed_dict={self._decode_jpeg_data: image_data})
         assert len(image.shape) == 3
         assert image.shape[2] == 3
 
-        return image, scaled_image_jpeg
+        return image, scaled_image_jpeg, height_pad, width_pad
 
 
-def _clamp01(value):
-    """Clamps value to the range [0.0, 1.0].
+def _get_pad_clamp_zero(dim_to_maybe_pad, other_dim):
+    """For `dim_to_maybe_pad`, returns the amount to pad this dimension (e.g.
+    height or width) by in order to center an image, or zero if
+    `dim_to_maybe_pad` is the larger dimension.
+
+    Args:
+        dim_to_maybe_pad: Dimension of an image to potentially pad.
+        other_dim: The other dimension of the image (e.g. height if
+            `dim_to_maybe_pad` is width).
+
+    Returns:
+        Amount to pad image by in given dimension, if needed, or zero if no pad
+        is needed in this dimension.
+    """
+    return tf.maximum(tf.div(tf.sub(other_dim, dim_to_maybe_pad), 2), 0)
+
+
+def _clamp_minus1_1(value):
+    """Clamps value to the range [-1.0, 1.0].
 
     Args:
         value: A number to be clamped.
 
     Return:
-        value if value is in [0.0, 1.0], otherwise whichever of 0.0 or 1.0 is
+        value if value is in [-1.0, 1.0], otherwise whichever of -1.0 or 1.0 is
         closer to value.
     """
-    return max(0, min(value, 1))
+    return max(-1, min(value, 1))
 
 
 def _bytes_feature(value):
@@ -76,8 +101,9 @@ def _int64_feature(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
 
-def _append_scaled_joint(joints, joint_dim, max_joint_dim):
-    """Appends to joints the value of joint_dim, scaled down to be in the range [0.0, 1.0].
+def _append_scaled_joint(joints, joint_dim, max_joint_dim, image_center):
+    """Appends to joints the value of joint_dim, scaled down to be in the range
+    [-1.0, 1.0].
 
     Args:
         joints: List of joints, in the order [x0, y0, x1, y1, ...]
@@ -85,11 +111,14 @@ def _append_scaled_joint(joints, joint_dim, max_joint_dim):
         max_joint_dim: Maximum dimension of the image in which the joint
             appears, e.g. height of 1080 in a 1920x1080 image.
     """
-    scaled_joint = _clamp01(joint_dim/max_joint_dim)
+    scaled_joint = _clamp_minus1_1((joint_dim - image_center)/max_joint_dim)
     joints.append(scaled_joint)
 
 
-def _extract_labeled_joints(people_in_img, image_shape):
+def _extract_labeled_joints(people_in_img,
+                            image_shape,
+                            height_pad,
+                            width_pad):
     """Extracts all of the joints for all of the people in image, and puts them
     in a list in the format [x0, y0, x1, y1, ...].
 
@@ -101,55 +130,66 @@ def _extract_labeled_joints(people_in_img, image_shape):
         people_in_img: List of people in this image.
         image_shape: The shape of the given image, in the format (y, x) or
             (rows, cols).
+        height_pad: Pixels of padding in y dimension.
+        width_pad: Pixels of padding in x dimension.
 
     Returns:
-        (joints, joints_bitmaps) tuple, where both are lists. `joints` is a
+        (joints, joint_bitmaps) tuple, where both are lists. `joints` is a
         flat list with all of the joints in the image in sequence. The order
-        can be determined from `joints_bitmaps`. Each int64 in `joints_bitmaps`
+        can be determined from `joint_bitmaps`. Each int64 in `joint_bitmaps`
         corresponds to a person, so the joints for each person can be found by
         iterating over `joints` and extracting (x0, y0) pairs for each 1 bit in
-        the `joints_bitmaps[i]` value for each person.
+        the `joint_bitmaps[i]` value for each person.
 
         Visually: `joints` [x0, y0, x1, y1, x2, y2]
-                  `joints_bitmaps` [0b11, 0b10]
+                  `joint_bitmaps` [0b11, 0b10]
 
                   The above corresponds to two people, where (x0, y0) and
                   (x1, y1) are joints 0 and 1 for person 0, respectively, and
                   (x2, y2) is joint 1 for person 1.
     """
     joints = []
-    joints_bitmaps = []
+    joint_bitmaps = []
+    max_image_dim = max(image_shape[0], image_shape[1])
+    image_center = int(max_image_dim/2)
     for person in people_in_img:
         joint_bitmap = 0
         for joint_index in range(len(person.joints)):
             joint = person.joints[joint_index]
             if joint is not None:
-                _append_scaled_joint(joints, joint[0], image_shape[1])
-                _append_scaled_joint(joints, joint[1], image_shape[0])
+                _append_scaled_joint(joints,
+                                     joint[0] + width_pad,
+                                     max_image_dim,
+                                     image_center)
+                _append_scaled_joint(joints,
+                                     joint[1] + height_pad,
+                                     max_image_dim,
+                                     image_center)
                 joint_bitmap = joint_bitmap | (1 << joint_index)
 
-        joints_bitmaps.append(joint_bitmap)
+        joint_bitmaps.append(joint_bitmap)
 
-    return joints, joints_bitmaps
+    return joints, joint_bitmaps
 
 
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
 
     See `_extract_labeled_joints` for the format of `joints` and
-    `joints_bitmaps`.
+    `joint_bitmaps`.
     """
-    image, scaled_image_jpeg = coder.decode_scale_encode(image_jpeg)
-    joints, joints_bitmaps = _extract_labeled_joints(people_in_img, image.shape)
+    image, scaled_image_jpeg, height_pad, width_pad = \
+            coder.decode_scale_encode(image_jpeg)
+    joints, joint_bitmaps = _extract_labeled_joints(people_in_img,
+                                                    image.shape,
+                                                    height_pad,
+                                                    width_pad)
 
-    # TODO(brendan): height and width are known from JPEG format; don't encode
-    # in TFRecord?
-    # Rename `joints_bitmaps` to `joint_bitmaps`
     example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     'image_jpeg': _bytes_feature(scaled_image_jpeg),
-                    'joints_bitmaps': _int64_feature(joints_bitmaps),
+                    'joint_bitmaps': _int64_feature(joint_bitmaps),
                     'joints': _float_feature(joints)
                 }))
     writer.write(example.SerializeToString())

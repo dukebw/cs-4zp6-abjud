@@ -81,6 +81,7 @@ class Person(object):
     def head_rect(self):
         return self._head_rect
 
+
 class MpiiDataset(object):
     """Representation of the entire MPII dataset.
 
@@ -110,6 +111,7 @@ class MpiiDataset(object):
     def people_in_imgs(self):
         return self._people_in_imgs
 
+
 def _make_iterable(maybe_iterable):
     """Checks whether `maybe_iterable` is iterable, and if not returns an
     iterable structure containing `maybe_iterable`.
@@ -126,6 +128,7 @@ def _make_iterable(maybe_iterable):
         maybe_iterable = [maybe_iterable]
 
     return maybe_iterable
+
 
 def _parse_annotation(img_annotation, mpii_images_dir):
     """Parses a single image annotation from the MPII dataset.
@@ -161,6 +164,7 @@ def _parse_annotation(img_annotation, mpii_images_dir):
 
     return img_abs_filepath, people
 
+
 def _shuffle_list(list_l, shuffled_indices):
     """Shuffles list_l by re-ordering the list based on the indices in
     shuffled_indices.
@@ -176,6 +180,7 @@ def _shuffle_list(list_l, shuffled_indices):
     """
     return [list_l[index] for index in shuffled_indices]
 
+
 def _shuffle_dataset(img_filenames, people_in_imgs):
     """Shuffles the list of filenames and labels in the MPII dataset.
 
@@ -190,6 +195,7 @@ def _shuffle_dataset(img_filenames, people_in_imgs):
     people_in_imgs = _shuffle_list(people_in_imgs, img_indices)
 
     return img_filenames, people_in_imgs
+
 
 def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
     """Parses the training data out of `mpii_dataset_mat` into a `MpiiDataset`
@@ -235,6 +241,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
 
     return MpiiDataset(img_filenames, people_in_imgs)
 
+
 def mpii_read(mpii_dataset_filepath):
     """
     Note that the images are assumed to reside in a folder one up from the .mat
@@ -254,6 +261,7 @@ def mpii_read(mpii_dataset_filepath):
     mpii_images_dir = os.path.join(mpii_dataset_dir, '../images')
 
     return parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir)
+
 
 if __name__ == "__main__":
     assert len(sys.argv) == 1
