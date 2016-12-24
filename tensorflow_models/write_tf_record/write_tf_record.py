@@ -7,6 +7,24 @@ from timethis import timethis
 tf.app.flags.DEFINE_integer('num_threads', 3,
                             """Number of threads to use to write TF Records""")
 
+class Point(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
+class Rectangle(object):
+    def __init__(self, rect):
+        self.top_left = Point(rect[0], rect[1])
+        self.bottom_right = Point(rect[2], rect[3])
+
+    def get_height(self):
+        return self.bottom_right.y - self.top_left.y
+
+    def get_width(self):
+        return self.bottom_right.x - self.top_left.x
+
+
 class ImageCoder(object):
     """A class that holds a session, passed using dependency injection during
     `ImageCoder` instantiations, which is used to run a TF graph to decode JPEG
@@ -15,69 +33,80 @@ class ImageCoder(object):
     def __init__(self, session):
         self._sess = session
 
-        self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
-        self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data,
-                                                 channels=3)
-        shape = tf.shape(self._decode_jpeg)
+        self._decode_jpeg_data = tf.placeholder(tf.string)
+        raw_image = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
+        self._img_shape = tf.shape(raw_image)
 
-        height = shape[0]
-        width = shape[1]
-        target_dim = tf.maximum(height, width)
-
-        self._height_pad = _get_pad_clamp_zero(height, width)
-        self._width_pad = _get_pad_clamp_zero(width, height)
-
-        pad_image = tf.image.pad_to_bounding_box(self._decode_jpeg,
+        self._crop_height_offset = tf.placeholder(tf.int32)
+        self._crop_width_offset = tf.placeholder(tf.int32)
+        self._crop_height = tf.placeholder(tf.int32)
+        self._crop_width = tf.placeholder(tf.int32)
+        self._height_pad = tf.placeholder(tf.int32)
+        self._width_pad = tf.placeholder(tf.int32)
+        self._padded_img_dim = tf.placeholder(tf.int32)
+        cropped_img = tf.image.crop_to_bounding_box(raw_image,
+                                                    self._crop_height_offset,
+                                                    self._crop_width_offset,
+                                                    self._crop_height,
+                                                    self._crop_width)
+        pad_image = tf.image.pad_to_bounding_box(cropped_img,
                                                  self._height_pad,
                                                  self._width_pad,
-                                                 target_dim,
-                                                 target_dim)
-        scaled_image_tensor = tf.cast(
+                                                 self._padded_img_dim,
+                                                 self._padded_img_dim)
+        self._scaled_image_tensor = tf.cast(
             tf.image.resize_images(pad_image, 220, 220), tf.uint8)
 
-        self._scaled_image_jpeg = tf.image.encode_jpeg(scaled_image_tensor)
+        self._scaled_image_jpeg = tf.image.encode_jpeg(self._scaled_image_tensor)
 
-    def decode_scale_encode(self, image_data):
-        fetches = [self._decode_jpeg,
-                   self._scaled_image_jpeg,
+    def decode_jpeg(self, image_data):
+        shape = self._sess.run(self._img_shape,
+                               feed_dict={self._decode_jpeg_data: image_data})
+        assert len(shape) == 3
+        assert shape[2] == 3
+
+        return shape
+
+    def scale_encode(self,
+                     image_data,
+                     crop_offsets,
+                     crop_dim,
+                     padding,
+                     padded_dim):
+        fetches = [self._scaled_image_jpeg,
                    self._height_pad,
                    self._width_pad]
-        image, scaled_image_jpeg, height_pad, width_pad = self._sess.run(
-            fetches, feed_dict={self._decode_jpeg_data: image_data})
-        assert len(image.shape) == 3
-        assert image.shape[2] == 3
 
-        return image, scaled_image_jpeg, height_pad, width_pad
+        feed_dict = {
+            self._decode_jpeg_data: image_data,
+            self._crop_height_offset: crop_offsets.y,
+            self._crop_width_offset: crop_offsets.x,
+            self._crop_height: crop_dim.y,
+            self._crop_width: crop_dim.x,
+            self._height_pad: padding.y,
+            self._width_pad: padding.x,
+            self._padded_img_dim: padded_dim
+        }
 
+        scaled_img_jpeg, height_pad, width_pad = self._sess.run(
+            fetches, feed_dict=feed_dict)
 
-def _get_pad_clamp_zero(dim_to_maybe_pad, other_dim):
-    """For `dim_to_maybe_pad`, returns the amount to pad this dimension (e.g.
-    height or width) by in order to center an image, or zero if
-    `dim_to_maybe_pad` is the larger dimension.
-
-    Args:
-        dim_to_maybe_pad: Dimension of an image to potentially pad.
-        other_dim: The other dimension of the image (e.g. height if
-            `dim_to_maybe_pad` is width).
-
-    Returns:
-        Amount to pad image by in given dimension, if needed, or zero if no pad
-        is needed in this dimension.
-    """
-    return tf.maximum(tf.div(tf.sub(other_dim, dim_to_maybe_pad), 2), 0)
+        return scaled_img_jpeg, height_pad, width_pad
 
 
-def _clamp_minus1_1(value):
-    """Clamps value to the range [-1.0, 1.0].
+def _clamp_range(value, min_val, max_val):
+    """Clamps value to the range [min_val, max_val].
 
     Args:
         value: A number to be clamped.
+        min_val: Minimum value to return.
+        max_val: Maximum value to return.
 
     Return:
-        value if value is in [-1.0, 1.0], otherwise whichever of -1.0 or 1.0 is
-        closer to value.
+        value if value is in [min_val, max_val], otherwise whichever of
+        `min_val` or `max_val` is closer to value.
     """
-    return max(-1, min(value, 1))
+    return max(min_val, min(value, max_val))
 
 
 def _bytes_feature(value):
@@ -111,14 +140,15 @@ def _append_scaled_joint(joints, joint_dim, max_joint_dim, image_center):
         max_joint_dim: Maximum dimension of the image in which the joint
             appears, e.g. height of 1080 in a 1920x1080 image.
     """
-    scaled_joint = _clamp_minus1_1((joint_dim - image_center)/max_joint_dim)
+    scaled_joint = _clamp_range(
+        (joint_dim - image_center)/max_joint_dim, -1, 1)
     joints.append(scaled_joint)
 
 
-def _extract_labeled_joints(people_in_img,
+def _extract_labeled_joints(person,
                             image_shape,
-                            height_pad,
-                            width_pad):
+                            padding,
+                            offsets):
     """Extracts all of the joints for all of the people in image, and puts them
     in a list in the format [x0, y0, x1, y1, ...].
 
@@ -127,72 +157,140 @@ def _extract_labeled_joints(people_in_img,
     if the joint is labeled, and 0 if the joint is not labeled.
 
     Args:
-        people_in_img: List of people in this image.
-        image_shape: The shape of the given image, in the format (y, x) or
-            (rows, cols).
-        height_pad: Pixels of padding in y dimension.
-        width_pad: Pixels of padding in x dimension.
+        person: Person in the image to get joints for.
+        image_shape: The shape of the given image, in the format
+            Point(cols, rows).
+        padding: Pixels of padding in Point(width, height) dimensions.
+        offsets: The Point(width, height) offsets of this cropped image in the
+            original image. This is needed to translate the joint labels.
 
     Returns:
-        (joints, joint_bitmaps) tuple, where both are lists. `joints` is a
-        flat list with all of the joints in the image in sequence. The order
-        can be determined from `joint_bitmaps`. Each int64 in `joint_bitmaps`
-        corresponds to a person, so the joints for each person can be found by
-        iterating over `joints` and extracting (x0, y0) pairs for each 1 bit in
-        the `joint_bitmaps[i]` value for each person.
+        (joints, joint_bitmap) tuple, where `joints` is a list, and
+        joint_bitmap is an integer. `joints` is a flat list with all of the
+        joints in the image in sequence. The order can be determined from
+        `joint_bitmap`. The joints for `person` can be found by extracting (x0,
+        y0) pairs for each 1 bit in `joint_bitmap`.
 
         Visually: `joints` [x0, y0, x1, y1, x2, y2]
-                  `joint_bitmaps` [0b11, 0b10]
+                  `joint_bitmap` 0b1011
 
-                  The above corresponds to two people, where (x0, y0) and
-                  (x1, y1) are joints 0 and 1 for person 0, respectively, and
-                  (x2, y2) is joint 1 for person 1.
+                  The above corresponds to a person for whom (x0, y0), (x1, y1)
+                  and (x2, y2) are joints 0, 1 and 3 for `person`,
+                  respectively.
     """
     joints = []
-    joint_bitmaps = []
-    max_image_dim = max(image_shape[0], image_shape[1])
+    max_image_dim = max(image_shape.x, image_shape.y)
     image_center = int(max_image_dim/2)
-    for person in people_in_img:
-        joint_bitmap = 0
-        for joint_index in range(len(person.joints)):
-            joint = person.joints[joint_index]
-            if joint is not None:
+
+    joint_bitmap = 0
+    for joint_index in range(len(person.joints)):
+        joint = person.joints[joint_index]
+        if joint is not None:
+            joint = Point(joint[0], joint[1])
+            if ((offsets.x <= joint.x <= (offsets.x + image_shape.x)) and
+                (offsets.y <= joint.y <= (offsets.y + image_shape.y))):
+                joint.x -= offsets.x
+                joint.y -= offsets.y
                 _append_scaled_joint(joints,
-                                     joint[0] + width_pad,
+                                     joint.x + padding.x,
                                      max_image_dim,
                                      image_center)
                 _append_scaled_joint(joints,
-                                     joint[1] + height_pad,
+                                     joint.y + padding.y,
                                      max_image_dim,
                                      image_center)
-                joint_bitmap = joint_bitmap | (1 << joint_index)
+                joint_bitmap |= (1 << joint_index)
 
-        joint_bitmaps.append(joint_bitmap)
+    return joints, joint_bitmap
 
-    return joints, joint_bitmaps
+
+def _clamp_point_to_image(point, image_shape):
+    clamped_point = (_clamp_range(point.x, 0, image_shape.x),
+                     _clamp_range(point.y, 0, image_shape.y))
+
+    return clamped_point
+
+
+def _find_person_bounding_box(person, img_shape):
+    """Finds an enclosing bounding box for `person` in the image with
+    `img_shape` dimensions.
+
+    Currently the bounding box is found by taking a generous multiple of the
+    size of the person's head bounding box, which is encoded in the `Person`
+    object.
+
+    This has the issue of potentially cropping people in weird positions, for
+    example upside-down people.
+
+    One improvement would be to take the bounding box found with the current
+    method, and expand each dimension so that all the labelled joints are
+    contained.
+
+    Args:
+        person: Person to find bounding box for.
+        img_shape: Dimensions of the image that the person is in.
+
+    Returns:
+        A `Rectangle` describing the box bounding `person`.
+    """
+    head_rect = Rectangle(person.head_rect)
+    head_width = head_rect.get_width()
+    head_height = head_rect.get_height()
+
+    top_left = Point(head_rect.top_left.x - 4*head_width,
+                     head_rect.top_left.y - head_height)
+    bottom_right = Point(head_rect.top_left.x + 4*head_width,
+                         head_rect.top_left.y + 7*head_height)
+
+    return Rectangle(_clamp_point_to_image(top_left, img_shape) +
+                     _clamp_point_to_image(bottom_right, img_shape))
 
 
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
 
     See `_extract_labeled_joints` for the format of `joints` and
-    `joint_bitmaps`.
+    `joint_bitmap`.
     """
-    image, scaled_image_jpeg, height_pad, width_pad = \
-            coder.decode_scale_encode(image_jpeg)
-    joints, joint_bitmaps = _extract_labeled_joints(people_in_img,
-                                                    image.shape,
-                                                    height_pad,
-                                                    width_pad)
+    img_shape = coder.decode_jpeg(image_jpeg)
+    img_shape = Point(img_shape[1], img_shape[0])
 
-    example = tf.train.Example(
+    for person in people_in_img:
+        person_rect = _find_person_bounding_box(person, img_shape)
+
+        person_width = person_rect.get_width()
+        person_height = person_rect.get_height()
+        padding = int(abs(person_height - person_width)/2)
+        if person_height > person_width:
+            height_pad = 0
+            width_pad = padding
+        else:
+            height_pad = padding
+            width_pad = 0
+
+        padded_img_dim = max(person_width, person_height)
+        person_shape_xy = Point(person_width, person_height)
+        padding_xy = Point(width_pad, height_pad)
+        scaled_img_jpeg, height_pad, width_pad = coder.scale_encode(
+            image_jpeg,
+            person_rect.top_left,
+            person_shape_xy,
+            padding_xy,
+            padded_img_dim)
+
+        joints, joint_bitmap = _extract_labeled_joints(person,
+                                                       person_shape_xy,
+                                                       padding_xy,
+                                                       person_rect.top_left)
+
+        example = tf.train.Example(
             features=tf.train.Features(
                 feature={
-                    'image_jpeg': _bytes_feature(scaled_image_jpeg),
-                    'joint_bitmaps': _int64_feature(joint_bitmaps),
+                    'image_jpeg': _bytes_feature(scaled_img_jpeg),
+                    'joint_bitmap': _int64_feature(joint_bitmap),
                     'joints': _float_feature(joints)
                 }))
-    writer.write(example.SerializeToString())
+        writer.write(example.SerializeToString())
 
 
 def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset):

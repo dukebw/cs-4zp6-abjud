@@ -42,7 +42,7 @@ def main(argv=None):
 
             feature_map = {
                 'image_jpeg': tf.FixedLenFeature([], tf.string),
-                'joint_bitmaps': tf.VarLenFeature(tf.int64),
+                'joint_bitmap': tf.VarLenFeature(tf.int64),
                 'joints': tf.VarLenFeature(tf.float32)
             }
             features = tf.parse_single_example(example_serialized, feature_map)
@@ -59,9 +59,9 @@ def main(argv=None):
 
             image_dim = 220
             image_center = 110
-            for _ in range(4):
+            for _ in range(16):
                 [image, joints, joint_bitmaps] = session.run(
-                    [img_tensor, features['joints'], features['joint_bitmaps']])
+                    [img_tensor, features['joints'], features['joint_bitmap']])
 
                 pil_image = Image.fromarray(image)
                 draw = ImageDraw.Draw(pil_image)

@@ -157,6 +157,13 @@ def _parse_annotation(img_annotation, mpii_images_dir):
         head_rect = (img_annorect.x1, img_annorect.y1,
                      img_annorect.x2, img_annorect.y2)
 
+        # NOTE(brendan): There is at least one buggy datapoint in the MPII
+        # dataset for which the person's head is a point. Since this tells us
+        # nothing about the person's scale in the picture, we skip these
+        # entries.
+        if (head_rect[0] == head_rect[2]) and (head_rect[1] == head_rect[3]):
+            continue
+
         try:
             people.append(Person(img_annorect.annopoints.point, head_rect))
         except AttributeError:
