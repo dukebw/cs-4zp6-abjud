@@ -29,6 +29,14 @@ class ImageCoder(object):
     """A class that holds a session, passed using dependency injection during
     `ImageCoder` instantiations, which is used to run a TF graph to decode JPEG
     images.
+
+    On initialization, a graph is set up containing the following operations:
+        1. Decode an input JPEG image.
+        2. Crop the raw image to an input bounding box, e.g. the box around a
+           person.
+        3. Pad the shorter dimension with a black border, to a square size.
+        4. Resize the now square image to 220x220.
+        5. Encode the cropped, resized image as JPEG.
     """
     def __init__(self, session):
         self._sess = session
@@ -60,12 +68,20 @@ class ImageCoder(object):
         self._scaled_image_jpeg = tf.image.encode_jpeg(self._scaled_image_tensor)
 
     def decode_jpeg(self, image_data):
+        """Returns the shape of an input JPEG image.
+
+        Args:
+            image_data: A JPEG image to find the shape of.
+
+        Returns:
+            shape: Shape of the image in the format Point(width, height).
+        """
         shape = self._sess.run(self._img_shape,
                                feed_dict={self._decode_jpeg_data: image_data})
         assert len(shape) == 3
         assert shape[2] == 3
 
-        return shape
+        return Point(shape[1], shape[0])
 
     def scale_encode(self,
                      image_data,
@@ -73,10 +89,22 @@ class ImageCoder(object):
                      crop_dim,
                      padding,
                      padded_dim):
-        fetches = [self._scaled_image_jpeg,
-                   self._height_pad,
-                   self._width_pad]
+        """Runs the entire sequence of decode -> crop -> pad -> resize ->
+        encode JPEG, and returns the resultant JPEG image.
 
+        Args:
+            image_data: JPEG image data.
+            crop_offsets: A `Point` containing the offset in the original image
+                of the sub-image to crop to.
+            crop_dim: A `Point` containing the width and height of the cropped
+                section, in the format Point(width, height).
+            padding: Amount of padding to do on the cropped image in the format
+                Point(x_padding, y_padding).
+            padded_dim: Length of the edge length of the square padded image.
+
+        Returns: The image cropped and padded to the given bounding box, scaled
+            to 220x220, and encoded as JPEG.
+        """
         feed_dict = {
             self._decode_jpeg_data: image_data,
             self._crop_height_offset: crop_offsets.y,
@@ -88,10 +116,10 @@ class ImageCoder(object):
             self._padded_img_dim: padded_dim
         }
 
-        scaled_img_jpeg, height_pad, width_pad = self._sess.run(
-            fetches, feed_dict=feed_dict)
+        scaled_img_jpeg = self._sess.run(self._scaled_image_jpeg,
+                                         feed_dict=feed_dict)
 
-        return scaled_img_jpeg, height_pad, width_pad
+        return scaled_img_jpeg
 
 
 def _clamp_range(value, min_val, max_val):
@@ -107,6 +135,24 @@ def _clamp_range(value, min_val, max_val):
         `min_val` or `max_val` is closer to value.
     """
     return max(min_val, min(value, max_val))
+
+
+def _clamp_point_to_image(point, image_shape):
+    """Clamps `point` so that it is inside the image whose shape is given by
+    `image_shape`.
+
+    Args:
+        point: `Point` to clamp.
+        image_shape: Dimensions of an image in the format Point(width, height).
+
+    Returns:
+        clamped_point: `point` with its dimensions clamped to the edges of the
+            image.
+    """
+    clamped_point = (_clamp_range(point.x, 0, image_shape.x),
+                     _clamp_range(point.y, 0, image_shape.y))
+
+    return clamped_point
 
 
 def _bytes_feature(value):
@@ -149,12 +195,12 @@ def _extract_labeled_joints(person,
                             image_shape,
                             padding,
                             offsets):
-    """Extracts all of the joints for all of the people in image, and puts them
+    """Extracts all of the joints for a single person in image, and puts them
     in a list in the format [x0, y0, x1, y1, ...].
 
     Not all joints are labeled for each person, so this function also returns a
-    list of int64 bitmaps, one for each person, where the first 16 bits are 1
-    if the joint is labeled, and 0 if the joint is not labeled.
+    list of int64 bitmaps for person, where the first 16 bits are 1 if the
+    joint is labeled, and 0 if the joint is not labeled.
 
     Args:
         person: Person in the image to get joints for.
@@ -204,13 +250,6 @@ def _extract_labeled_joints(person,
     return joints, joint_bitmap
 
 
-def _clamp_point_to_image(point, image_shape):
-    clamped_point = (_clamp_range(point.x, 0, image_shape.x),
-                     _clamp_range(point.y, 0, image_shape.y))
-
-    return clamped_point
-
-
 def _find_person_bounding_box(person, img_shape):
     """Finds an enclosing bounding box for `person` in the image with
     `img_shape` dimensions.
@@ -245,6 +284,36 @@ def _find_person_bounding_box(person, img_shape):
     return Rectangle(_clamp_point_to_image(top_left, img_shape) +
                      _clamp_point_to_image(bottom_right, img_shape))
 
+def _find_padded_person_dim(person_rect):
+    """Finds the large dimension, shape and padding needed for the bounding box
+    around a person.
+
+    Args:
+        person_rect: A `Rectangle` describing the bounding box of a person.
+
+    Returns:
+        padded_img_dim: Larger dimension of the person's bounding box.
+        person_shape_xy: Point(width, height) describing the person's
+            bounding box dimensions.
+        padding_xy: Point(padding_x, padding_y) describing the padding for the
+            person in the x and y dimensions, at least one of which will be
+            zero.
+    """
+    person_width = person_rect.get_width()
+    person_height = person_rect.get_height()
+    padding = int(abs(person_height - person_width)/2)
+    if person_height > person_width:
+        height_pad = 0
+        width_pad = padding
+    else:
+        height_pad = padding
+        width_pad = 0
+
+    padded_img_dim = max(person_width, person_height)
+    person_shape_xy = Point(person_width, person_height)
+    padding_xy = Point(width_pad, height_pad)
+
+    return padded_img_dim, person_shape_xy, padding_xy
 
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
@@ -253,25 +322,14 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
     `joint_bitmap`.
     """
     img_shape = coder.decode_jpeg(image_jpeg)
-    img_shape = Point(img_shape[1], img_shape[0])
 
     for person in people_in_img:
         person_rect = _find_person_bounding_box(person, img_shape)
 
-        person_width = person_rect.get_width()
-        person_height = person_rect.get_height()
-        padding = int(abs(person_height - person_width)/2)
-        if person_height > person_width:
-            height_pad = 0
-            width_pad = padding
-        else:
-            height_pad = padding
-            width_pad = 0
+        padded_img_dim, person_shape_xy, padding_xy = _find_padded_person_dim(
+            person_rect)
 
-        padded_img_dim = max(person_width, person_height)
-        person_shape_xy = Point(person_width, person_height)
-        padding_xy = Point(width_pad, height_pad)
-        scaled_img_jpeg, height_pad, width_pad = coder.scale_encode(
+        scaled_img_jpeg = coder.scale_encode(
             image_jpeg,
             person_rect.top_left,
             person_shape_xy,
