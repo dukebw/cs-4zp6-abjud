@@ -30,7 +30,7 @@ raw_target = np.array([[1,0,0]] * 100003)
 queue_input_data = tf.placeholder(tf.float32, shape=[num_in_batch, data_size_input])
 queue_input_target = tf.placeholder(tf.float32, shape=[num_in_batch, data_size_label])
 
-queue = tf.FIFOQueue(capacity=50, dtypes=[tf.float32, tf.float32], shapes=[[data_size_input], [data_size_label]])
+queue = tf.FIFOQueue(capacity=200, dtypes=[tf.float32, tf.float32], shapes=[[data_size_input], [data_size_label]])
 
 enqueue_op = queue.enqueue_many([queue_input_data, queue_input_target])
 dequeue_op = queue.dequeue()
@@ -51,37 +51,37 @@ def encode_gauss_map(x_avg, y_avg): # here I should create a 64x64 sized array
             labels.append(value)
     return labels
 
-
 def enqueue(sess):
   """ Iterates over our data puts small junks into our queue."""
   under = 0
-  max = len(raw_data)
+  max = 300 #len(raw_data)
   print(max)
   print(under+20)
-  while True:
+  while under < (max -20):
     print("starting to write into queue")
     upper = under + 20
     print("try to enqueue ", under, " to ", upper)
     if upper <= max:
-      #print(curr_target.shape)
-      # create a (20,25) numpy array and the create gauss map only
-      # creates a (25) =(5, 5) array
-      curr_target = np.empty([20,25])
-      for x in range(0,20):
-          curr_target[x,:] = np.array(encode_gauss_map(1,1))
-      curr_data = raw_data[under:upper]
-      print(curr_target.shape)
-      under = upper
-    '''
-    else:
-      rest = upper - max
-      curr_data = np.concatenate((raw_data[under:max], raw_data[0:rest]))
-      curr_target = np.concatenate((raw_target[under:max], raw_target[0:rest]))
-      under = rest
-    '''
-    sess.run(enqueue_op, feed_dict={queue_input_data: curr_data,
+        curr_target = np.empty([20,25])
+        for x in range(0,20):
+            curr_target[x,:] = np.array(encode_gauss_map(1,1))
+            curr_data = raw_data[under:upper]
+        sess.run(enqueue_op, feed_dict={queue_input_data: curr_data,
                                     queue_input_target: curr_target})
+        print(curr_target.shape)
+    else:
+        #break
+        rest = upper - max
+        curr_data = np.concatenate((raw_data[under:max], raw_data[0:rest]))
+        curr_target = np.concatenate((raw_target[under:max], raw_target[0:rest]))
+        under = rest
+        # only do this a couple times to see if 
+    under = upper
+    #sess.run(dequeue_op)
     print("added to the queue")
+    #if sess.should_stop():
+    #    print("Trying to BBBBBREAK")
+    #    break
   print("finished enqueueing")
 
 # start the threads for our FIFOQueue and batch
@@ -94,12 +94,14 @@ coord = tf.train.Coordinator()
 threads = tf.train.start_queue_runners(coord=coord, sess=sess)
 
 # Fetch the data from the pipeline and put it where it belongs (into your model)
-for i in range(5):
+for i in range(8):
   run_options = tf.RunOptions(timeout_in_ms=4000)
   curr_data_batch, curr_target_batch = sess.run([data_batch, target_batch], options=run_options)
   print(curr_data_batch)
+  #print (curr_target_batch)
 
 # shutdown everything to avoid zombies
+
 sess.run(queue.close(cancel_pending_enqueues=True))
 coord.request_stop()
 coord.join(threads)
