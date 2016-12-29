@@ -63,20 +63,117 @@ makes sense since the machine has four hardware threads in total (two cores,
 each with two hardware threads), and at the time of experiment one of those
 hardware threads was used to run at 100% usage running a MATLAB program.
 
-### Reference to [Inception](https://github.com/tensorflow/models/tree/master/inception) TF Record Writing Code
+### Reference to [Inception](https://github.com/tensorflow/models/tree/master/inception)
 
-Under `data/build_image_data.py`, multiple threads are used to run the function
-`_process_image_files_batch`.
+#### TF Record Writing Code
+
+Referencing `data/build_imagenet_data.py`, the functions `_build_synset_lookup`
+and `_build_bounding_box_lookup` map synsets (e.g. n02119247) to labels (e.g.
+black fox), and bounding boxes, respectively.
+
+Then, `_find_image_files` returns a set of all image filenames, synsets and
+labels, where the image filenames have been shuffled so that the order of
+examples in each TFRecord is random with respect to the example's label.
+
+`_process_image_files` splits the filenames into equal ranges, one for each
+thread in `FLAGS.num_threads`. Each thread executes the
+`_process_image_files_batch` function.
 
 All threads use the same `coder` object, an instance of `ImageCoder`, which is
 a wrapper to pass in a TF session used to run all the image decoding.
 
-The training data are split up into shards, which are processed in per-thread
-batches. So for instance if there were 4 threads and 128 shards, then the first
-thread would process shards \[0, 32)
+The training data are split up into shards, where a shard refers to a distinct
+TFRecord file. There are 1024 training shards and 128 validation shards by
+default. The shards are processed in per-thread batches. So for instance if
+there were 4 threads and 128 shards, then the first thread would process shards
+\[0, 32)
 
 Within each thread, the images are decoded and raw image data, along with
-labels, is written as protobuf to a different TFRecord for each shard.
+labels, is written as protobuf to the TFRecord corresponding to each shard.
+
+#### Training
+
+##### Input Pipeline
+
+Images and labels are produced by the `distorted_inputs` function.
+
+Using `string_input_producer`, a queue (`filename_queue`) containing the
+filenames of all of the TFRecord files, and capacity 16, is added to the graph
+(along with a `QueueRunner` that runs the subgraph to fill the queue).
+
+A set of reader threads (by default four, again on the CPU) are used to read
+TFRecord examples from disk. Each reader reads TFRecords whose filenames are
+dequeued from `filename_queue`, and enqueues those TFRecords in a
+`RandomShuffleQueue` called `examples_queue`. `examples_queue` is dequeued (in
+random order due to the use of `RandomShuffleQueue` rather than `FIFOQueue`) to
+produce serialized protobuf examples for parsing.
+
+`examples_queue` is given a capacity of 16\*1024, where 16 is the default
+value of `FLAGS.input_queue_memory_factor`. This is based on an estimate of
+about 1024 examples per shard, and 1MB per image. However the 1MB per image
+estimate seems to be incorrect, since it is based on 299\*299\*3\*4 bytes, and
+most of those bytes do not need the factor of 4 (since the image is stored in a
+`bytes` array). Furthermore, due to the JPEG compression, example size appears
+to be closer to 100KB than 1MB, based on the size of any given TFRecord shard
+(approximately 135MB).
+
+A set of CPU preprocessing threads equal to
+`FLAGS.num_preprocess_threads*FLAGS.num_gpus` are used (by default four threads
+per GPU) to parse and process example protobufs from `examples_queue`.
+
+The serialized examples are parsed using a feature map, which is a Python
+dictionary similar to the dictionary used to write the TF record. This feature
+map is passed to `tf.parse_single_example`.
+
+Image preprocessing involves first decoding the JPEG image and converting it to
+float32.
+
+Then, the image's human-annotated bounding box is distorted, with certain
+constraints such as at least one tenth of the object must still be covered. The
+image is then cropped to this distorted bounding box.
+
+The cropped image is then resized to `FLAGS.image_size*FLAGS.image_size`, which
+defaults to 299x299.
+
+The image is then randomly flipped horizontally using
+`tf.image.random_flip_left_right`, and colours are distorted with random
+brightness, saturation, hue and contrast.
+
+Images are scaled such that their colour values lie in \[-1, 1\] instead of
+\[0, 1) as they are after conversion to float32.
+
+By passing a list of length `num_threads` containing preprocessed image tensors
+to `tf.train.batch_join`, `num_threads` threads are started, all enqueueing
+preprocessed images originating (as serialized examples) from `examples_queue`.
+The preprocessing is slightly different per thread, e.g. by applying colour
+distortion operations in a different order.
+
+In summary, there are three queues: `filename_queue`, containing the TFRecord
+filenames, which feeds `examples_queue` with serialized example protobufs.
+Finally, serialized examples are dequeued from `examples_queue`, preprocessed
+in parallel by `num_preprocess_threads` and the result is enqueued into the
+queue created by `batch_join`. A dequeue operation from the `batch_join` queue
+is what is returned from `image_processing.distorted_inputs`. What is dequeued
+is a batch of size `FLAGS.batch_size` containing a set of, for example, 32
+images in the case of `images` or 32 labels in the case of `labels`.
+
+##### Inference and Loss
+
+A `global_step` variable is used to keep track of the number of steps, where
+each step is one "split batch" being processed on one GPU, i.e. the number of
+steps is the number of batches processed multiplied by the number of GPUs.
+
+The learning rate defaults to 0.1, and is decayed (using `global_step`) by a
+factor of `decay_rate` every N epochs, where an epoch is the entire dataset and
+N is `FLAGS.num_epochs_per_decay`, which defaults to 30. A decay is computed at
+each step as follows.
+
+```python
+decayed_learning_rate = learning_rate *
+		  decay_rate ^ (global_step / decay_steps)
+```
+
+The RMSProp optimizer is used to perform gradient descent.
 
 ### <a name="protobuf-heading"></a>Google Protobuf Format
 
