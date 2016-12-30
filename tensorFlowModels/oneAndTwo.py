@@ -32,7 +32,7 @@ num_in_batch = 20
 gauss_deviation = 10
 norm_factor = 2*math.pi*gauss_deviation*gauss_deviation
 norm_factor = 1/norm_factor
-#
+
 #print(raw_data.shape)
 raw_target = np.array([[1,0,0]] * 100003)
 
@@ -47,7 +47,7 @@ num_channels = 3
 # Network Parameters
 img_size = 256
 heat_map_size = 64
-n_input = img_size*img_size # MNIST data input (img shape: 28*28)
+size_input = img_size*img_size*num_channels # MNIST data input (img shape: 28*28)
 n_output_size = heat_map_size * heat_map_size
 #n_classes = 10 # MNIST total classes (0-9 digits)
 #dropout = 0.75 # Dropout, probability to keep units
@@ -55,17 +55,18 @@ n_output_size = heat_map_size * heat_map_size
 
 # are used to feed data into our queue
 
-queue_input_data = tf.placeholder(tf.float32, shape=[num_in_batch, data_size_input])
-queue_input_target = tf.placeholder(tf.float32, shape=[num_in_batch, data_size_label])
-queue = tf.FIFOQueue(capacity=200, dtypes=[tf.float32, tf.float32], shapes=[[data_size_input], [data_size_label]])
+queue_input_data = tf.placeholder(tf.float32, shape=[20, size_input])
+queue_input_target = tf.placeholder(tf.float32, shape=[20, n_output_size])
+queue = tf.FIFOQueue(capacity=200, dtypes=[tf.float32, tf.float32], shapes=[[size_input], [n_output_size]])
 enqueue_op = queue.enqueue_many([queue_input_data, queue_input_target])
 dequeue_op = queue.dequeue()
 
 # tensorflow recommendation:
 # capacity = min_after_dequeue + (num_threads + a small safety margin) * batch_size
-data_batch, target_batch = tf.train.batch(dequeue_op, batch_size=15, capacity=40)
+data_batch, target_batch = tf.train.batch(dequeue_op, batch_size=1, capacity=40)
 # use this to shuffle batches:
 # data_batch, target_batch = tf.train.shuffle_batch(dequeue_op, batch_size=15, capacity=40, min_after_dequeue=5)
+
 
 def encode_gauss_map(x_avg, y_avg): # here I should create a 64x64 sized array
     labels = []
@@ -75,12 +76,12 @@ def encode_gauss_map(x_avg, y_avg): # here I should create a 64x64 sized array
             value = ((x - x_avg)**2 + (y - y_avg)**2)/value
             value = norm_factor * math.e **(-value)
             labels.append(value)
-    return labels
+    return np.array(labels).reshape(64,64)
 
-def enqueue(sess):
+def enqueue():
   """ Iterates over our data puts small junks into our queue."""
   under = 0
-  max = 300 #len(raw_data)
+  max = 39 #len(raw_data)
   print(max)
   print(under+20)
   image_data_list = []
@@ -89,34 +90,34 @@ def enqueue(sess):
     upper = under + 20
     print("try to enqueue ", under, " to ", upper)
     if upper <= max:
-        curr_target = np.empty([20, num_parts, heat_map_size, heat_map_size])
+        curr_target = np.empty([num_parts, heat_map_size, heat_map_size])
         #for x in range(0,20):
         # first step is get a list of 20 filepaths and 20* 7 coordinates
         # that can use to put in the Gauss map
-        filepaths, curr_target = read_label_file(train_labels_file, dataset_path)
-        for x in (0, len(filepaths)):
-            image_data = retrieveData(filepaths[x])
-            image_data_list.append(image_data.set_shape([img_size, img_size, NUM_CHANNELS]))
+        # step 1 is to get the filepaths
+
+        filepaths, limb_points = read_label_file(train_labels_file, dataset_path)
+        #filename_queue = tf.train.string_input_producer(filepaths)
+
+        # step 2 is to load these into a
+        # step 3 is to put the data from each of these into
+        # now have to loop over each file in the queue and put that
+        #
+        for x in range(0, len(filepaths)):
+            print("started the queue")
+            reader = tf.WholeFileReader()
+            key, value = reader.read(filename_queue)
+            print("read the queue")
+            my_img = tf.image.decode_jpeg(value)
+            print("decoded the queue")
+            #t = my_img.eval()
+            #t.reshape([1, 256, 256, 3])
+            print("evaluation complete")
             for y in range(0,num_parts):
-                curr_target[x, y, :, :] = np.array(encode_gauss_map(curr_target(2*y),curr_target(2*y+1)))
-            # here have to get the data from the images
-            # want a tensor 20, 256, 256
-            curr_data = raw_data[under:upper]
-            # get a list of filenames
-            # done this and then you
-        image_data = tf.stack(image_data_list, axis=0, name='stack')
-        sess.run(enqueue_op, feed_dict={queue_input_data: image_data,
+                curr_target[y, 0:64, 0:64] = encode_gauss_map(limb_points[2*y],limb_points[2*y+1])
+            sess.run(enqueue_op, feed_dict={queue_input_data: my_img.eval().reshape([1, 256, 256, 3]),
                                     queue_input_target: curr_target})
-        print(curr_target.shape)
-    else:
-        #break
-        rest = upper - max
-        curr_data = np.concatenate((raw_data[under:max], raw_data[0:rest]))
-        curr_target = np.concatenate((raw_target[under:max], raw_target[0:rest]))
-        under = rest
-        # only do this a couple times to see if 
-    under = upper
-    #sess.run(dequeue_op)
+            
     print("added to the queue")
     #if sess.should_stop():
     #    print("Trying to BBBBBREAK")
@@ -139,7 +140,6 @@ def rescale_the_image(filePath, newName):
 # need to get all 7 body parts somehow put into the labels
 #
 
-
 def read_label_file(file, path):
     numberOfFiles = 20
     #f = open(file, 'r')
@@ -147,7 +147,7 @@ def read_label_file(file, path):
     c = conn.cursor()
     # note that can't adjust the number of files.Have to return multipes of 20 -- you can see why if
     # you look at the line below where the 20 is encoded into the SELECT statement.
-    c.execute("SELECT filename, left_x_shoulder, left_y_shoulder, right_x_wrist, right_y_wrist, left_x_elbow, left_y_elbow, right_x_elbow, x_head, y_head FROM pose_train_table WHERE file_key \
+    c.execute("SELECT filename, right_x_shoulder, right_y_shoulder, left_x_shoulder, left_y_shoulder, right_x_wrist, right_y_wrist, left_x_wrist, left_y_wrist, left_x_elbow, left_y_elbow, right_x_elbow, right_y_elbow, x_head, y_head FROM pose_train_table WHERE file_key \
             < 20")#, (numberOfFiles))
     conn.commit()
     #row = c.fetchone()    
@@ -158,23 +158,22 @@ def read_label_file(file, path):
     rows = fetch(numberOfFiles)
     for row in rows:
         print ("it's going")
-        filepaths.append( 'rescale_'+row[0].strip())
+        filepaths.append(dataset_path + 'rescale_' + row[0].strip())
         rescale_the_image(path + row[0].strip(),path + 'rescale_'+row[0].strip())
-        for part_num in (0, num_parts):
-            part_list.append(row[2*part_num])
+        for part_num in range(0, num_parts):
+            #print(part_num)
             part_list.append(row[2*part_num+1])
-    return filepaths, labels
+            part_list.append(row[2*part_num+2])
+    return filepaths, part_list
 
 # the imanolsPipeline ends here
-
 # tf Graph input
-x = tf.placeholder(tf.float32, [None, n_input, num_channels])
+x = tf.placeholder(tf.float32, [None, img_size*img_size, num_channels])
 x = tf.reshape(x, shape=[-1, img_size, img_size, num_channels])
-print(x.get_shape())
+# print(x.get_shape())
 y = tf.placeholder(tf.float32, [None, n_output_size, num_parts])
 y_heat_map = tf.reshape(y, [-1, heat_map_size, heat_map_size, num_parts])
-sets_image = tf.placeholder(tf.float32, [None, n_input, img_size, img_size, num])
-
+#sets_image = tf.placeholder(tf.float32, [None, n_input, img_size, img_size, num_channels])
 keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 
 
@@ -360,6 +359,35 @@ biases = {
     'bc8': tf.Variable(tf.random_normal([7]))
 }
 
+def g_input_Data():
+    # need is an np.array that's
+    # (264, 264, 3)
+    going_out = np.empty([1, 256, 256, 3])
+    for x in range(0,256):
+        for y in range(0,256):
+            for z in range(0, 3):
+                going_out[0,x,y,z] = randint(0,1000)
+    return going_out
+    
+def getImageData():
+    print("started the queue")
+    reader = tf.WholeFileReader()
+    key, value = reader.read(filename_queue)
+    print("read the queue")
+    my_img = tf.image.decode_jpeg(value)
+    print("decoded the queue")
+    t = my_img.eval()
+    print("evaluation complete")
+    return t.reshape([1, 256, 256, 3])
+
+def get_heat_map_data(body_parts):
+    output = np.empty([1,64,64, 7])
+    for y in range(0,num_parts):
+        output[0, 0:64, 0:64, y] = encode_gauss_map(body_parts[2*y],body_parts[2*y+1])
+    print(output.shape)
+    return output.reshape([1,64*64, 7])
+
+# in the program what you have is 
 
 
 # Construct model
@@ -376,12 +404,133 @@ print(output.get_shape())
 
 cost = tf.reduce_mean(output)
 
-# I'm not sure if the AdamOptimizer should be used?
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Evaluate model
 #correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
 #accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+init = tf.initialize_all_variables()
+
+filepaths_o, limb_points_o = read_label_file(train_labels_file, dataset_path)
+f_names = tf.placeholder("string", [None])
+filename_queue = tf.train.string_input_producer(filepaths_o)
+
+
+# filename_queue = tf.train.string_input_producer(f_names)
+#filename_queue = tf.train.string_input_producer([dataset_path + 'rescale_12-oclock-high-special-edition-00004151.jpg', dataset_path + 'rescale_12-oclock-high-special-edition-00004151.jpg'])
+dd = tf.placeholder(tf.float32, [256, 256, 3])
+yd = dd
+
+with tf.Session() as sess:
+    sess.run(init)
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(coord=coord)
+    #result = sess.run(y ,feed_dict={x: getImageData()})
+    #print(result)
+    # so you also have to put values into the heatmaps.
+
+    # for y I have to generate a (1, 7, 64, 64) sized tensor
+    #filepaths_t, limb_points_t = read_label_file(train_labels_file, dataset_path)
+
+
+    
+    for jt in range(0,3):
+        result = sess.run(output ,feed_dict={y: get_heat_map_data(limb_points_o), x:getImageData() })
+        print(result)
+    #    result = sess.run(cost ,feed_dict={x: getImageData()})
+    #    print(result)
+    coord.request_stop()
+    coord.join(threads)
+    #for x in range(0,20):
+    # first step is get a list of 20 filepaths and 20* 7 coordinates
+    # that can use to put in the Gauss map
+    # step 1 is to get the filepaths
+
+
+    # step 2 is to load these into a
+    # step 3 is to put the data from each of these into
+    # now have to loop over each file in the queue and put that
+    #
+    #    for k in range(0, len(filepaths)):
+    #   print("started the queue")
+    #    reader = tf.WholeFileReader()
+    #    key, value = reader.read(filename_queue)
+    #    print("read the queue")
+    #    my_img = tf.image.decode_jpeg(value)
+    #    print("decoded the queue")
+    #    t = my_img.eval()
+    #    t.reshape([1, 256, 256, 3])
+    #    print("evaluation complete")
+    #    for y in range(0,num_parts):
+    #        print(limb_points[2*y])
+    #        curr_target[y, 0:64, 0:64] = encode_gauss_map(limb_points[2*y],limb_points[2*y+1])
+    #    print("got the limb data")
+    #    print(sess.run(pred, feed_dict={x: t}))
+  
+
+
+    '''
+    coord = tf.train.Coordinator()
+    enqueue_thread = threading.Thread(target=enqueue, args=[sess])
+    threads = tf.train.start_queue_runners(coord=coord, sess=sess)
+
+    enqueue_thread.isDaemon()
+    enqueue_thread.start()
+
+    run_options = tf.RunOptions(timeout_in_ms=4000)
+    curr_data_batch, curr_target_batch = sess.run([data_batch, target_batch], options=run_options)
+    print(curr_data_batch)
+
+    # shutdown everything to avoid zombies
+    sess.run(queue.close(cancel_pending_enqueues=True))
+    coord.request_stop()
+    coord.join(threads)
+    sess.close()
+    '''
+    
+'''
+    # Fetch the data from the pipeline and put it where it belongs (into your model)
+    for i in range(8):
+      run_options = tf.RunOptions(timeout_in_ms=4000)
+      batch_x, batch_y = sess.run([data_batch, target_batch], options=run_options)
+      sess.run(optimizer, feed_dict={x: batch_x, y: batch_y,
+                                       keep_prob: dropout})
+
+      if step % display_step == 0:
+            # Calculate batch loss and accuracy
+            loss, acc = sess.run([cost, accuracy], feed_dict={x: batch_x,
+                                                              y: batch_y,
+                                                              keep_prob: 1.})
+            print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
+                  "{:.6f}".format(loss) + ", Training Accuracy= " + \
+                  "{:.5f}".format(acc))
+        step += 1
+    print("Optimization Finished!")
+
+    # Calculate accuracy for 256 mnist test images
+    print("Testing Accuracy:", \
+        sess.run(accuracy, feed_dict={x: mnist.test.images[:256],
+                                      y: mnist.test.labels[:256], keep_prob: 1.}))
+      #print(curr_data_batch)
+      #print (curr_target_batch)
+
+    # shutdown everything to avoid zombies
+
+    sess.run(queue.close(cancel_pending_enqueues=True))
+    coord.request_stop()
+    coord.join(threads)
+    sess.close()
+    
+    threads = tf.train.start_queue_runners(coord=coord)
+    # here what I want to change is to no longer use the random
+    # numbers but instead
+    for j in range(0,2):
+        print(sess.run(pred, feed_dict={x: getImageData()}))
+    coord.request_stop()
+    coord.join(threads)
+
+'''
+
 '''
 
 # Initializing the variables
@@ -413,7 +562,7 @@ with tf.Session() as sess:
         sess.run(accuracy, feed_dict={x: mnist.test.images[:256],
                                       y: mnist.test.labels[:256],
 keep_prob: 1.}))
-'''
+
 
 # start the threads for our FIFOQueue and batch
 with tf.Session() as sess:
@@ -455,6 +604,6 @@ with tf.Session() as sess:
     coord.request_stop()
     coord.join(threads)
     sess.close()
-
+'''
 
 

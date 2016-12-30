@@ -139,7 +139,6 @@ def rescale_the_image(filePath, newName):
 # need to get all 7 body parts somehow put into the labels
 #
 
-
 def read_label_file(file, path):
     numberOfFiles = 20
     #f = open(file, 'r')
@@ -158,7 +157,7 @@ def read_label_file(file, path):
     rows = fetch(numberOfFiles)
     for row in rows:
         print ("it's going")
-        filepaths.append( 'rescale_'+row[0].strip())
+        filepaths.append('rescale_' + row[0].strip())
         rescale_the_image(path + row[0].strip(),path + 'rescale_'+row[0].strip())
         for part_num in (0, num_parts):
             part_list.append(row[2*part_num])
@@ -166,14 +165,13 @@ def read_label_file(file, path):
     return filepaths, labels
 
 # the imanolsPipeline ends here
-
 # tf Graph input
 x = tf.placeholder(tf.float32, [None, n_input, num_channels])
 x = tf.reshape(x, shape=[-1, img_size, img_size, num_channels])
 print(x.get_shape())
 y = tf.placeholder(tf.float32, [None, n_output_size, num_parts])
 y_heat_map = tf.reshape(y, [-1, heat_map_size, heat_map_size, num_parts])
-sets_image = tf.placeholder(tf.float32, [None, n_input, img_size, img_size, num])
+sets_image = tf.placeholder(tf.float32, [None, n_input, img_size, img_size, num_channels])
 
 keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 
@@ -360,6 +358,16 @@ biases = {
     'bc8': tf.Variable(tf.random_normal([7]))
 }
 
+def g_input_Data():
+    # need is an np.array that's
+    # (264, 264, 3)
+    going_out = np.empty([1, 256, 256, 3])
+    for x in range(0,256):
+        for y in range(0,256):
+            for z in range(0, 3):
+                going_out[0,x,y,z] = randint(0,1000)
+    return going_out
+    
 
 
 # Construct model
@@ -382,6 +390,12 @@ optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 # Evaluate model
 #correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
 #accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+init = tf.initialize_all_variables()
+
+with tf.Session() as sess:
+    sess.run(init)
+    print(sess.run(pred, feed_dict={x: g_input_Data()}))
+
 '''
 
 # Initializing the variables
@@ -413,7 +427,7 @@ with tf.Session() as sess:
         sess.run(accuracy, feed_dict={x: mnist.test.images[:256],
                                       y: mnist.test.labels[:256],
 keep_prob: 1.}))
-'''
+
 
 # start the threads for our FIFOQueue and batch
 with tf.Session() as sess:
@@ -455,6 +469,6 @@ with tf.Session() as sess:
     coord.request_stop()
     coord.join(threads)
     sess.close()
-
+'''
 
 
