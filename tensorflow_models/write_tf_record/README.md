@@ -175,6 +175,30 @@ decayed_learning_rate = learning_rate *
 
 The RMSProp optimizer is used to perform gradient descent.
 
+Each batch of images and labels is split evenly across the GPUs using
+`tf.split`.
+
+Loss is computed per GPU, i.e. for each batch split, in the `_tower_loss`
+function.
+
+TODO(brendan): more explanation about the Inception architecture, auxiliary
+loss, etc.
+
+A tuple (logits, aux_logits) of logits, or unnormalized log-probability, values
+is returned from the Inception inference graph (see
+[the paper](https://arxiv.org/abs/1512.00567)) function `inception.inference`.
+The list's shape is \[`batch_size`, `num_classes + 1`\], where e.g. for
+ImageNet `num_classes` is 1000.
+
+The cross-entropy loss is computed on both the main logits and the auxiliary
+logits, where the auxiliary logits' loss is decreased by a factor of 0.4.
+Rather than return any value, the losses are added to the default graph's
+`LOSSES_COLLECTION` collection.
+
+This loss, computed by comparing the model's predictions (from the logits) with
+the expected values (labels) is added to another "regularization loss"
+(TODO(brendan): meaning and calculation of the regularization loss?).
+
 ### <a name="protobuf-heading"></a>Google Protobuf Format
 
 #### Introduction
