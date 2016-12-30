@@ -4,8 +4,12 @@ import tensorflow as tf
 from mpii_read import mpii_read
 from timethis import timethis
 
-tf.app.flags.DEFINE_integer('num_threads', 3,
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_integer('num_threads', 4,
                             """Number of threads to use to write TF Records""")
+tf.app.flags.DEFINE_integer('image_dim', 299,
+                            """Dimension of the square image to output.""")
 
 class Point(object):
     def __init__(self, x, y):
@@ -35,37 +39,41 @@ class ImageCoder(object):
         2. Crop the raw image to an input bounding box, e.g. the box around a
            person.
         3. Pad the shorter dimension with a black border, to a square size.
-        4. Resize the now square image to 220x220.
+        4. Resize the now square image to FLAGS.image_dim*FLAGS.image_dim.
         5. Encode the cropped, resized image as JPEG.
     """
     def __init__(self, session):
         self._sess = session
 
-        self._decode_jpeg_data = tf.placeholder(tf.string)
-        raw_image = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
-        self._img_shape = tf.shape(raw_image)
+        self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
+        raw_image = tf.image.decode_jpeg(contents=self._decode_jpeg_data, channels=3)
+        self._img_shape = tf.shape(input=raw_image)
 
-        self._crop_height_offset = tf.placeholder(tf.int32)
-        self._crop_width_offset = tf.placeholder(tf.int32)
-        self._crop_height = tf.placeholder(tf.int32)
-        self._crop_width = tf.placeholder(tf.int32)
-        self._height_pad = tf.placeholder(tf.int32)
-        self._width_pad = tf.placeholder(tf.int32)
-        self._padded_img_dim = tf.placeholder(tf.int32)
-        cropped_img = tf.image.crop_to_bounding_box(raw_image,
-                                                    self._crop_height_offset,
-                                                    self._crop_width_offset,
-                                                    self._crop_height,
-                                                    self._crop_width)
-        pad_image = tf.image.pad_to_bounding_box(cropped_img,
-                                                 self._height_pad,
-                                                 self._width_pad,
-                                                 self._padded_img_dim,
-                                                 self._padded_img_dim)
+        self._crop_height_offset = tf.placeholder(dtype=tf.int32)
+        self._crop_width_offset = tf.placeholder(dtype=tf.int32)
+        self._crop_height = tf.placeholder(dtype=tf.int32)
+        self._crop_width = tf.placeholder(dtype=tf.int32)
+        self._height_pad = tf.placeholder(dtype=tf.int32)
+        self._width_pad = tf.placeholder(dtype=tf.int32)
+        self._padded_img_dim = tf.placeholder(dtype=tf.int32)
+
+        cropped_img = tf.image.crop_to_bounding_box(image=raw_image,
+                                                    offset_height=self._crop_height_offset,
+                                                    offset_width=self._crop_width_offset,
+                                                    target_height=self._crop_height,
+                                                    target_width=self._crop_width)
+
+        pad_image = tf.image.pad_to_bounding_box(image=cropped_img,
+                                                 offset_height=self._height_pad,
+                                                 offset_width=self._width_pad,
+                                                 target_height=self._padded_img_dim,
+                                                 target_width=self._padded_img_dim)
+
         self._scaled_image_tensor = tf.cast(
-            tf.image.resize_images(pad_image, 220, 220), tf.uint8)
+            tf.image.resize_images(images=pad_image, size=[FLAGS.image_dim, FLAGS.image_dim]),
+            tf.uint8)
 
-        self._scaled_image_jpeg = tf.image.encode_jpeg(self._scaled_image_tensor)
+        self._scaled_image_jpeg = tf.image.encode_jpeg(image=self._scaled_image_tensor)
 
     def decode_jpeg(self, image_data):
         """Returns the shape of an input JPEG image.
@@ -76,7 +84,7 @@ class ImageCoder(object):
         Returns:
             shape: Shape of the image in the format Point(width, height).
         """
-        shape = self._sess.run(self._img_shape,
+        shape = self._sess.run(fetches=self._img_shape,
                                feed_dict={self._decode_jpeg_data: image_data})
         assert len(shape) == 3
         assert shape[2] == 3
@@ -103,7 +111,7 @@ class ImageCoder(object):
             padded_dim: Length of the edge length of the square padded image.
 
         Returns: The image cropped and padded to the given bounding box, scaled
-            to 220x220, and encoded as JPEG.
+            to FLAGS.image_dim*FLAGS.image_dim, and encoded as JPEG.
         """
         feed_dict = {
             self._decode_jpeg_data: image_data,
@@ -116,7 +124,7 @@ class ImageCoder(object):
             self._padded_img_dim: padded_dim
         }
 
-        scaled_img_jpeg = self._sess.run(self._scaled_image_jpeg,
+        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg,
                                          feed_dict=feed_dict)
 
         return scaled_img_jpeg
@@ -363,9 +371,9 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
             order that those data should be written to TF Record.
     """
     tfrecord_filename = 'train{}.tfrecord'.format(thread_index)
-    with tf.python_io.TFRecordWriter(tfrecord_filename) as writer:
+    with tf.python_io.TFRecordWriter(path=tfrecord_filename) as writer:
         for img_index in range(ranges[thread_index][0], ranges[thread_index][1]):
-            with tf.gfile.FastGFile(mpii_dataset.img_filenames[img_index], 'rb') as f:
+            with tf.gfile.FastGFile(name=mpii_dataset.img_filenames[img_index], mode='rb') as f:
                 image_jpeg = f.read()
 
             _write_example(coder,
@@ -381,7 +389,7 @@ def _process_image_files(mpii_dataset, num_examples, session):
     # TODO(brendan): Better documentation about `Coordinator`
     coord = tf.train.Coordinator()
 
-    num_threads = tf.app.flags.FLAGS.num_threads
+    num_threads = FLAGS.num_threads
 
     spacing = np.linspace(0, num_examples, num_threads + 1).astype(np.int)
     ranges = []

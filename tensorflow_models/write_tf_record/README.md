@@ -117,6 +117,9 @@ most of those bytes do not need the factor of 4 (since the image is stored in a
 to be closer to 100KB than 1MB, based on the size of any given TFRecord shard
 (approximately 135MB).
 
+The purpose of multiplying by a factor of 16 is to pass `RandomShuffleQueue` a
+minimum capacity, to maximize the level of mixing of the examples.
+
 A set of CPU preprocessing threads equal to
 `FLAGS.num_preprocess_threads*FLAGS.num_gpus` are used (by default four threads
 per GPU) to parse and process example protobufs from `examples_queue`.
@@ -159,20 +162,6 @@ images in the case of `images` or 32 labels in the case of `labels`.
 
 ##### Inference and Loss
 
-A `global_step` variable is used to keep track of the number of steps, where
-each step is one "split batch" being processed on one GPU, i.e. the number of
-steps is the number of batches processed multiplied by the number of GPUs.
-
-The learning rate defaults to 0.1, and is decayed (using `global_step`) by a
-factor of `decay_rate` every N epochs, where an epoch is the entire dataset and
-N is `FLAGS.num_epochs_per_decay`, which defaults to 30. A decay is computed at
-each step as follows.
-
-```python
-decayed_learning_rate = learning_rate *
-		  decay_rate ^ (global_step / decay_steps)
-```
-
 Each batch of images and labels is split evenly across the GPUs using
 `tf.split`.
 
@@ -209,10 +198,26 @@ is kept using `tf.train.ExponentialMovingAverage`.
 
 Moving averages are computed as follows,
 
-    `shadow_variable = decay * shadow_variable + (1 - decay) * variable`.
+```python
+    shadow_variable = decay * shadow_variable + (1 - decay) * variable
+```
 
-Where a `shadow_variable` is tracking each of the losses. This moving average
+where a `shadow_variable` is tracking each of the losses. This moving average
 is tracked in a summary, which can be viewed in TensorBoard.
+
+A `global_step` variable is used to keep track of the number of steps, where
+each step is one "split batch" being processed on one GPU, i.e. the number of
+steps is the number of batches processed multiplied by the number of GPUs.
+
+The learning rate defaults to 0.1, and is decayed (using `global_step`) by a
+factor of `decay_rate` every N epochs, where an epoch is the entire dataset and
+N is `FLAGS.num_epochs_per_decay`, which defaults to 30. A decay is computed at
+each step as follows.
+
+```python
+decayed_learning_rate = learning_rate *
+		  decay_rate ^ (global_step / decay_steps)
+```
 
 An RMSProp optimizer is used to compute gradients on the `total_loss`
 returned from `_tower_loss` for each tower, which are averaged at a

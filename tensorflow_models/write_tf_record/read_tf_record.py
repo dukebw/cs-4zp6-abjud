@@ -1,53 +1,132 @@
-from PIL import Image, ImageDraw
 import tensorflow as tf
 import mpii_read
 
-INITIAL_LEARNING_RATE = 0.1
-LEARNING_RATE_DECAY_FACTOR = 0.1
-NUM_EPOCHS_PER_DECAY = 350
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 50000
-BATCH_SIZE = 128
+FLAGS = tf.app.flags.FLAGS
+
+NUM_EPOCHS_PER_DECAY = 30
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 18000
+
+RMSPROP_DECAY = 0.9
+RMSPROP_MOMENTUM = 0.9
+RMSPROP_EPSILON = 1.0
+
+tf.app.flags.DEFINE_integer('image_dim', 299,
+                            """Dimension of the square input image.""")
+
+tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
+                            """Number of threads to use to preprocess
+                            images.""")
+tf.app.flags.DEFINE_integer('num_readers', 4,
+                            """Number of threads to use to read example
+                            protobufs from TFRecords.""")
+tf.app.flags.DEFINE_integer('num_gpus', 1,
+                            """Number of GPUs in system.""")
+
+tf.app.flags.DEFINE_integer('batch_size', 32,
+                            """Size of each mini-batch (number of examples
+                            processed at once).""")
+tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
+                            """Factor by which to increase the minimum examples
+                            in RandomShuffleQueue.""")
+
+tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
+                          """Initial learning rate.""")
+tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.16,
+                          """Rate at which learning rate is decayed.""")
 
 def main(argv=None):
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            ### training stuff start
+            # TODO(brendan): Support multiple GPUs?
+            assert FLAGS.num_gpus == 1
+
+            with tf.name_scope('batch_processing'):
+                data_filenames = tf.gfile.Glob('./train*tfrecord')
+                assert data_filenames, ('No data files found.')
+                assert len(data_filenames) >= FLAGS.num_readers
+
+                filename_queue = tf.train.string_input_producer(
+                    string_tensor=data_filenames,
+                    capacity=16)
+
+                # TODO(brendan): Alter `write_tf_record` code to spit out
+                # shards with about 1024 examples each.
+                examples_per_shard = 1024
+                min_queue_examples = FLAGS.input_queue_memory_factor*examples_per_shard
+
+                examples_queue = tf.RandomShuffleQueue(capacity=min_queue_examples + 3*FLAGS.batch_size,
+                                                       min_after_dequeue=min_queue_examples,
+                                                       dtypes=[tf.string])
+
+                # TODO(brendan): FLAGS.num_readers == 1 case
+                assert FLAGS.num_readers > 1
+
+                enqueue_ops = []
+                for _ in range(FLAGS.num_readers):
+                    reader = tf.TFRecordReader()
+                    _, per_thread_example = reader.read(queue=filename_queue)
+                    enqueue_ops.append(examples_queue.enqueue(vals=[per_thread_example]))
+
+                tf.train.queue_runner.add_queue_runner(
+                    qr=tf.train.queue_runner.QueueRunner(queue=examples_queue,
+                                                         enqueue_ops=enqueue_ops))
+                example_serialized = examples_queue.dequeue()
+
+                images_and_joints = []
+                for thread_id in range(FLAGS.num_preprocess_threads):
+                    feature_map = {
+                        'image_jpeg': tf.FixedLenFeature(shape=[], dtype=tf.string),
+                        'joint_bitmap': tf.FixedLenFeature(shape=[1], dtype=tf.int64),
+                        'joints': tf.VarLenFeature(dtype=tf.float32)
+                    }
+                    features = tf.parse_single_example(
+                        serialized=example_serialized, features=feature_map)
+
+                    img_jpeg = features['image_jpeg']
+                    with tf.name_scope(name='decode_jpeg', values=[img_jpeg]):
+                        img_tensor = tf.image.decode_jpeg(contents=img_jpeg,
+                                                          channels=3)
+                        decoded_img = tf.image.convert_image_dtype(
+                            image=img_tensor, dtype=tf.float32)
+
+                    # TODO(brendan): Image distortion goes here.
+
+                    decoded_img = tf.sub(x=decoded_img, y=0.5)
+                    decoded_img = tf.mul(x=decoded_img, y=2.0)
+
+                    decoded_img = tf.reshape(
+                        tensor=decoded_img,
+                        shape=[FLAGS.image_dim, FLAGS.image_dim, 3])
+
+                    images_and_joints.append([decoded_img,
+                                              features['joints'],
+                                              features['joint_bitmap']])
+
+                images, joints, joint_bitmap = tf.train.batch_join(
+                        tensors_list=images_and_joints,
+                        batch_size=FLAGS.batch_size,
+                        capacity=2*FLAGS.num_preprocess_threads*FLAGS.batch_size)
+
+                tf.summary.image(name='images', tensor=images)
 
             global_step = tf.get_variable(
-                'global_step',
-                [],
+                name='global_step',
+                shape=[],
                 initializer=tf.constant_initializer(0),
                 trainable=False)
 
             num_batches_per_epoch = (NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN /
-                                     BATCH_SIZE)
+                                     FLAGS.batch_size)
             decay_steps = int(num_batches_per_epoch*NUM_EPOCHS_PER_DECAY)
-            learning_rate = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-                                                       global_step,
-                                                       decay_steps,
-                                                       LEARNING_RATE_DECAY_FACTOR)
+            learning_rate = tf.train.exponential_decay(learning_rate=FLAGS.initial_learning_rate,
+                                                       global_step=global_step,
+                                                       decay_steps=decay_steps,
+                                                       decay_rate=FLAGS.learning_rate_decay_factor)
 
-            optimizer = tf.train.RMSPropOptimizer(learning_rate)
-
-            ### training stuff end
-
-            # TODO(brendan): make filename queue operate on the different
-            # TFRecord chunks.
-            filename_queue = tf.train.string_input_producer(
-                ['train0.tfrecord'],
-                capacity=16)
-
-            reader = tf.TFRecordReader()
-            _, example_serialized = reader.read(filename_queue)
-
-            feature_map = {
-                'image_jpeg': tf.FixedLenFeature([], tf.string),
-                'joint_bitmap': tf.VarLenFeature(tf.int64),
-                'joints': tf.VarLenFeature(tf.float32)
-            }
-            features = tf.parse_single_example(example_serialized, feature_map)
-            img_tensor = tf.image.decode_jpeg(features['image_jpeg'],
-                                              channels=3)
+            optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate,
+                                                  decay=RMSPROP_DECAY,
+                                                  momentum=RMSPROP_MOMENTUM,
+                                                  epsilon=RMSPROP_EPSILON)
 
             init = tf.initialize_all_variables()
 
@@ -57,39 +136,12 @@ def main(argv=None):
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(session, coord)
 
-            image_dim = 220
-            image_center = 110
-            for _ in range(16):
-                [image, joints, joint_bitmaps] = session.run(
-                    [img_tensor, features['joints'], features['joint_bitmap']])
+            # @debug
+            image0 = session.run(images)
+            joints0 = session.run(joints)
+            joint_bitmap0 = session.run(joint_bitmap)
 
-                pil_image = Image.fromarray(image)
-                draw = ImageDraw.Draw(pil_image)
-
-                sparse_joint_index = 0
-                for joint_bitmap in joint_bitmaps.values:
-                    joint_index = 0
-                    while joint_bitmap > 0:
-                        if (joint_bitmap & 0x1) == 0x1:
-                            red = int(0xFF*(joint_index % 5)/5)
-                            green = int(0xFF*(joint_index % 10)/10)
-                            blue = int(0xFF*joint_index/16)
-                            colour = (red, green, blue)
-
-                            x = joints.values[sparse_joint_index]
-                            x_scaled = int(x*image_dim + image_center)
-                            y = joints.values[sparse_joint_index + 1]
-                            y_scaled = int(y*image_dim + image_center)
-                            box = (x_scaled - 2, y_scaled - 2,
-                                   x_scaled + 2, y_scaled + 2)
-                            draw.ellipse(box, colour)
-
-                            sparse_joint_index += 2
-
-                        joint_bitmap >>= 1
-                        joint_index += 1
-
-                pil_image.show()
+            # TODO(brendan): compute gradient and apply minimizer on loss
 
             coord.request_stop()
             coord.join(threads)
