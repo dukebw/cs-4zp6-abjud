@@ -173,8 +173,6 @@ decayed_learning_rate = learning_rate *
 		  decay_rate ^ (global_step / decay_steps)
 ```
 
-The RMSProp optimizer is used to perform gradient descent.
-
 Each batch of images and labels is split evenly across the GPUs using
 `tf.split`.
 
@@ -196,8 +194,46 @@ Rather than return any value, the losses are added to the default graph's
 `LOSSES_COLLECTION` collection.
 
 This loss, computed by comparing the model's predictions (from the logits) with
-the expected values (labels) is added to another "regularization loss"
-(TODO(brendan): meaning and calculation of the regularization loss?).
+the expected values (labels) is added to a regularization loss calculated at
+the same time over all of the weights in the network as the L2 norm of the
+weight, multiplied by a `weight_decay` factor of 0.00004.
+
+The regularization losses are pulled from `tf.GraphKeys.REGULARIZATION_LOSSES`,
+where they were added by `tf.get_variable` during weights variable creation.
+
+The resultant sum of loss, auxiliary loss and regularization losses is
+`total_loss`.
+
+A moving average of each loss from the main loss, auxiliary loss and total loss
+is kept using `tf.train.ExponentialMovingAverage`.
+
+Moving averages are computed as follows,
+
+    `shadow_variable = decay * shadow_variable + (1 - decay) * variable`.
+
+Where a `shadow_variable` is tracking each of the losses. This moving average
+is tracked in a summary, which can be viewed in TensorBoard.
+
+An RMSProp optimizer is used to compute gradients on the `total_loss`
+returned from `_tower_loss` for each tower, which are averaged at a
+synchronization point between towers.
+
+Minimization is then applied to the averaged gradients using `apply_gradients`.
+This is the point where `global_step` is incremented.
+
+The averages of all trainable variables are tracked, again with
+`tf.train.ExponentialMovingAverage`.
+
+`tf.train.Saver` is used to save a checkpoint of all variables every 5000th
+training step.
+
+`allow_soft_placement=True` is passed in a `tf.ConfigProto` to the `tf.Session`
+constructor, in order to allow towers to be built on the GPU.
+
+The usual sequence of initializing all variables via
+`sess.run(tf.initialize_all_variables())`, starting the `QueueRunner`s with
+`tf.train.start_queue_runners`, and running the loss and minimization
+operations for every step is followed.
 
 ### <a name="protobuf-heading"></a>Google Protobuf Format
 
