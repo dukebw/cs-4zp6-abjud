@@ -1,7 +1,11 @@
+import os
+import time
+import copy
+import numpy as np
 import tensorflow as tf
-import mpii_read
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.slim.nets import inception
+import mpii_read
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -10,6 +14,9 @@ NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 18000
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
 RMSPROP_EPSILON = 1.0
+
+NUM_JOINTS = 16
+NUM_JOINT_COORDS = 2*NUM_JOINTS
 
 tf.app.flags.DEFINE_integer('image_dim', 299,
                             """Dimension of the square input image.""")
@@ -113,46 +120,7 @@ def main(argv=None):
 
                 tf.summary.image(name='images', tensor=images)
 
-            with tf.device(device_name_or_function='/gpu:0'):
-                with tf.name_scope(name='tower0') as scope:
-                    with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-                        with slim.arg_scope(inception.inception_v3_arg_scope()):
-                            logits, endpoints = inception.inception_v3(inputs=images,
-                                                                       num_classes=32,
-                                                                       scope=scope)
-
-                            with tf.name_scope('summaries'):
-                                for activation in endpoints.values():
-                                    tensor_name = activation.op.name
-                                    tf.summary.histogram(
-                                        name=tensor_name + '/activations',
-                                        values=activation)
-                                    tf.summary.scalar(
-                                        name=tensor_name + '/sparsity',
-                                        tensor=tf.nn.zero_fraction(value=activation))
-
-                            auxiliary_logits = endpoints['AuxLogits']
-
-                            joint_indices = tf.sparse_split(split_dim=0,
-                                                            num_split=FLAGS.batch_size,
-                                                            sp_input=joint_indices)
-                            joints = tf.sparse_split(split_dim=0,
-                                                     num_split=FLAGS.batch_size,
-                                                     sp_input=joints)
-                            """
-                            tf.sparse_to_dense(sparse_indices,
-                                               output_shape,
-                                               sparse_values,
-                                               default_value=0,
-                                               validate_indices=True,
-                                               name=None)
-                            slim.losses.mean_squared_error(predictions,
-                                                           labels=None,
-                                                           weights=_WEIGHT_SENTINEL,
-                                                           scope=None,
-                                                           targets=None,
-                                                           weight=_WEIGHT_SENTINEL)
-                            """
+            input_summaries = copy.copy(tf.get_collection(key=tf.GraphKeys.SUMMARIES))
 
             global_step = tf.get_variable(
                 name='global_step',
@@ -173,21 +141,119 @@ def main(argv=None):
                                                   momentum=RMSPROP_MOMENTUM,
                                                   epsilon=RMSPROP_EPSILON)
 
+            with tf.device(device_name_or_function='/gpu:0'):
+                with tf.name_scope(name='tower0') as scope:
+                    with slim.arg_scope([slim.model_variable], device='/cpu:0'):
+                        with slim.arg_scope(inception.inception_v3_arg_scope()):
+                            logits, endpoints = inception.inception_v3(inputs=images,
+                                                                       num_classes=32,
+                                                                       scope=scope)
+
+                            with tf.name_scope('summaries'):
+                                for activation in endpoints.values():
+                                    tensor_name = activation.op.name
+                                    tf.summary.histogram(
+                                        name=tensor_name + '/activations',
+                                        values=activation)
+                                    tf.summary.scalar(
+                                        name=tensor_name + '/sparsity',
+                                        tensor=tf.nn.zero_fraction(value=activation))
+
+                            auxiliary_logits = endpoints['AuxLogits']
+
+                            sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
+                                                            sp_values=joints,
+                                                            vocab_size=NUM_JOINT_COORDS)
+                            dense_joints = tf.sparse_tensor_to_dense(sp_input=sparse_joints,
+                                                                     default_value=0)
+
+                            dense_shape = [FLAGS.batch_size, NUM_JOINT_COORDS]
+                            dense_joints = tf.reshape(tensor=dense_joints, shape=dense_shape)
+
+                            weights = tf.sparse_to_dense(sparse_indices=sparse_joints.indices,
+                                                         output_shape=dense_shape,
+                                                         sparse_values=1,
+                                                         default_value=0)
+
+                            slim.losses.mean_squared_error(predictions=logits,
+                                                           labels=dense_joints,
+                                                           weights=weights)
+                            slim.losses.mean_squared_error(predictions=auxiliary_logits,
+                                                           labels=dense_joints,
+                                                           weights=weights,
+                                                           scope='aux_logits')
+
+                            total_loss = slim.losses.get_total_loss()
+
+                            # TODO(brendan): Calculate loss averages for tensorboard
+
+                    summaries = tf.get_collection(key=tf.GraphKeys.SUMMARIES, scope=scope)
+
+                    batchnorm_updates = tf.get_collection(
+                        key=tf.GraphKeys.UPDATE_OPS, scope=scope)
+
+                    gradients = optimizer.compute_gradients(loss=total_loss)
+
+            summaries.extend(input_summaries)
+
+            summaries.append(
+                tf.summary.scalar(name='learning_rate', tensor=learning_rate))
+
+            for grad, var in gradients:
+                if grad is not None:
+                    summaries.append(
+                        tf.summary.histogram(name=var.op.name + '/gradients',
+                                             values=grad))
+
+            apply_gradient_op = optimizer.apply_gradients(
+                grads_and_vars=gradients, global_step=global_step)
+
+            for var in tf.trainable_variables():
+                summaries.append(
+                    tf.summary.histogram(name=var.op.name, values=var))
+
+            # TODO(brendan): track moving averages of trainable variables
+
+            batchnorm_updates_op = tf.group(*batchnorm_updates)
+            train_op = tf.group(batchnorm_updates_op, apply_gradient_op)
+
+            saver = tf.train.Saver(var_list=tf.global_variables())
+
+            summary_op = tf.summary.merge(inputs=summaries)
+
             init = tf.global_variables_initializer()
 
             session = tf.Session(
                 config=tf.ConfigProto(allow_soft_placement=True))
             session.run(init)
 
+            # TODO(brendan): check for pre-trained checkpoint
+
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(session, coord)
 
-            # @debug
-            image0 = session.run(images)
-            joint_indices0 = session.run(joint_indices)
-            joints0 = session.run(joints)
+            log_dir = '../../log'
+            summary_writer = tf.summary.FileWriter(logdir=log_dir,
+                                                   graph=session.graph)
 
-            # TODO(brendan): compute gradient and apply minimizer on loss
+            for step in range(1000000):
+                start = time.perf_counter()
+                _, loss_value = session.run(fetches=[train_op, total_loss])
+                end = time.perf_counter()
+                assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+
+                if step % 10 == 0:
+                    print('step {}, loss = {}'.format(step, loss_value))
+
+                if step % 100 == 0:
+                    summary_string = session.run(fetches=summary_op)
+                    summary_writer.add_summary(summary=summary_string)
+
+                if step % 5000 == 0:
+                    checkpoint_path = os.path.join(log_dir, 'model.ckpt')
+                    saver.save(sess=session,
+                               save_path=checkpoint_path,
+                               global_step=step)
 
             coord.request_stop()
             coord.join(threads)
