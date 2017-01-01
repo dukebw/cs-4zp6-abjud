@@ -207,8 +207,9 @@ def _extract_labeled_joints(person,
     in a list in the format [x0, y0, x1, y1, ...].
 
     Not all joints are labeled for each person, so this function also returns a
-    list of int64 bitmaps for person, where the first 16 bits are 1 if the
-    joint is labeled, and 0 if the joint is not labeled.
+    sparse list of indices for person, where each index indicates which joint
+    is labeled. The x coordinates have even sparse indices, while y coordinates
+    have odd sparse indices.
 
     Args:
         person: Person in the image to get joints for.
@@ -219,24 +220,22 @@ def _extract_labeled_joints(person,
             original image. This is needed to translate the joint labels.
 
     Returns:
-        (joints, joint_bitmap) tuple, where `joints` is a list, and
-        joint_bitmap is an integer. `joints` is a flat list with all of the
-        joints in the image in sequence. The order can be determined from
-        `joint_bitmap`. The joints for `person` can be found by extracting (x0,
-        y0) pairs for each 1 bit in `joint_bitmap`.
+        (sparse_joints, sparse_joint_indices tuple, where `sparse_joints` is a
+        list of joint coordinates, and sparse_joint_indices is a list of
+        indices indicate which joints are which.
 
-        Visually: `joints` [x0, y0, x1, y1, x2, y2]
-                  `joint_bitmap` 0b1011
+        Visually: `sparse_joints` [x0, y0, x1, y1, x2, y2]
+                  `sparse_joint_indices` [0, 1, 2, 3, 6, 7]
 
                   The above corresponds to a person for whom (x0, y0), (x1, y1)
-                  and (x2, y2) are joints 0, 1 and 3 for `person`,
-                  respectively.
+                  and (x2, y2) are joints 0, 1 and 3 (indexed 0-15 in (x, y)
+                  pairs as in the MPII dataset) for `person`, respectively.
     """
-    joints = []
+    sparse_joints = []
+    sparse_joint_indices = []
     max_image_dim = max(image_shape.x, image_shape.y)
     image_center = int(max_image_dim/2)
 
-    joint_bitmap = 0
     for joint_index in range(len(person.joints)):
         joint = person.joints[joint_index]
         if joint is not None:
@@ -245,17 +244,20 @@ def _extract_labeled_joints(person,
                 (offsets.y <= joint.y <= (offsets.y + image_shape.y))):
                 joint.x -= offsets.x
                 joint.y -= offsets.y
-                _append_scaled_joint(joints,
+                _append_scaled_joint(sparse_joints,
                                      joint.x + padding.x,
                                      max_image_dim,
                                      image_center)
-                _append_scaled_joint(joints,
+                _append_scaled_joint(sparse_joints,
                                      joint.y + padding.y,
                                      max_image_dim,
                                      image_center)
-                joint_bitmap |= (1 << joint_index)
 
-    return joints, joint_bitmap
+                x_sparse_index = 2*joint_index
+                sparse_joint_indices.append(x_sparse_index)
+                sparse_joint_indices.append(x_sparse_index + 1)
+
+    return sparse_joints, sparse_joint_indices
 
 
 def _find_person_bounding_box(person, img_shape):
@@ -326,8 +328,8 @@ def _find_padded_person_dim(person_rect):
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
 
-    See `_extract_labeled_joints` for the format of `joints` and
-    `joint_bitmap`.
+    See `_extract_labeled_joints` for the format of `sparse_joints` and
+    `sparse_joint_indices`.
     """
     img_shape = coder.decode_jpeg(image_jpeg)
 
@@ -344,17 +346,18 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             padding_xy,
             padded_img_dim)
 
-        joints, joint_bitmap = _extract_labeled_joints(person,
-                                                       person_shape_xy,
-                                                       padding_xy,
-                                                       person_rect.top_left)
+        sparse_joints, sparse_joint_indices = _extract_labeled_joints(
+            person,
+            person_shape_xy,
+            padding_xy,
+            person_rect.top_left)
 
         example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     'image_jpeg': _bytes_feature(scaled_img_jpeg),
-                    'joint_bitmap': _int64_feature(joint_bitmap),
-                    'joints': _float_feature(joints)
+                    'joint_indices': _int64_feature(sparse_joint_indices),
+                    'joints': _float_feature(sparse_joints)
                 }))
         writer.write(example.SerializeToString())
 
