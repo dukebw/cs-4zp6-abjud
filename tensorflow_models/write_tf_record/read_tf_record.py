@@ -4,6 +4,8 @@ import copy
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from tensorflow.python.platform import tf_logging
+from logging import INFO
 from tensorflow.contrib.slim.nets import inception
 import mpii_read
 
@@ -20,6 +22,9 @@ NUM_JOINT_COORDS = 2*NUM_JOINTS
 
 tf.app.flags.DEFINE_string('data_dir', '.',
                            """Path to take input TFRecord files from.""")
+tf.app.flags.DEFINE_string('log_dir', './log',
+                           """Path to take summaries and checkpoints from, and
+                           write them to.""")
 
 tf.app.flags.DEFINE_integer('image_dim', 299,
                             """Dimension of the square input image.""")
@@ -53,12 +58,14 @@ class TrainingBatch(object):
     ground-truth joint vectors for the annotated person in that image.
 
     images, joints and joint_indices should all be lists of length
-    `FLAGS.batch_size`.
+    `batch_size`.
     """
-    def __init__(self, images, joints, joint_indices):
+    def __init__(self, images, joints, joint_indices, batch_size):
+        assert images.get_shape()[0] == batch_size
         self._images = images
         self._joints = joints
         self._joint_indices = joint_indices
+        self._batch_size = batch_size
 
     @property
     def images(self):
@@ -71,6 +78,10 @@ class TrainingBatch(object):
     @property
     def joint_indices(self):
         return self._joint_indices
+
+    @property
+    def batch_size(self):
+        return self._batch_size
 
 
 def _setup_example_queue(filename_queue,
@@ -206,9 +217,10 @@ def _setup_input_pipeline(data_dir,
         image_dim: Dimension of square input images.
 
     Returns:
-        TrainingBatch(images, joints, joint_indices): Lists of image tensors,
-            sparse joints (ground truth vectors), and sparse joint indices,
-            each of shape [batch_size]
+        TrainingBatch(images, joints, joint_indices, batch_size): List of image
+        tensors with first dimension (shape[0]) equal to batch_size, along with
+        sparse vectors of joints (ground truth vectors), and sparse joint
+        indices.
     """
     # TODO(brendan): num_readers == 1 case
     assert num_readers > 1
@@ -237,7 +249,7 @@ def _setup_input_pipeline(data_dir,
 
         tf.summary.image(name='images', tensor=images)
 
-        return TrainingBatch(images, joints, joint_indices)
+        return TrainingBatch(images, joints, joint_indices, batch_size)
 
 
 def _summarize_inception_model(endpoints):
@@ -255,17 +267,13 @@ def _summarize_inception_model(endpoints):
                 tensor=tf.nn.zero_fraction(value=activation))
 
 
-def _sparse_joints_to_dense(joints,
-                            joint_indices,
-                            batch_size,
-                            num_joint_coords):
+def _sparse_joints_to_dense(training_batch, num_joint_coords):
     """Converts a sparse vector of joints to a dense format, and also returns a
     set of weights indicating which joints are present.
 
     Args:
-        joints: Sparse vector of joints.
-        joint_indices: Sparse indices of the joints.
-        batch_size: Number of training elements in a batch.
+        training_batch: A batch of training images with associated joint
+            vectors.
         num_joint_coords: Total number of joint co-ordinates, where (x0, y0)
             counts as two co-ordinates.
 
@@ -275,13 +283,13 @@ def _sparse_joints_to_dense(joints,
         present in the sparse vector. `weights` contains 1s for all the present
         joints and 0s otherwise.
     """
-    sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
-                                    sp_values=joints,
+    sparse_joints = tf.sparse_merge(sp_ids=training_batch.joint_indices,
+                                    sp_values=training_batch.joints,
                                     vocab_size=num_joint_coords)
     dense_joints = tf.sparse_tensor_to_dense(sp_input=sparse_joints,
                                              default_value=0)
 
-    dense_shape = [batch_size, num_joint_coords]
+    dense_shape = [training_batch.batch_size, num_joint_coords]
     dense_joints = tf.reshape(tensor=dense_joints, shape=dense_shape)
 
     weights = tf.sparse_to_dense(sparse_indices=sparse_joints.indices,
@@ -292,7 +300,7 @@ def _sparse_joints_to_dense(joints,
     return dense_joints, weights
 
 
-def _inference(training_batch, batch_size, num_joint_coords, scope):
+def _inference(training_batch, num_joint_coords, scope):
     """Sets up an Inception v3 model, computes predictions on input images and
     calculates loss on those predictions based on an input sparse vector of
     joints (the ground truth vector).
@@ -304,7 +312,6 @@ def _inference(training_batch, batch_size, num_joint_coords, scope):
     Args:
         training_batch: A batch of training images with associated joint
             vectors.
-        batch_size: Number of training elements in a batch.
         num_joint_coords: Total number of joint co-ordinates, where (x0, y0)
             counts as two co-ordinates.
         scope: The name scope (for summaries, debugging).
@@ -321,11 +328,8 @@ def _inference(training_batch, batch_size, num_joint_coords, scope):
 
             _summarize_inception_model(endpoints)
 
-            dense_joints, weights = _sparse_joints_to_dense(
-                training_batch.joints,
-                training_batch.joint_indices,
-                batch_size,
-                num_joint_coords)
+            dense_joints, weights = _sparse_joints_to_dense(training_batch,
+                                                            num_joint_coords)
 
             auxiliary_logits = endpoints['AuxLogits']
 
@@ -344,9 +348,79 @@ def _inference(training_batch, batch_size, num_joint_coords, scope):
     return total_loss
 
 
-def main(argv=None):
-    """Usage: python3 -m read_tf_record
-    (After running write_tf_record.py. See its docstring for usage.)
+def _setup_optimizer(batch_size,
+                     num_epochs_per_decay,
+                     initial_learning_rate,
+                     learning_rate_decay_factor):
+    """Sets up the optimizer
+    [RMSProp]((http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf))
+    and learning rate decay schedule.
+
+    Args:
+        batch_size: Number of elements in training batch.
+        num_epochs_per_decay: Number of full runs through of the data set per
+            learning rate decay.
+        initial_learning_rate: Learning rate to start with on step 0.
+        learning_rate_decay_factor: Factor by which to decay the learning rate.
+
+    Returns:
+        global_step: Counter to be incremented each training step, used to
+            calculate the decaying learning rate.
+        optimizer: `RMSPropOptimizer`, minimizes loss function by gradient
+            descent (RMSProp).
+    """
+    global_step = tf.get_variable(
+        name='global_step',
+        shape=[],
+        dtype=tf.int64,
+        initializer=tf.constant_initializer(0),
+        trainable=False)
+
+    num_batches_per_epoch = (NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / batch_size)
+    decay_steps = int(num_batches_per_epoch*num_epochs_per_decay)
+    learning_rate = tf.train.exponential_decay(learning_rate=initial_learning_rate,
+                                               global_step=global_step,
+                                               decay_steps=decay_steps,
+                                               decay_rate=learning_rate_decay_factor)
+
+    optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate,
+                                          decay=RMSPROP_DECAY,
+                                          momentum=RMSPROP_MOMENTUM,
+                                          epsilon=RMSPROP_EPSILON)
+
+    return global_step, optimizer
+
+
+def _setup_training_op(training_batch,
+                       num_joint_coords,
+                       global_step,
+                       optimizer):
+    """Sets up inference (predictions), loss calculation, and minimization
+    based on the input optimizer.
+
+    Args:
+        training_batch: Batch of preprocessed examples dequeued from the input
+            pipeline.
+        global_step: Training step counter.
+        optimizer: Optimizer to minimize the loss function.
+
+    Returns: Operation to run a training step.
+    """
+    with tf.device(device_name_or_function='/gpu:0'):
+        with tf.name_scope(name='tower0') as scope:
+            loss = _inference(training_batch, num_joint_coords, scope)
+
+            train_op = slim.learning.create_train_op(
+                total_loss=loss,
+                optimizer=optimizer,
+                global_step=global_step)
+
+    return train_op
+
+
+def train():
+    """Trains an Inception v3 network to regress joint co-ordinates (NUM_JOINTS
+    sets of (x, y) co-ordinates) directly.
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
@@ -360,104 +434,34 @@ def main(argv=None):
                                                    FLAGS.num_preprocess_threads,
                                                    FLAGS.image_dim)
 
-            input_summaries = copy.copy(tf.get_collection(key=tf.GraphKeys.SUMMARIES))
+            global_step, optimizer = _setup_optimizer(FLAGS.batch_size,
+                                                      FLAGS.num_epochs_per_decay,
+                                                      FLAGS.initial_learning_rate,
+                                                      FLAGS.learning_rate_decay_factor)
 
-            global_step = tf.get_variable(
-                name='global_step',
-                shape=[],
-                initializer=tf.constant_initializer(0),
-                trainable=False)
-
-            num_batches_per_epoch = (NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN /
-                                     FLAGS.batch_size)
-            decay_steps = int(num_batches_per_epoch*FLAGS.num_epochs_per_decay)
-            learning_rate = tf.train.exponential_decay(learning_rate=FLAGS.initial_learning_rate,
-                                                       global_step=global_step,
-                                                       decay_steps=decay_steps,
-                                                       decay_rate=FLAGS.learning_rate_decay_factor)
-
-            optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate,
-                                                  decay=RMSPROP_DECAY,
-                                                  momentum=RMSPROP_MOMENTUM,
-                                                  epsilon=RMSPROP_EPSILON)
-
-            with tf.device(device_name_or_function='/gpu:0'):
-                with tf.name_scope(name='tower0') as scope:
-                    loss = _inference(training_batch,
-                                      FLAGS.batch_size,
-                                      NUM_JOINT_COORDS,
-                                      scope)
-
-                    summaries = tf.get_collection(key=tf.GraphKeys.SUMMARIES, scope=scope)
-
-                    batchnorm_updates = tf.get_collection(
-                        key=tf.GraphKeys.UPDATE_OPS, scope=scope)
-
-                    gradients = optimizer.compute_gradients(loss=loss)
-
-            summaries.extend(input_summaries)
-
-            summaries.append(
-                tf.summary.scalar(name='learning_rate', tensor=learning_rate))
-
-            for grad, var in gradients:
-                if grad is not None:
-                    summaries.append(
-                        tf.summary.histogram(name=var.op.name + '/gradients',
-                                             values=grad))
-
-            apply_gradient_op = optimizer.apply_gradients(
-                grads_and_vars=gradients, global_step=global_step)
-
-            for var in tf.trainable_variables():
-                summaries.append(
-                    tf.summary.histogram(name=var.op.name, values=var))
+            train_op = _setup_training_op(training_batch,
+                                          NUM_JOINT_COORDS,
+                                          global_step,
+                                          optimizer)
 
             # TODO(brendan): track moving averages of trainable variables
 
-            batchnorm_updates_op = tf.group(*batchnorm_updates)
-            train_op = tf.group(batchnorm_updates_op, apply_gradient_op)
+            tf_logging._logger.setLevel(INFO)
 
-            saver = tf.train.Saver(var_list=tf.global_variables())
+            slim.learning.train(
+                train_op=train_op,
+                logdir=FLAGS.log_dir,
+                log_every_n_steps=10,
+                global_step=global_step,
+                session_config=tf.ConfigProto(allow_soft_placement=True))
 
-            summary_op = tf.summary.merge(inputs=summaries)
 
-            init = tf.global_variables_initializer()
-
-            session = tf.Session(
-                config=tf.ConfigProto(allow_soft_placement=True))
-            session.run(fetches=init)
-
-            # TODO(brendan): check for pre-trained checkpoint
-
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=session, coord=coord)
-
-            log_dir = '../../log'
-            summary_writer = tf.summary.FileWriter(logdir=log_dir,
-                                                   graph=session.graph)
-
-            for step in range(1000000):
-                start = time.perf_counter()
-                _, loss_value = session.run(fetches=[train_op, loss])
-                end = time.perf_counter()
-                assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
-
-                if step % 10 == 0:
-                    print('step {}, loss = {}'.format(step, loss_value))
-
-                if step % 100 == 0:
-                    summary_string = session.run(fetches=summary_op)
-                    summary_writer.add_summary(summary=summary_string)
-
-                if step % 5000 == 0:
-                    checkpoint_path = os.path.join(log_dir, 'model.ckpt')
-                    saver.save(sess=session,
-                               save_path=checkpoint_path,
-                               global_step=step)
-
-            coord.request_stop()
-            coord.join(threads=threads)
+def main(argv=None):
+    """Usage: python3 -m read_tf_record
+    (After running write_tf_record.py. See its docstring for usage.)
+    See top of this file for flags, e.g. --log_dir=./log.
+    """
+    train()
 
 
 if __name__ == "__main__":
