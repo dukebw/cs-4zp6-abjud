@@ -1,17 +1,13 @@
 import os
-import time
-import copy
-import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import tf_logging
 from logging import INFO
 from tensorflow.contrib.slim.nets import inception
-import mpii_read
 
 FLAGS = tf.app.flags.FLAGS
 
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 18000
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 18076
 
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
@@ -459,7 +455,9 @@ def train():
 def main(argv=None):
     """Usage: python3 -m read_tf_record
     (After running write_tf_record.py. See its docstring for usage.)
-    See top of this file for flags, e.g. --log_dir=./log.
+
+    See top of this file for flags, e.g. --log_dir=./log, or type
+    'python3 -m read_tf_record --help' for options.
     """
     train()
 

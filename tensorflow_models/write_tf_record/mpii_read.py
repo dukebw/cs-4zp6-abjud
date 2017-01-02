@@ -21,9 +21,12 @@ annolist[index].annorect.annopoints.point field. Coordinates of the head
 rectangle can be found from the `x1`, `y1`, `x2`, and `y2` fields of
 `annorect`.
 
-Out of the total dataset of 24987 images, 18079 of those are training images.
-Of those images marked as training, 233 actually have no joint annotations, and
+Out of the total dataset of 24987 images, 18076 of those are usable training
+images (this is the number of images returned by the `mpii_read` function). Of
+those images marked as training, 233 actually have no joint annotations, and
 only have a head rectangle.
+
+244 test images have head rectangles, and there are 6908 test images in total.
 """
 import sys
 import os
@@ -130,6 +133,51 @@ def _make_iterable(maybe_iterable):
     return maybe_iterable
 
 
+def _get_head_rect(img_annorect):
+    """Attempt to get a head rectangle estimate from the img_annorect
+    annotation in the MPII Human Pose datum.
+
+    There are a couple peculiarities that need to be accounted for here.
+    Firstly, certain datapoints' head rectangles are a point, so those need to
+    be skipped.
+
+    Secondly, many test images have no head rectangle labelling (but all
+    training images have head rectangles annotated). In this case we use the
+    `objpos` and `scale` attributes to make a rough estimate of where the
+    person's head is in the image.
+
+    Args:
+        img_annorect: The img_annorect attribute from the MPII Human Pose data.
+
+    Returns:
+        (x0, y0, x1, y1) head rectangle estimate, or `None` on failure.
+    """
+    try:
+        head_rect = (img_annorect.x1, img_annorect.y1,
+                     img_annorect.x2, img_annorect.y2)
+    except AttributeError:
+        use_objpos = True
+
+    if use_objpos:
+        try:
+            x = img_annorect.objpos.x
+            y = img_annorect.objpos.y
+            scale = img_annorect.scale
+            head_rect = (x - 25*scale, y - 70*scale,
+                         x + 25*scale, y - 20*scale)
+        except AttributeError:
+            return None
+
+    # NOTE(brendan): There is at least one buggy datapoint in the MPII
+    # dataset for which the person's head is a point. Since this tells us
+    # nothing about the person's scale in the picture, we skip these
+    # entries.
+    if (head_rect[0] == head_rect[2]) and (head_rect[1] == head_rect[3]):
+        return None
+
+    return head_rect
+
+
 def _parse_annotation(img_annotation, mpii_images_dir):
     """Parses a single image annotation from the MPII dataset.
 
@@ -153,15 +201,10 @@ def _parse_annotation(img_annotation, mpii_images_dir):
     img_annotation.annorect = _make_iterable(img_annotation.annorect)
 
     people = []
+    use_objpos = False
     for img_annorect in img_annotation.annorect:
-        head_rect = (img_annorect.x1, img_annorect.y1,
-                     img_annorect.x2, img_annorect.y2)
-
-        # NOTE(brendan): There is at least one buggy datapoint in the MPII
-        # dataset for which the person's head is a point. Since this tells us
-        # nothing about the person's scale in the picture, we skip these
-        # entries.
-        if (head_rect[0] == head_rect[2]) and (head_rect[1] == head_rect[3]):
+        head_rect = _get_head_rect(img_annorect)
+        if head_rect is None:
             continue
 
         try:
@@ -204,7 +247,7 @@ def _shuffle_dataset(img_filenames, people_in_imgs):
     return img_filenames, people_in_imgs
 
 
-def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
+def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
     """Parses the training data out of `mpii_dataset_mat` into a `MpiiDataset`
     Python object.
 
@@ -218,6 +261,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
             `squeeze_me = True` must be set in the `loadmat` call.
         mpii_images_dir: The path of the directory where all the MPII images
             are stored.
+        is_train: Parse training data (True), or test data (False)?
 
     Returns: An `MpiiDataset` Python object correspodning to
         `mpii_dataset_mat`.
@@ -229,7 +273,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
     people_in_imgs = []
     filenames_on_disk = set(os.listdir(mpii_images_dir))
     for img_index in range(len(mpii_annotations)):
-        if train_or_test[img_index] == 1:
+        if train_or_test[img_index] == int(is_train):
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
                                                          mpii_images_dir)
 
@@ -249,7 +293,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir):
     return MpiiDataset(img_filenames, people_in_imgs)
 
 
-def mpii_read(mpii_dataset_filepath):
+def mpii_read(mpii_dataset_filepath, is_train):
     """
     Note that the images are assumed to reside in a folder one up from the .mat
     file that is being parsed (i.e. ../images).
@@ -257,6 +301,7 @@ def mpii_read(mpii_dataset_filepath):
     Args:
         mpii_dataset_filepath: The filepath to the .mat file provided from the
             MPII Human Pose website.
+        is_train: Read training data (True), or test data (False)?
 
     Returns: Parsed `MpiiDataset` object from `parse_mpii_data_from_mat`.
     """
@@ -267,7 +312,7 @@ def mpii_read(mpii_dataset_filepath):
     mpii_dataset_dir = os.path.dirname(mpii_dataset_filepath)
     mpii_images_dir = os.path.join(mpii_dataset_dir, '../images')
 
-    return parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir)
+    return parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train)
 
 
 if __name__ == "__main__":

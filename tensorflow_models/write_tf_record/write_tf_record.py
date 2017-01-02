@@ -6,6 +6,14 @@ from timethis import timethis
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string(
+    'mpii_filepath',
+    '/mnt/data/datasets/MPII_HumanPose/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat',
+    """Filepath to the .mat file from the MPII HumanPose
+    [website](human-pose.mpi-inf.mpg.de)""")
+tf.app.flags.DEFINE_boolean('is_train', True,
+                            """Write training (True) or test (False)
+                            TFRecords?""")
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             """Number of threads to use to write TF Records""")
 tf.app.flags.DEFINE_integer('image_dim', 299,
@@ -294,6 +302,7 @@ def _find_person_bounding_box(person, img_shape):
     return Rectangle(_clamp_point_to_image(top_left, img_shape) +
                      _clamp_point_to_image(bottom_right, img_shape))
 
+
 def _find_padded_person_dim(person_rect):
     """Finds the large dimension, shape and padding needed for the bounding box
     around a person.
@@ -324,6 +333,7 @@ def _find_padded_person_dim(person_rect):
     padding_xy = Point(width_pad, height_pad)
 
     return padded_img_dim, person_shape_xy, padding_xy
+
 
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
@@ -373,7 +383,12 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
         mpii_dataset: Instance of `MpiiDataset` containing data shuffled in the
             order that those data should be written to TF Record.
     """
-    tfrecord_filename = 'train{}.tfrecord'.format(thread_index)
+    if FLAGS.is_train:
+        base_name = 'train'
+    else:
+        base_name = 'test'
+
+    tfrecord_filename = '{}{}.tfrecord'.format(base_name, thread_index)
     with tf.python_io.TFRecordWriter(path=tfrecord_filename) as writer:
         for img_index in range(ranges[thread_index][0], ranges[thread_index][1]):
             with tf.gfile.FastGFile(name=mpii_dataset.img_filenames[img_index], mode='rb') as f:
@@ -422,13 +437,16 @@ def write_tf_record(mpii_dataset, num_examples=None):
             _process_image_files(mpii_dataset, num_examples, session)
 
 
-def main(argv):
+def main(argv=None):
     """Usage:
     ('python3 -m write_tf_record
-     "/mnt/data/datasets/MPII_HumanPose/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat"
+     --mpii_filepath "/mnt/data/datasets/MPII_HumanPose/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat"
+     --is_train True
      --num_threads 3')
+
+     Type 'python3 -m write_tf_record --help' for options.
     """
-    mpii_dataset = mpii_read(argv[1])
+    mpii_dataset = mpii_read(FLAGS.mpii_filepath, FLAGS.is_train)
     write_tf_record(mpii_dataset)
 
 
