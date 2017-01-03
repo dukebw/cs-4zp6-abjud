@@ -43,7 +43,7 @@ train_labels_file = "pose_DB.sqlite"
 
 # note all image sizes from the FLIC database have to be reset
 
-test_set_size = 5
+test_set_size = 20
 IMAGE_HEIGHT = 256
 IMAGE_WIDTH = 256
 NUM_CHANNELS = 3
@@ -210,31 +210,5 @@ test_image_batch, test_label_batch = tf.train.batch(
                                     )
 
 
-
-with tf.Session() as sess:
-
-    
-  # session 
-  # initialize the variables
-  sess.run(tf.initialize_all_variables())
-  
-  # initialize the queue threads to start to shovel data
-  coord = tf.train.Coordinator()
-  threads = tf.train.start_queue_runners(coord=coord)
-
-  print ("from the train set:")
-  for i in range(20):
-    print (sess.run(train_label_batch))
-    print ("image set")
-    print (sess.run(train_image_batch))
-
-#  print ("from the test set:")
-#  for i in range(10):
-#    print (sess.run(test_label_batch))
-
-  # stop our queue threads and properly close the session
-  coord.request_stop()
-  coord.join(threads)
-  sess.close()
 
 
