@@ -1,11 +1,12 @@
 from __future__ import print_function
 
 import tensorflow as tf
+import imanolspipeline as iman
 
 
 # Parameters
 learning_rate = 0.001
-training_iters = 200000
+training_iters = 40
 batch_size = 20
 display_step = 10
 num_parts = 7
@@ -265,3 +266,39 @@ with tf.Session() as sess:
                                       y: mnist.test.labels[:256],
 keep_prob: 1.}))
 '''
+init = tf.initialize_all_variables()
+with tf.Session() as sess:
+    
+    sess.run(init)
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(coord=coord)
+
+    step = 1
+    # Keep training until reach max iterations
+    while step * batch_size < training_iters:
+        batch_y = sess.run(iman.train_label_batch)
+        batch_x = sess.run(iman.train_image_batch)
+        # Run optimization op (backprop)
+        sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
+        step += 1
+        
+    # session 
+    # initialize the variables
+    # sess.run(tf.initialize_all_variables())
+  
+    # initialize the queue threads to start to shovel data
+    '''
+    print ("from the train set:")
+    for i in range(20):
+        print (sess.run(train_label_batch))
+        print ("image set")
+        print (sess.run(train_image_batch))
+    '''
+    #  print ("from the test set:")
+    #  for i in range(10):
+    #    print (sess.run(test_label_batch))
+
+    # stop our queue threads and properly close the session
+    coord.request_stop()
+    coord.join(threads)
+    sess.close()
