@@ -1,6 +1,10 @@
 import os
 import tensorflow as tf
 
+# TODO(brendan): Alter `write_tf_record` code to spit out
+# shards with about 1024 examples each.
+EXAMPLES_PER_SHARD = 1024
+
 class TrainingBatch(object):
     """Contains a training batch of images along with corresponding
     ground-truth joint vectors for the annotated person in that image.
@@ -52,10 +56,7 @@ def _setup_example_queue(filename_queue,
         A dequeue op that will dequeue one Tensor containing an input example
         from `examples_queue`.
     """
-    # TODO(brendan): Alter `write_tf_record` code to spit out
-    # shards with about 1024 examples each.
-    examples_per_shard = 1024
-    min_queue_examples = input_queue_memory_factor*examples_per_shard
+    min_queue_examples = input_queue_memory_factor*EXAMPLES_PER_SHARD
 
     examples_queue = tf.RandomShuffleQueue(capacity=min_queue_examples + 3*batch_size,
                                            min_after_dequeue=min_queue_examples,
@@ -130,12 +131,69 @@ def _parse_and_preprocess_images(example_serialized,
     return images_and_joints
 
 
-def setup_input_pipeline(data_dir,
-                         num_readers,
-                         input_queue_memory_factor,
-                         batch_size,
-                         num_preprocess_threads,
-                         image_dim):
+def _setup_filename_queue(data_dir,
+                          record_prefix,
+                          num_readers,
+                          should_shuffle,
+                          capacity):
+    """Sets up a filename queue of example-containing TFRecord files.
+    """
+    data_filenames = tf.gfile.Glob(
+        os.path.join(data_dir, record_prefix + '*tfrecord'))
+    assert data_filenames, ('No data files found.')
+    assert len(data_filenames) >= num_readers
+
+    filename_queue = tf.train.string_input_producer(
+        string_tensor=data_filenames,
+        shuffle=should_shuffle,
+        capacity=capacity)
+
+    return filename_queue
+
+
+def _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads):
+    """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
+    sparse joints and sparse joint indices.
+    """
+    images, joint_indices, joints = tf.train.batch_join(
+        tensors_list=images_and_joints,
+        batch_size=batch_size,
+        capacity=2*num_preprocess_threads*batch_size)
+
+    tf.summary.image(name='images', tensor=images)
+
+    return TrainingBatch(images, joints, joint_indices, batch_size)
+
+
+def setup_eval_input_pipeline(data_dir,
+                              batch_size,
+                              num_preprocess_threads,
+                              image_dim):
+    """Sets up an input pipeline for model evaluation.
+    """
+    filename_queue = _setup_filename_queue(data_dir, 'test', 1, False, 1)
+
+    reader = tf.TFRecordReader()
+    _, example_serialized = reader.read(filename_queue)
+
+    # TODO(brendan): This should not call the same function as
+    # `setup_train_input_pipeline`, as during training we will want to do image
+    # distortion. But there is no image distortion yet, so this is fine for
+    # now.
+    images_and_joints = _parse_and_preprocess_images(
+        example_serialized,
+        num_preprocess_threads,
+        image_dim)
+
+    return _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads)
+
+
+def setup_train_input_pipeline(data_dir,
+                               num_readers,
+                               input_queue_memory_factor,
+                               batch_size,
+                               num_preprocess_threads,
+                               image_dim):
     """Sets up an input pipeline that reads example protobufs from all TFRecord
     files, assumed to be named train*.tfrecord (e.g. train0.tfrecord),
     decodes and preprocesses the images.
@@ -174,13 +232,8 @@ def setup_input_pipeline(data_dir,
     assert num_readers > 1
 
     with tf.name_scope('batch_processing'):
-        data_filenames = tf.gfile.Glob(os.path.join(data_dir, 'train*tfrecord'))
-        assert data_filenames, ('No data files found.')
-        assert len(data_filenames) >= num_readers
-
-        filename_queue = tf.train.string_input_producer(
-            string_tensor=data_filenames,
-            capacity=16)
+        filename_queue = _setup_filename_queue(
+            data_dir, 'train', num_readers, True, 16)
 
         example_serialized = _setup_example_queue(filename_queue,
                                                   num_readers,
@@ -190,11 +243,6 @@ def setup_input_pipeline(data_dir,
         images_and_joints = _parse_and_preprocess_images(
             example_serialized, num_preprocess_threads, image_dim)
 
-        images, joint_indices, joints = tf.train.batch_join(
-            tensors_list=images_and_joints,
-            batch_size=batch_size,
-            capacity=2*num_preprocess_threads*batch_size)
-
-        tf.summary.image(name='images', tensor=images)
-
-        return TrainingBatch(images, joints, joint_indices, batch_size)
+        return _setup_batch_queue(images_and_joints,
+                                  batch_size,
+                                  num_preprocess_threads)

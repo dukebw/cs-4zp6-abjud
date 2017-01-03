@@ -3,7 +3,7 @@ import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import tf_logging
 from logging import INFO
 from tensorflow.contrib.slim.nets import inception
-import input_pipeline
+from input_pipeline import setup_train_input_pipeline
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -224,7 +224,7 @@ def train():
             # TODO(brendan): Support multiple GPUs?
             assert FLAGS.num_gpus == 1
 
-            training_batch = input_pipeline.setup_input_pipeline(
+            training_batch = setup_train_input_pipeline(
                 FLAGS.data_dir,
                 FLAGS.num_readers,
                 FLAGS.input_queue_memory_factor,
@@ -255,11 +255,11 @@ def train():
 
 
 def main(argv=None):
-    """Usage: python3 -m read_tf_record
+    """Usage: python3 -m train
     (After running write_tf_record.py. See its docstring for usage.)
 
     See top of this file for flags, e.g. --log_dir=./log, or type
-    'python3 -m read_tf_record --help' for options.
+    'python3 -m train --help' for options.
     """
     train()
 
