@@ -26,7 +26,8 @@ images (this is the number of images returned by the `mpii_read` function). Of
 those images marked as training, 233 actually have no joint annotations, and
 only have a head rectangle.
 
-244 test images have head rectangles, and there are 6908 test images in total.
+Test images do not have head rectangles, and rather only contain the `objpos`
+and `scale` values as methods of estimating where the person is in the picture.
 """
 import sys
 import os
@@ -152,6 +153,7 @@ def _get_head_rect(img_annorect):
     Returns:
         (x0, y0, x1, y1) head rectangle estimate, or `None` on failure.
     """
+    use_objpos = False
     try:
         head_rect = (img_annorect.x1, img_annorect.y1,
                      img_annorect.x2, img_annorect.y2)
@@ -201,7 +203,6 @@ def _parse_annotation(img_annotation, mpii_images_dir):
     img_annotation.annorect = _make_iterable(img_annotation.annorect)
 
     people = []
-    use_objpos = False
     for img_annorect in img_annotation.annorect:
         head_rect = _get_head_rect(img_annorect)
         if head_rect is None:
@@ -276,6 +277,8 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
         if train_or_test[img_index] == int(is_train):
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
                                                          mpii_images_dir)
+            if len(people) == 0:
+                continue
 
             # NOTE(brendan): There are annotations in the MPII dataset for
             # which the file corresponding to image.name does not exist.
