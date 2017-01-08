@@ -11,6 +11,15 @@
             src: url('/fonts/GEO415M.TTF');
         }
 
+        .noMargins{
+            margin:0%;
+        }
+
+        .fullWidth{
+            max-width: 100%;
+            width: 100%;
+        }
+
         .geoFont {
             font-family: Geometric415;
         }
@@ -66,7 +75,8 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a asp-controller="ImagePoseDraw" asp-action="Index" class="navbar-brand">ImagePoseDraw</a>
+                <a asp-controller="TextToMotion" asp-action="Index" class="navbar-brand"><b>TextToMotion</b></a>
+                <a asp-controller="ImagePoseDraw" asp-action="Index" class="navbar-brand"><b>ImagePoseDraw</b></a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">

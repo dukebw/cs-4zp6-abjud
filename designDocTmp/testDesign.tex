@@ -1,0 +1,188 @@
+\documentclass{scrreprt}
+
+\usepackage{xcolor} % for different colour comments
+\usepackage{tabto}
+\usepackage{mdframed}
+\mdfsetup{nobreak=true}
+\usepackage{xkeyval}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=red,
+    urlcolor=blue
+}
+\usepackage[skip=2pt, labelfont=bf]{caption}
+\usepackage{titlesec}
+\usepackage{graphicx}
+\usepackage[section]{placeins}
+\graphicspath{ {image/} }
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+
+%% Comments
+\newif\ifcomments\commentstrue
+
+\ifcomments
+\newcommand{\authornote}[3]{\textcolor{#1}{[#3 ---#2]}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\else
+\newcommand{\authornote}[3]{}
+\newcommand{\todo}[1]{}
+\fi
+
+\newcommand{\wss}[1]{\authornote{magenta}{SS}{#1}}
+\newcommand{\ds}[1]{\authornote{blue}{DS}{#1}}
+
+
+%% The following are used for pretty printing of events and requirements
+\makeatletter
+
+\define@cmdkey      [TP] {test}     {name}       {}
+\define@cmdkey      [TP] {test}     {desc}       {}
+\define@cmdkey      [TP] {test}     {type}       {}
+\define@cmdkey      [TP] {test}     {init}       {}
+\define@cmdkey      [TP] {test}     {input}      {}
+\define@cmdkey      [TP] {test}     {output}     {}
+\define@cmdkey      [TP] {test}     {pass}       {}
+\define@cmdkey      [TP] {test}     {user}       {}
+\define@cmdkey      [TP] {test}     {reqnum}     {}
+
+
+\newcommand{\getCurrentSectionNumber}{%
+  \ifnum\c@section=0 %
+  \thechapter
+  \else
+  \ifnum\c@subsection=0 %
+  \thesection
+  \else
+  \ifnum\c@subsubsection=0 %
+  \thesubsection
+  \else
+  \thesubsubsection
+  \fi
+  \fi
+  \fi
+}
+
+\newcounter{TestNum}
+
+\@addtoreset{TestNum}{section}
+\@addtoreset{TestNum}{subsection}
+\@addtoreset{TestNum}{subsubsection}
+
+\newcommand{\testauto}[1]{
+\setkeys[TP]{test}{#1}
+\refstepcounter{TestNum}
+\begin{mdframed}[linewidth=1pt]
+\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
+{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
+{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
+{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
+{\bf Initial State:} & \cmdTP@test@init\\[0.5\baselineskip]
+{\bf Input:} & \cmdTP@test@input\\[0.5\baselineskip]
+{\bf Output:} & \cmdTP@test@output\\[0.5\baselineskip]
+{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
+{\bf Req. \#:} & \cmdTP@test@reqnum
+\end{tabularx}
+\end{mdframed}
+}
+
+\newcommand{\testmanual}[1]{
+\setkeys[TP]{test}{#1}
+\refstepcounter{TestNum}
+\begin{mdframed}[linewidth=1pt]
+\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
+{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
+{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
+{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
+{\bf Testers:} & \cmdTP@test@user\\[0.5\baselineskip]
+{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
+{\bf Req. \#:} & \cmdTP@test@reqnum
+\end{tabularx}
+\end{mdframed}
+}
+
+\makeatother
+
+\newcommand{\ZtoT}{
+\begin{tabularx}{3.85cm}{@{}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}@{}}
+0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10
+\end{tabularx}
+}
+
+\begin{document}
+\title{\bf Text to Motion Database\\[\baselineskip]\Large Design Document}
+\author{Brendan Duke\\Andrew Kohnen\\Udip Patel\\David Pitkanen\\Jordan Viveiros}
+\date{\today}
+
+\maketitle
+
+\pagenumbering{roman}
+\tableofcontents
+% \listoftables
+% \listoffigures
+
+
+\begin{table}[bp]
+\caption*{\bf Revision History}
+\begin{tabularx}{\textwidth}{p{3.5cm}p{2cm}X}
+\toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
+\midrule
+January 5, 2017 & 0.0 & File created\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\newpage
+
+\pagenumbering{arabic}
+
+\chapter{Overview}
+The Text to Motion Database aims to provide a living database of pose estimation and word pairings. This purpose of this document is to provide a detailed description of the design choices for each section of the Text to Motion Database.
+
+\chapter{Anticipated and Unlikely Changes}
+
+\section{Anticipated Changes}
+It is not expected that the Text to Motion Database will require changes to the web interface or functionality of running pose estimation on uploaded images and video. The area that are expected to have changes are the command line processing, and specific application use for the database.
+\section{Unlikely Changes}
+
+
+\chapter{User Experience}
+
+\section{User Journey}
+\section{Home Page}
+\section{Image Pose Draw}
+\section{Command Line}
+
+
+\chapter{Database Structure}
+
+\section{Database Schema}
+\section{Table Description}
+
+
+\chapter{Tensor Flow}
+
+
+\chapter{Module Decomposition}
+
+\section{Text To Motion}
+\section{Home}
+
+
+\chapter{Development Details}
+
+\section{Languages}
+\section{Software}
+\section{Hardware}
+
+
+\end{document}
