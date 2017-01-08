@@ -17,17 +17,18 @@ respect to a height of 200px), and the rough human position in the image.
 
 Only training images, i.e. images with field `img_train` of structure `RELEASE`
 equal to 1, have corresponding labels. Joint labels can be found from the
-annolist[index].annorect.annopoints.point field. Coordinates of the head
-rectangle can be found from the `x1`, `y1`, `x2`, and `y2` fields of
-`annorect`.
+`annolist[index].annorect.annopoints.point` field. Coordinates of the objpos
+and scale can be found from `annolist[index].annorect.objpos` and
+annolist[index].annorect.scale, respectively.
 
-Out of the total dataset of 24987 images, 18076 of those are usable training
-images (this is the number of images returned by the `mpii_read` function). Of
-those images marked as training, 233 actually have no joint annotations, and
-only have a head rectangle.
+Out of the total dataset of 24987 images, 17408 of those are usable training
+images, meaning that they have at least one person with joints labelled,
+`objpos.{x, y}`, and `scale`. This is the number of images returned by the
+`mpii_read` function for training images. 6619 examples are returned for test.
 
-Test images do not have head rectangles, and rather only contain the `objpos`
-and `scale` values as methods of estimating where the person is in the picture.
+Test images do not seem to have head rectangles or joint annotations, and
+rather only contain the `objpos` and `scale` values as methods of estimating
+where the person is in the picture.
 """
 import sys
 import os
@@ -35,11 +36,11 @@ import scipy.io
 import numpy as np
 
 class Person(object):
-    """A class representing each person in a given image, including their head
-    rectangle and joints.
+    """A class representing each person in a given image, including their
+    joints, objpos and scale.
 
     The joints should be a list of (x, y) tuples where x and y are both in the
-    range [0.0, 1.0], and the joint ids are as follows,
+    range [img_x_max, img_y_max], and the joint ids are as follows,
 
     0 - r ankle
     1 - r knee
@@ -62,12 +63,13 @@ class Person(object):
         joints: A list of 16 joints for the person, which all default to
             `None`. Their values are potentially filled in from the MPII
             dataset annotations.
-        head_rect: A tuple of four values (x1, y1, x2, y2) defining a rectangle
-            around the head of the person in the image.
+        objpos: The approximate position of the center of the person in the
+            image.
+        scale: Scale of the person with respect to 200px.
     """
     NUM_JOINTS = 16
 
-    def __init__(self, joints, head_rect):
+    def __init__(self, joints, objpos, scale):
         self._joints = Person.NUM_JOINTS*[None]
 
         joints = _make_iterable(joints)
@@ -75,15 +77,20 @@ class Person(object):
         for joint in joints:
             self._joints[joint.id] = (joint.x, joint.y)
 
-        self._head_rect = head_rect
+        self._objpos = objpos
+        self._scale = scale
 
     @property
     def joints(self):
         return self._joints
 
     @property
-    def head_rect(self):
-        return self._head_rect
+    def objpos(self):
+        return self._objpos
+
+    @property
+    def scale(self):
+        return self._scale
 
 
 class MpiiDataset(object):
@@ -134,53 +141,7 @@ def _make_iterable(maybe_iterable):
     return maybe_iterable
 
 
-def _get_head_rect(img_annorect):
-    """Attempt to get a head rectangle estimate from the img_annorect
-    annotation in the MPII Human Pose datum.
-
-    There are a couple peculiarities that need to be accounted for here.
-    Firstly, certain datapoints' head rectangles are a point, so those need to
-    be skipped.
-
-    Secondly, many test images have no head rectangle labelling (but all
-    training images have head rectangles annotated). In this case we use the
-    `objpos` and `scale` attributes to make a rough estimate of where the
-    person's head is in the image.
-
-    Args:
-        img_annorect: The img_annorect attribute from the MPII Human Pose data.
-
-    Returns:
-        (x0, y0, x1, y1) head rectangle estimate, or `None` on failure.
-    """
-    use_objpos = False
-    try:
-        head_rect = (img_annorect.x1, img_annorect.y1,
-                     img_annorect.x2, img_annorect.y2)
-    except AttributeError:
-        use_objpos = True
-
-    if use_objpos:
-        try:
-            x = img_annorect.objpos.x
-            y = img_annorect.objpos.y
-            scale = img_annorect.scale
-            head_rect = (x - 25*scale, y - 70*scale,
-                         x + 25*scale, y - 20*scale)
-        except AttributeError:
-            return None
-
-    # NOTE(brendan): There is at least one buggy datapoint in the MPII
-    # dataset for which the person's head is a point. Since this tells us
-    # nothing about the person's scale in the picture, we skip these
-    # entries.
-    if (head_rect[0] == head_rect[2]) and (head_rect[1] == head_rect[3]):
-        return None
-
-    return head_rect
-
-
-def _parse_annotation(img_annotation, mpii_images_dir):
+def _parse_annotation(img_annotation, mpii_images_dir, is_train):
     """Parses a single image annotation from the MPII dataset.
 
     Looks at the annotations for a single image, and returns the people in the
@@ -204,14 +165,23 @@ def _parse_annotation(img_annotation, mpii_images_dir):
 
     people = []
     for img_annorect in img_annotation.annorect:
-        head_rect = _get_head_rect(img_annorect)
-        if head_rect is None:
+        try:
+            objpos = img_annorect.objpos
+            if (not hasattr(objpos, 'x')) or (not hasattr(objpos, 'y')):
+                continue
+
+            scale = img_annorect.scale
+            assert scale > 0
+        except AttributeError:
             continue
 
         try:
-            people.append(Person(img_annorect.annopoints.point, head_rect))
+            people.append(Person(img_annorect.annopoints.point, objpos, scale))
         except AttributeError:
-            people.append(Person([], head_rect))
+            if is_train:
+                continue
+
+            people.append(Person([], objpos, scale))
 
     return img_abs_filepath, people
 
@@ -276,7 +246,8 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
     for img_index in range(len(mpii_annotations)):
         if train_or_test[img_index] == int(is_train):
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
-                                                         mpii_images_dir)
+                                                         mpii_images_dir,
+                                                         is_train)
             if len(people) == 0:
                 continue
 
