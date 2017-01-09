@@ -1,6 +1,6 @@
 all:
-	xelatex DesignDoc.tex
-	xelatex DesignDoc.tex
+	xelatex testDesign.tex
+	xelatex testDesign.tex #testSystemArchitecture.tex
 	$(MAKE) clean
 
 clean:

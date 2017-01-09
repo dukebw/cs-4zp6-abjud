@@ -145,133 +145,64 @@ January 5, 2017 & 0.0 & File created\\
 
 \pagenumbering{arabic}
 
-\chapter{User Experience}
+\chapter{Overview}
+The Text to Motion Database aims to provide a living database of pose estimation and word pairings. This purpose of this document is to provide a detailed description of the design choices for each section of the Text to Motion Database.
 
-\section{User Journey}
+\chapter{Anticipated and Unlikely Changes}
 
-\section{Home Page}
+\section{Anticipated Changes}
+It is not expected that the Text to Motion Database will require changes to the web interface or functionality of running pose estimation on uploaded images and video. The area that are expected to have changes are the command line processing, and specific application use for the database.
+\section{Unlikely Changes}
 
-\section{About}
 
-\section{Contact}
+\chapter{Decomposition of Modules}
 
-\section{Sign Up}
+\section{ASP.NET Web Application}
 
-\section{Login}
+\subsection{Description}
 
-\section{Navigation Bar Links}
+\begin{enumerate}
+    \item \textbf{Home Page:}
 
-\section{Text to Motion}
+    ...
+    \item \textbf{Sign Up:}
 
-\subsection{Search}
+    ...
+    \item \textbf{Login:}
 
-\subsection{Search Results}
+    ...
+    \item \textbf{About:}
 
-\section{Image Pose Draw}
+    ...
+    \item \textbf{Contact:}
 
-\subsection{Create}
+    ...
+    \item \textbf{Text to Motion Search:}
 
-\subsection{Edit/Details}
+    ...
+    \item \textbf{Image Pose Draw - Create:}
 
-\subsection{View Uploads}
+    ...
+    \item \textbf{Image Pose Draw - Edit:}
 
+    ...
+    \item \textbf{Image Pose Draw - View Uploads:}
 
+    ...
 
+\end{enumerate}
 
+\subsection{Figures}
 
-\chapter{Database Structure}
+\break
 
-\section{Database Schema}
-\section{Table Description}
+\break
 
 
-\chapter{Module Decomposition}
 
-\section{Text To Motion - ASP.NET Application}
+\section{Caffe-Human Pose Estimation}
 
-\subsection{Dependency Injection}
-
-...describe anything important that is in project.json...
-
-...might be a good place to mention .net MVC. The next section will describe the models and the sections after that will each be dedicated to Controller and its functions.The contents of the section will include mentions to the VIEWS returned and the MODELS used...
-
-\subsection{Models}
-
-    \begin{itemize}
-        \item \textbf User
-
-        ...
-
-        \item \textbf ...
-    \end{itemize}
-
-
-\subsection{HomeController}
-
-    \begin{itemize}
-        \item \textbf FunctionName:
-
-        ...description of func...
-
-        ...reference any models used...
-
-        ...reference the view that is returned...
-    \end{itemize}
-
-\subsection{AccountController}
-
-...
-
-\subsection{ManageController}
-
-...
-
-\subsection{ImagePoseDrawController}
-
-...
-
-\subsection{TextToMotionController}
-
-...
-
-
-\section{Flowing Convnets - Human Pose Estimation}
-
-\subsection{Caffe}
-
-...
-
-\subsection{Shared Object File}
-
-...
-
-\subsection{Pose Estimation C++ Program}
-
-...
-
-\section{**Development**}
-
-\subsection{Video Estimation C++ Program}
-
-...
-\subsection{Tensorflow}
-
-..just mention to the possibility of using it...
-
-\subsection{Standalone HTTP Server}
-
-...
-
-\chapter{Communication Protocol}
-
-...just mention to HTTP...
-
-
-\chapter{Development Details}
-
-\section{Languages}
-\section{Software}
-\section{Hardware}
-
+    \subsection{Shared Object Functions}
+    ...description of function that is used to implement skeleton overlay...
 
 \end{document}
