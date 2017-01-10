@@ -189,11 +189,14 @@ January 5, 2017 & 0.0 & File created\\
 
 \section{Text To Motion - ASP.NET Application}
 
+
+\subsection{Overview}
+
+...might be a good place to mention .net MVC. Mention of how sections will be about Models, Controllers (referencing views)...
+
 \subsection{Dependency Injection}
 
 ...describe anything important that is in project.json...
-
-...might be a good place to mention .net MVC. The next section will describe the models and the sections after that will each be dedicated to Controller and its functions.The contents of the section will include mentions to the VIEWS returned and the MODELS used...
 
 \subsection{Models}
 
@@ -234,16 +237,59 @@ January 5, 2017 & 0.0 & File created\\
 
 ...
 
+\break
 
 \section{Flowing Convnets - Human Pose Estimation}
 
-\subsection{Caffe}
+\subsection{Overview}
 
-...
+This component of the project actually renders the skeleton overlay onto an image submitted to the website.
+\\
+Mapping out the joints of a person in an image requires the use of image manipulation and deep learning libraries. As of now, this proces is implemented with \textbf{Caffe} and \textbf{OpenCV} in \textbf{C++}.
+\\
+\\
+**The parameters for functions given below will reference 'caffe' and 'cv' types in c++
+
+
 
 \subsection{Shared Object File}
 
-...
+The website is able to take an uploaded image and process it by using a shared object file (.so). The web app can make function calls to functions in the shared object file and pass in images as the parameters.
+
+
+\subsection{Pose Estimation C Program}
+
+To create the shared object file, the C++ function that interfaces with Caffe and OpenCV is extended into a C function.
+\\\\
+The C file \textbf{"estimate\_pose\_wrapper.c"} just contains one function.
+\\\\
+\textbf{function: estimate\_pose\_wrapper: (args)}
+\begin{itemize}
+    \item \textbf{Expects Arguments:}
+
+    void * image
+
+    uint32\_t *size\_bytes
+
+    uint32\_t max\_size\_Bytes
+
+    \item \textbf{Returns:}
+
+    if image is processed, returns \textbf{int32\_t size}
+    \\(describing size of file that was uploaded)
+    \\\\
+    else returns error object
+
+    \item \textbf{Description:}
+
+    this function makes a call to a C++ function in \textbf{"estimate\_pose.c"} which has a defined function prototype for C programs. This wrapper function returns the result of that C++ function call.
+    \\
+    The C++ funciton also has the same args as this function
+    \\\\
+    \textbf{referenced function name: estimate\_pose\_from\_c(args)}
+
+\end{itemize}
+
 
 \subsection{Pose Estimation C++ Program}
 
