@@ -245,57 +245,278 @@ January 5, 2017 & 0.0 & File created\\
 
 This component of the project actually renders the skeleton overlay onto an image submitted to the website.
 \\
-Mapping out the joints of a person in an image requires the use of image manipulation and deep learning libraries. As of now, this proces is implemented with \textbf{Caffe} and \textbf{OpenCV} in \textbf{C++}.
-\\
-\\
-**The parameters for functions given below will reference 'caffe' and 'cv' types in c++
+Mapping out the joints of a person in an image requires the use of image manipulation and deep learning libraries. As of now, this proces is based on a research paper and is implemented with \textbf{Caffe} and \textbf{OpenCV} in \textbf{C++}. (*The parameters for functions given below will reference 'caffe' and 'cv' types in c++)
 
 
 
 \subsection{Shared Object File}
 
 The website is able to take an uploaded image and process it by using a shared object file (.so). The web app can make function calls to functions in the shared object file and pass in images as the parameters.
-
-
-\subsection{Pose Estimation C Program}
-
-To create the shared object file, the C++ function that interfaces with Caffe and OpenCV is extended into a C function.
 \\\\
-The C file \textbf{"estimate\_pose\_wrapper.c"} just contains one function.
+The C++ file \textbf{"estimate\_pose.cpp"} contains all of the functions that interface with Caffe and OpenCV. The C file \textbf{"estimate\_pose\_wrapper.c"} is used to wrap the C++ function in C, and create the shared object file so that the C++ function can be accessed from the website.
+
+\subsection{Pose Estimation C Program (estimate\_pose\_wrapper.c)}
+The file \textbf{"estimate\_pose\_wrapper.c"} just contains 1 function. This function references a C++ function in \textbf{estimate\_pose.cpp}
 \\\\
-\textbf{function: estimate\_pose\_wrapper: (args)}
+\textbf{function: int32\_t estimate\_pose\_wrapper(args)}
 \begin{itemize}
-    \item \textbf{Expects Arguments:}
+    \item \textbf{Expected Arguments:}
 
-    void * image
+    void\quad\textit{*image}
+    \\
+    uint32\_t\quad\textit{*size\_bytes}
+    \\
+    uint32\_t\quad\textit{max\_size\_Bytes}
 
-    uint32\_t *size\_bytes
+    \item\quad\textbf{Returns:}
 
-    uint32\_t max\_size\_Bytes
-
-    \item \textbf{Returns:}
-
-    if image is processed, returns \textbf{int32\_t size}
-    \\(describing size of file that was uploaded)
+    if \textit{image} is processed and saved, returns:\\\textbf{int32\_t size}
+    (describing size of file that was uploaded)
     \\\\
     else returns error object
 
     \item \textbf{Description:}
 
-    this function makes a call to a C++ function in \textbf{"estimate\_pose.c"} which has a defined function prototype for C programs. This wrapper function returns the result of that C++ function call.
+    this function makes a direct call to the C++ function \textbf{"estimate\_pose\_from\_c"} in \textbf{"estimate\_pose.cpp"} and simply returns the result of that C++ function call.
     \\
-    The C++ funciton also has the same args as this function
+    The C++ function takes in the same args as this function
+\end{itemize}
+
+\subsection{Pose Estimation C++ Program (estimate\_pose.cpp)}
+
+This C++ Program file contains 8 functions. All of these functions take in objects from the 'openCV'(cv) and 'Caffe'(caffe) libraries as arguments
+\\\\
+The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of the functions serve as helpers to this function
+\\\\
+\textbf{List of Functions and Descriptions (PE = Pose Estimation):}
+\\
+\subsubsection{PE function 1: void channels\_from\_blob(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    std::vector\textless cv::Mat\textgreater\quad\textit{channels}
+    \\
+    boost::shared\_ptr\textless caffe::Blob\textgreater\quad\textit{blob}
+    \\
+    int32\_t\quad\textit{width}
+    \\
+    int32\_t\quad\textit{height}
+
+    \item \textbf{Returns:}
+
+    void (saves data into \textit{channels})
+
+    \item \textbf{Description:}
+
+    The \textit{blob} object contains concatenated mulit-channel data
+    \\
+    The \textit{channels} object is empty to begin with
+    \\
+    This function converts the raw data in a Caffe blob into a 'container of channels' (vector of openCV matrices)
+    \\
+    The \textit{width} and \textit{heigth} parameters let the program know what the dimensions of the channels are in the \textit{blob}
+    \\
+    The extracted information from \textit{blobs} is saved into the \textit{channels} vector
     \\\\
-    \textbf{referenced function name: estimate\_pose\_from\_c(args)}
+    This function is just used as a helper for other functions
+\end{itemize}
+
+
+\subsubsection{PE function 2: void copy\_image\_to\_input\_blob(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    caffe::Net \textless float\textgreater\quad\textit{heatmap\_net}
+    \\
+    cv::Mat\quad\textit{image}
+
+    \item \textbf{Returns:}
+
+    void (saves data into \textit{heatmap\_net})
+
+    \item \textbf{Description:}
+
+    This function converts the \textit{image} object from OpenCV BGR format to 32-bit-floating point RGB format and copies the image to the input blob of \textit{heatmap\_net}. It lso divides the input layer of the \textit{heatmap\_net} from a multi-channel array into several single-channel arrays by calling a helper function
+    \\
+    \textit{image} is the image that will serve as the input layer to the caffe network
+    \\
+    \textit{heatmap\_net} is the caffe network that will get its input layer filled with the RGB pixel data from \textit{image}
+    \\\\
+    This function makes a call to \textbf{PE-cpp function 1} when it splits up the newly updated image in \textit{heatmap\_net}'s input layer into several 'input\_channels'
+\end{itemize}
+
+
+\subsubsection{PE function 3: void get\_joints\_from\_network(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    cv::Point \quad\textit{*joints}
+    \\
+    cv::Size \quad\textit{channel\_size}
+    \\
+    caffe::Net\textless float\textgreater\quad\textit{heatmap\_net}
+
+    \item \textbf{Returns:}
+
+    void (saves data into \textit{joints})
+
+    \item \textbf{Description:}
+
+    This function uses the \textit{heatmap\_net}'s "conv5\_fusion" layer to get a set of joint locations for that heatmap.
+    \\
+    The joint locations get saved into \textit{*joints}
+    \\
+    The \textit{channel\_size} is used to maintain the accuracy of the position of the joints relative to the image as the image matrix is resized multiple times
+    \\\\
+    This function makes a call to \textbf{PE-cpp function 1} when it uses the \textit{heatmap\_net} to save all of the joint locations in a 'joint\_channel' vector of cv::Mat objects
+\end{itemize}
+
+
+\subsubsection{PE function 4: void draw\_skeleton(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    cv::Mat \quad\textit{image}
+    \\
+    cv::Point \quad\textit{*joints}
+
+    \item \textbf{Returns:}
+
+    void (saves image data into \textit{image})
+
+    \item \textbf{Description:}
+
+    This function uses the joint\_locations described in \textit{*joints} to draw an upper-body skeleton on the \textit{image} matrix passed in.
+    \\
+    \textit{image} is the image to draw the skeleton overlay on
+    \\
+    \textit{*joints} contain the locations for the set of joints (wrists, elbows, shoulders and head)
+\end{itemize}
+
+\subsubsection{PE function 5: std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater init\_pose\_estimator\_network(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    std::string\quad\textit{model}
+    \\
+    std::string\quad\textit{trained\_weights}
+
+    \item \textbf{Returns:}
+
+    \textbf{std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater} heatmap\_net
+    \\
+    pointer to an object that represents a whole caffe network
+
+    \item \textbf{Description:}
+
+    This function creates a Caffe network and copies over the trained layers from a given option for \textit{trained\_weights}
+    \\
+    For this application, a caffe network is initialized with the default settings:
+    \\
+    (\textit{model} = 'MODEL\_DEFAULT', \textit{trained\_weights} = TRAINED\_WEIGHTS\_DEFAULT)
+\end{itemize}
+
+
+\subsubsection{PE function 6: void image\_pose\_overlay(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    caffe::Net\textless float\textgreater\quad\textit{heatmap\_net}
+    \\
+    cv::Mat\quad\textit{image}
+
+    \item \textbf{Returns:}
+
+    void (saves to \textit{image})
+
+    \item \textbf{Description:}
+
+    This function processes the \textit{image} passed in using the \textit{heatmap\_net} to draw a skeleton on the openCV Matrix
+    \\\\
+    Details on the actions taken by the function:
+    \begin{enumerate}
+        \item Resizes \textit{image} to 256x256
+
+        \item calls \textbf{PE function 2} to copy the image into the input layer of the \textit{heatmap\_net}
+
+        \item after allowing the network to extract some data, declares an array object of cv::Point called \textit{joints}
+
+        \item calls \textbf{PE function 3} to load in joint locations into \textit{joints}
+
+        \item converts image to a format so that it can be drawn on by the program
+
+        \item calls \textbf{PE function 4} to draw the skeleton overlay on top of the \textit{image}
+    \end{enumerate}
+\end{itemize}
+
+
+\subsubsection{PE function 7: void square\_image\_with\_borders(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    cv::Mat\quad\textit{image\_mat}
+
+    \item \textbf{Returns:}
+
+    void (saves image data to \textit{image\_mat})
+
+    \item \textbf{Description:}
+
+    If the image's dimensions do not fit a square (length != width), this function makes it so that the image dimensions are expanded so that it fits into a square
+    \\
+    This is to avoid distorting the image drastically when the image is resized to 256x256
+    \\\\
+    This is just a simple helper function to pre-process the image
+\end{itemize}
+
+
+
+\subsubsection{PE function 8: int32\_t estimate\_pose\_from\_c(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    void\quad\textit{*image}
+    \\
+    uint32\_t\quad\textit{*size\_bytes}
+    \\
+    unit32\_t\quad\textit{max\_size\_bytes}
+
+    \item \textbf{Returns:}
+
+    if \textit{image} is processed and saved, returns:\\\textbf{int32\_t size}
+    (describing size of file that was uploaded)
+    \\\\
+    else returns error object
+
+    \item \textbf{Description:}
+
+    This function is the key method in this file. This function overwrites the contents of the memory allocated for \textit{*image} so that a given image is updated to show the skeleton overlay on that image
+    \\\\
+    This function creates a new Caffe network and calls a lot of helper functions needed to process the \textit{image}
+    \\\\
+    Details on the actions taken by the function:
+    \begin{enumerate}
+        \item calls \textbf{PE function 5} to create a new caffe Network, stores new network in \textit{heatmap\_net}
+
+        \item uses \textit{*image} and \textit{*size\_bytes} to create a cv::InputArray object to represent the uploaded image
+
+        \item creates a cv::Mat image matrix, and decodes the contents of the cv::InputArray object into the newly created matrix object
+
+        \item calls \textbf{PE function 7} to pre-process the image matrix to reaffirm that the image is square
+
+        \item calls \textbf{PE function 6} using \textit{heatmap\_net} and the image matrix so that the image\_matrix includes the skeleton overlay
+
+        \item converts and compresses the image\_matrix into a png
+
+        \item finally, overwrites the contents of \textit{*image} with the newly created image that has the pose estimation 'skeleton overlay'
+    \end{enumerate}
 
 \end{itemize}
 
 
-\subsection{Pose Estimation C++ Program}
 
-...
 
-\section{**Development**}
+\section{Features In Development}
 
 \subsection{Video Estimation C++ Program}
 
