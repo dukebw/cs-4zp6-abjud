@@ -148,20 +148,51 @@ January 5, 2017 & 0.0 & File created\\
 \chapter{Overview}
 The Text to Motion Database aims to provide a living database of pose estimation and word pairings. This purpose of this document is to provide a detailed description of the design choices for each section of the Text to Motion Database. 
 
-\chapter{Anticipated and Unlikely Changes}
-
-\section{Anticipated Changes}
-It is not expected that the Text to Motion Database will require changes to the web interface or functionality of running pose estimation on uploaded images and video. The area that are expected to have changes are the command line processing, and specific application use for the database.
-\section{Unlikely Changes}
-
-
 \chapter{User Experience}
+The following section is used to describe the user expierence while using the web interface. The user expierence is meant to describe the users journey between web pages and the design choices that were made with respect to the user interface.
 
 \section{User Journey}
-\section{Home Page}
-\section{Image Pose Draw}
-\section{Command Line}
+When a user first lands on the web interface they will see the home page. At this point of development they will see a header with additional tabs, some information about the application, the software used, and breif instructions for the website. Looking at Figure 1 the next step will be to use one of the tabs found in the header to sign in, register, view the contact information, learn more about the application, or access the deep learning algorithm to view pose estimated images and video. Upon logging in the user will be taken back to the home page with the ability to create new pose estimated images and video, if the user registered they will be taken to the Log In screen where after logging on they are taken to the home page with the ability to now log out.
 
+If the user attempts to upload a new image while they are not logged in they will be taken to the Log In screen and after successfuly logging in they will return to the previous page. This process will be repeated if any additonal functions of the website require the user to be logged in, they will be taken to the log in screen and returned to the previous page after successfuly logging in.
+
+\section{Home Page}
+When first ariaving on the website the user should be greated with a clean design that informs them of their options without feeling congested or difficult to understand. The home page current contains plain text to describe the websites function as a Text to Motion Database, along with the additonal softwares used, and instructions. Currently the desing doesn't contain any information about the deep learning algorithm or instructions as an image or video but will be updated to include a user friendly view that catches the eye and keeps the user on the website. In order to keep the users attention the header bar is easy to use and see in order to allow the user quick navigation to other web pages.
+
+\section{About}
+The about page contains a high level description of the project overview, problem statement, and what the websites intended function is. The page uses simple plain text but may be updated to include descriptive images or media to better describe the projects overview or function.
+
+\section{Contact}
+The contact page has the contact infromation for each group member, along with the internal supervisor, and external supervisors. It uses plain text for the information and clearly labels vital information like email addresses, and positions within the project.
+
+\section{Header}
+In order to easily find and access the ability to navigate between pages the header remains at the top of the page with all tabs in the same location. This allows users to create an association between the structure of the header and where they should look to preform an action. Remaining in the same location helps the user expierence and usability of the website.
+
+\section{Log In}
+When navigating to the log in page the use is meet by a visually clean page, with two text boxes labeled username and password. The text boxes and button below labeled Log In helps eliminate confusion about the page, and helps inform the user of the pages functionality.
+
+\section{Register}
+Following the same design as the log in page the register page displays a visually clean page, with labeled text boxes to create a username, passowrd, and confirm the previously entered password.
+
+\section{Text To Motion}
+The ability to search the database for a pose estimated image or video is preformed on this page and visually informs the user that through the large search bar and image at the center of the page. 
+
+\subsection{Search Results}
+Once the search bar has recieved input it will parse through the database and existing uploads to return tags that match or have strong ressemblence of the input in a column format. 
+
+\section{Image Pose Draw}
+After landing on the page labeled Image Pose Draw the user is greated by a table that with a Name, Descriptions, and three labeled hyperlinks. This is where the most recent uploads are displayed with the name and description given during the upload and the pose estiamted media that was uploaded. Looking beyond the table there is a text box labeled Search that allows the user to search through the uploaded images and a hyperlinked label Create that allows the user to upload a new image for pose estimation.
+
+This is the most visually complex screen but is seperated and organized to direct the users attention to the table first and notice the create and search functions after they understand what the page contains. The table conatins simple information and follows typical conventions for labels and hyperlinks that can preform a task in order to help the user understand what will happen as they click or update information. It also seperates the Name from the Desription by using seperate background colours in order to help the user differntiate between the two subsections. The search bar is positioned to the upper right of the table itself to help create the relationship of searching within the table itself. Following the conventions used within the table the Create is hyperlinked in order to promote clicking on it to preform the labels task which takes the user to upload a new image. 
+
+\subsection{Create}
+Once the user has navigated to the create page they have the ability to upload new media in order to be pose esimated and stored within the database. Uploading the image allows the user to chose an image from storage or by url. In addition to uploading the image there are two text boxes that allow the user to provide a name for the image and short description to provide some information on their uploaded image. Once these steps have been completed using the button labeled create will upload the image and return the user to the ImagePoseDraw page upon completion in order to inform them the task has been completed.
+
+\subsection{Description}
+In order to see the uploaded media the user can use the name that the image was uplaoded with by using the search box or sorting alphabetically. After the upload was located the user can edit the tags of the image, delete the image and tages, or view the pose estimated media. If the user decides to edit the upload they are taken to a new screen and given the options to change the Name or Description that was preiously input but the media itself can not be changed. If the user wants to remove the or change their upload they have to first delete their previous upload using the Delete option and go through the steps of creating again. Lastly if the user wants to view the media that has been pose estimated they need to use the Details option which will take them to a new page.
+
+\subsection{Details}
+Once on the details page the user sees the Name and Description that was uploaded and the media which currently estimates the chin, and upper arms. Each section is cleary defines with joints being represnted by red circles and arm sections being represented by green lines. This shows the user where the algorithm believes the labeled sections are and the seperation of colour allows for an easy understanding of the positioning. 
 
 \chapter{Database Structure}
 
