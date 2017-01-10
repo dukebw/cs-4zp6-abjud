@@ -21,6 +21,14 @@ tf.app.flags.DEFINE_string('data_dir', '.',
 tf.app.flags.DEFINE_string('log_dir', './log',
                            """Path to take summaries and checkpoints from, and
                            write them to.""")
+tf.app.flags.DEFINE_string('checkpoint_path', None,
+                           """Path to take checkpoint file (e.g.
+                           inception_v3.ckpt) from.""")
+tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', None,
+                           """Comma-separated list of scopes to exclude when
+                           restoring from a checkpoint.""")
+tf.app.flags.DEFINE_string('trainable_scopes', None,
+                           """Comma-separated list of scopes to train.""")
 
 tf.app.flags.DEFINE_integer('image_dim', 299,
                             """Dimension of the square input image.""")
@@ -97,7 +105,7 @@ def _sparse_joints_to_dense(training_batch, num_joint_coords):
     return dense_joints, weights
 
 
-def _inference(training_batch, num_joint_coords, scope):
+def _inference(training_batch, num_joint_coords):
     """Sets up an Inception v3 model, computes predictions on input images and
     calculates loss on those predictions based on an input sparse vector of
     joints (the ground truth vector).
@@ -111,7 +119,6 @@ def _inference(training_batch, num_joint_coords, scope):
             vectors.
         num_joint_coords: Total number of joint co-ordinates, where (x0, y0)
             counts as two co-ordinates.
-        scope: The name scope (for summaries, debugging).
 
     Returns:
         Tensor giving the total loss (combined loss from auxiliary and primary
@@ -120,8 +127,7 @@ def _inference(training_batch, num_joint_coords, scope):
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(inception.inception_v3_arg_scope()):
             logits, endpoints = inception.inception_v3(inputs=training_batch.images,
-                                                       num_classes=num_joint_coords,
-                                                       scope=scope)
+                                                       num_classes=num_joint_coords)
 
             _summarize_inception_model(endpoints)
 
@@ -188,6 +194,24 @@ def _setup_optimizer(batch_size,
     return global_step, optimizer
 
 
+def _get_variables_to_train():
+    """Returns the set of trainable variables, given by the `trainable_scopes`
+    flag if passed, or all trainable variables otherwise.
+    """
+    if FLAGS.trainable_scopes is None:
+        return tf.trainable_variables()
+
+    scopes = [scope.strip() for scope in FLAGS.trainable_scopes.split(',')]
+
+    variables_to_train = []
+    for scope in scopes:
+        variables = tf.get_collection(key=tf.GraphKeys.TRAINABLE_VARIABLES,
+                                      scope=scope)
+        variables_to_train.extend(variables)
+
+    return variables_to_train
+
+
 def _setup_training_op(training_batch,
                        num_joint_coords,
                        global_step,
@@ -204,15 +228,40 @@ def _setup_training_op(training_batch,
     Returns: Operation to run a training step.
     """
     with tf.device(device_name_or_function='/gpu:0'):
-        with tf.name_scope(name='tower0') as scope:
-            loss = _inference(training_batch, num_joint_coords, scope)
+        loss = _inference(training_batch, num_joint_coords)
 
-            train_op = slim.learning.create_train_op(
-                total_loss=loss,
-                optimizer=optimizer,
-                global_step=global_step)
+        train_op = slim.learning.create_train_op(
+            total_loss=loss,
+            optimizer=optimizer,
+            global_step=global_step,
+            variables_to_train=_get_variables_to_train())
 
     return train_op
+
+
+def _get_init_pretrained_fn():
+    """Returns a function that initializes the model in the graph of a passed
+    session with the variables in the file found in `FLAGS.checkpoint_path`,
+    except those excluded by `FLAGS.checkpoint_exclude_scopes`.
+    """
+    if FLAGS.checkpoint_path is None:
+        return None
+
+    exclusions = [scope.strip()
+                  for scope in FLAGS.checkpoint_exclude_scopes.split(',')]
+
+    variables_to_restore = []
+    for var in slim.get_model_variables():
+        excluded = False
+        for exclusion in exclusions:
+            if var.op.name.startswith(exclusion):
+                excluded = True
+                break
+        if not excluded:
+            variables_to_restore.append(var)
+
+    return slim.assign_from_checkpoint_fn(model_path=FLAGS.checkpoint_path,
+                                          var_list=variables_to_restore)
 
 
 def train():
@@ -251,6 +300,7 @@ def train():
                 logdir=FLAGS.log_dir,
                 log_every_n_steps=10,
                 global_step=global_step,
+                init_fn=_get_init_pretrained_fn(),
                 session_config=tf.ConfigProto(allow_soft_placement=True))
 
 
