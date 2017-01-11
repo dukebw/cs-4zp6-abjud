@@ -388,7 +388,7 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
 
     \item \textbf{Description:}
 
-    This function uses the \textit{heatmap\_net}'s "conv5\_fusion" layer to get a set of joint locations for that heatmap.
+    This function uses the \textit{heatmap\_net}'s "conv5\_fusion" layer to get a set of joint locations for that heatmap. (This layer is derived from the research paper used)
     \\
     The joint locations get saved into \textit{*joints}
     \\
@@ -540,20 +540,25 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
 \end{itemize}
 
 
-
+\break
 
 \section{Features In Development}
 
-\subsection{Video Estimation C++ Program}
+\subsection{Pose Estimation For Videos (C++)}
 
-...
+Since a video can be considered as just a set (or array) of images, this pose estimation algorithm can be executed on videos as well as images. At this point in the project,a C++ program does exist that references a function from the file \textbf{"estimate\_pose.cpp"} to analyze videos, but the code has not been finalized. It is also far too slow to be used from a web interface.
+\\\\
+Since this functionality is not a part of the system yet, this module was not given a formal declaration/definition. In addition to the reasons mentioned above, the Caffe submodule as a whole will soon be replaced by a newer deep learning framework described in the section below (Tensorflow). So this module is not going to be included in the final revision of this document
+
 \subsection{Tensorflow}
 
-..just mention to the possibility of using it...
+Moving Forward, the Caffe deep learning framework (C++) will be replaced by Tensorflow. Tensorflow is a newer framework with more support for developers compared to Caffe. Tensorflow is a library in Python that can generate graphs needed for neural networks and deep learning algorithms. Replacing the deep learning framework will not drastically change the logic of the web application. The web application would just refer to a different kind of executable when processing an uploaded image (it refers to a shared object file as of now).
+\\\\
+The project repository contains several test Python files and functions that work with the simpler aspects of Tensorflow. These are attempts at trying to learn Tensorflow and the functions or files are not referenced by the ASP.NET web app at all. Since these files are separate from the functionality of the main application, these modules detailing Tensorflow test code have not been included in the design documentation.
 
 \subsection{Standalone HTTP Server}
 
-...
+
 
 \chapter{Communication Protocol}
 
