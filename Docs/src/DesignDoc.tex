@@ -146,64 +146,70 @@ January 5, 2017 & 0.0 & File created\\
 \pagenumbering{arabic}
 
 \chapter{Overview}
-The Text to Motion Database aims to provide a living database of pose estimation and word pairings. This purpose of this document is to provide a detailed description of the design choices for each section of the Text to Motion Database. 
+The Text to Motion Database aims to provide a living database of pose estimated media with word pairings and tags. The purpose of this document is to provide a detailed description of the design choices for each section of the Text to Motion Database. 
 
 \chapter{User Experience}
-The following section is used to describe the user expierence while using the web interface. The user expierence is meant to describe the users journey between web pages and the design choices that were made with respect to the user interface.
+A user experience is the overall journey of a person on the Text to Motion Database with respects to the learnability and usability. This section is organized to describe the journey between web pages and any design choices that went into the user interface in order to improve the overall experience.
 
 \begin{figure}[!ht]
-        \caption{McMaster Text-to-Motion Database User Expierence}
+        \caption{McMaster Text-to-Motion Database User Experience}
         \label{userExp}
         \centering
         \includegraphics[width=0.8\textwidth]{../data/UserExperience.png}
 \end{figure}
 
 \section{User Journey}
-When a user first lands on the web interface they will see the home page. At this point of development they will see a header with additional tabs, some information about the application, the software used, and breif instructions for the website. Looking at Figure 1 the next step will be to use one of the tabs found in the header to sign in, register, view the contact information, learn more about the application, or access the deep learning algorithm to view pose estimated images and video. Upon logging in the user will be taken back to the home page with the ability to create new pose estimated images and video, if the user registered they will be taken to the Log In screen where after logging on they are taken to the home page with the ability to now log out.
-
-If the user attempts to upload a new image while they are not logged in they will be taken to the Log In screen and after successfuly logging in they will return to the previous page. This process will be repeated if any additonal functions of the website require the user to be logged in, they will be taken to the log in screen and returned to the previous page after successfuly logging in.
+As seen in the Figure above when a user comes to the Text to Motion Database they will see the home page. At first glance they see some information about the website and how it can be used along with some different page options located at the top. Each of these different pages displays something different and is hinted at within the name of the page; with ImagePoseDraw being the most ambiguous. All the pages can be accessed by an anonymous user but in order to upload media a user must register or sign in. Each page will be described in greater detail below with additional functionality and design choices. 
 
 \section{Home Page}
-When first ariaving on the website the user should be greated with a clean design that informs them of their options without feeling congested or difficult to understand. The home page current contains plain text to describe the websites function as a Text to Motion Database, along with the additonal softwares used, and instructions. Currently the desing doesn't contain any information about the deep learning algorithm or instructions as an image or video but will be updated to include a user friendly view that catches the eye and keeps the user on the website. In order to keep the users attention the header bar is easy to use and see in order to allow the user quick navigation to other web pages.
+As previously mentioned the first page seen on the Text to Motion Database is the home page, it contains an application description, resources that were used, and brief instructions on how to use the website. The overall design of the page was to be simple and present the information to the user front and center so that they could explore the options given to them on their own.
 
 \section{About}
-The about page contains a high level description of the project overview, problem statement, and what the websites intended function is. The page uses simple plain text but may be updated to include descriptive images or media to better describe the projects overview or function.
+The about page is a more granular description of the Text to Motion Database’s overview, problem statement and what the intended use of the website is. Like the home page a simple design and colour scheme was chosen along with plain text for easier reading. 
 
 \section{Contact}
-The contact page has the contact infromation for each group member, along with the internal supervisor, and external supervisors. It uses plain text for the information and clearly labels vital information like email addresses, and positions within the project.
+The contact page maintains the overall look and feel of the website with plain text and induvial boxes for the contact information of each group member and supervisors. Every box contains the member’s name, and email at minimum with the addition of titles for each supervisor and the department for each group member. 
 
-\section{Header}
-In order to easily find and access the ability to navigate between pages the header remains at the top of the page with all tabs in the same location. This allows users to create an association between the structure of the header and where they should look to preform an action. Remaining in the same location helps the user expierence and usability of the website.
+\section{Navigation Bar}
+In order to maintain an easy way to navigate the website the navigation bar located at the top of the page contains links to each page with fixed locations. This allows the users to learn the link location and makes for a more enjoyable experience. 
 
 \section{Log In}
-When navigating to the log in page the use is meet by a visually clean page, with two text boxes labeled username and password. The text boxes and button below labeled Log In helps eliminate confusion about the page, and helps inform the user of the pages functionality.
+If the user has already made an account with the Text to Motion Database they can use the login page to access the account in order to upload images and video. While on the login page before successfully logging in the page location on the navigation bar is in the far right corner, and after logging in is replaced by the option to log off.
+From a design standpoint the login page contains two text boxes for entry, an option for the username to be remembered, a login button, and hyperlinks to register or recover a lost password. Overall it is a very standard login screen and should help a first time user navigate through without any confusion or misunderstanding. 
 
 \section{Register}
-Following the same design as the log in page the register page displays a visually clean page, with labeled text boxes to create a username, passowrd, and confirm the previously entered password.
+If the user has not already made an account and wishes to do so the option to register can be accessed from the navigation bar or the login page. It follows the same website standards that the login page does and has three text boxes for a username, password and password confirmation along with the button to complete a registration. Once a user has made and account or successfully logged in the register option in the navigation bar will be replaced by a greeting and take them to the account management options which at revision 0 are not fully complete.
 
 \section{Text To Motion}
-The ability to search the database for a pose estimated image or video is preformed on this page and visually informs the user that through the large search bar and image at the center of the page. The usability of the page is quickly determined as the user has a single clear option for the search bar with an image that helps them determine they are searching through a database.
+Searching the database is not restricted by the users account and can be accessed by anyone since it is one of the core features of the Text to Motion Database. The ability to search through the pose estimated data is done through the large search bar on the page, helping the user focus on it in order to explain the pages functionality. 
 
 \subsection{Search Results}
-Once the search bar has recieved input it will parse through the database and existing uploads to return uploads that match or have strong ressemblence of the input in a column format. Each result will take the user to a seperate page with the Name, Description and pose estimated media. The layout of the results shows the user what was returned without any additional information to promote the usability and accuracy of the search.
+Once the search bar has received input it will parse through the database to return uploads that match or have strong resemblance of the input in a column format. Each result will take the user to a separate page with the Name, Description and pose estimated media. The layout of the results shows the user what was returned without any additional information to promote the usability and accuracy of the search.
 
 \section{Image Pose Draw}
-After landing on the page labeled Image Pose Draw the user is greated by a table that with a Name, Descriptions, and three labeled hyperlinks. This is where the most recent uploads are displayed with the name and description given during the upload and the pose estiamted media that was uploaded. Looking beyond the table there is a text box labeled Search that allows the user to search through the uploaded images and a hyperlinked label Create that allows the user to upload a new image for pose estimation.
-
-This is the most visually complex screen but is seperated and organized to direct the users attention to the table first and notice the create and search functions after they understand what the page contains. The table conatins simple information and follows typical conventions for labels and hyperlinks that can preform a task in order to help the user understand what will happen as they click or update information. It also seperates the Name from the Desription by using seperate background colours in order to help the user differntiate between the two subsections. The search bar is positioned to the upper right of the table itself to help create the relationship of searching within the table itself. Following the conventions used within the table the Create is hyperlinked in order to promote clicking on it to preform the labels task which takes the user to upload a new image. 
+Once the user has navigated to the page labeled ImagePoseDraw the initial view is that of a table with names, descriptions and hyperlinks. This is currently where the most recent uploads are displayed with the name and description that were given during the uploading process. The table is designed to separate each upload through a dark and light shading in order to easy distinguish two different entries. Beyond the table the page has two other key functions in the ability to search through the table with by the name or description, and create new pose estimated uploads through the hyperlink above the table. 
 
 \subsection{Create}
-Once the user has navigated to the create page they have the ability to upload new media in order to be pose esimated and stored within the database. Uploading the image allows the user to chose an image from storage or by url. In addition to uploading the image there are two text boxes that allow the user to provide a name for the image and short description to provide some information on their uploaded image. Once these steps have been completed using the button labeled create will upload the image and return the user to the ImagePoseDraw page upon completion in order to inform them the task has been completed.
+If the option to create a new entry has been selected the user is taken to a new page where they have the ability to upload a new image in order to be pose estimated and stored within the database. Choosing the image to upload can be done from a URL or internal storage and opens a file explorer when selected. After an image has been picked the user has to provide a name and description to the image before it has been pose estimated to be stored in the database and provide a search option. Upon completion of the above steps the image can be uploaded, taking the user back to the ImagePoseDraw page with the new entry after the processing has happened.
 
 \subsection{Description}
-In order to see the uploaded media the user can use the name that the image was uplaoded with by using the search box or sorting alphabetically. After the upload was located the user can edit the tags of the image, delete the image and tages, or view the pose estimated media. If the user decides to edit the upload they are taken to a new screen and given the options to change the Name or Description that was preiously input but the media itself can not be changed. If the user wants to remove the or change their upload they have to first delete their previous upload using the Delete option and go through the steps of creating again. Lastly if the user wants to view the media that has been pose estimated they need to use the Details option which will take them to a new page.
+In order to see the uploaded media the user can use the name associated with an image to find it by searching or scrolling through alphabetically. After the upload is located the user can edit the tags of the image, delete the image and tags, or view the pose estimated media. Deciding to edit the upload takes them to a new screen where the options to change the name or description that was previously input are given. As of revision 0 if the user wants to remove or change their uploaded image they have to first delete the previous entry using the Delete option and go through the steps of creating again. If the user wants to view the selected entry the details option will take them to a new page to view this.
 
 \subsection{Details}
-Once on the details page the user sees the Name and Description that was uploaded and the media which currently estimates the chin, and upper arms. Each section is cleary defines with joints being represnted by red circles and arm sections being represented by green lines. This shows the user where the algorithm believes the labeled sections are and the seperation of colour allows for an easy understanding of the positioning. 
+On the details page the user can see the name and description that was chosen at the time of the upload and the image that was been pose estimated to show the chin, and upper arms. Each section of the image is clearly defined with the chin and joints being represented by red circles and the upper arms being represented by two green lines connected at a joint. This shows the user where the algorithm believes the labeled sections are and the separation of colour allows for an easy understanding of the positioning. 
 
 \chapter{Database Structure}
 
 \section{Database Schema}
+The Figure below shows an entity relationship diagram for the current itteration of the database schema.
+
+\begin{figure}[!ht]
+        \caption{Database Entity-Relationship Diagram}
+        \label{erDiagram}
+        \centering
+        \includegraphics[width=0.8\textwidth]{../data/ER-Diagram.png}
+\end{figure}
+
 \section{Table Description}
 
 \chapter{Module Decomposition}
@@ -212,10 +218,10 @@ Once on the details page the user sees the Name and Description that was uploade
 
 
 \subsection{Overview}
-This component of the application is used to display the web interface and responsible for linking the database and pose estimation. In order to preform these tasks 'ASP.net' and the Model, View, Controller (MVC) structure are utilized. A general description of additions or customizations to the 'ASP.net' code along with the argument types, models used, and veiw output will be outlined below.
+This component of the application is used to display the web interface and responsible for linking the database and pose estimation. In order to perform these tasks 'ASP.net' and the Model, View, Controller (MVC) structure is utilized. A general description of additions or customizations to the 'ASP.net' code along with the argument types, models used, and view output will be outlined below.
 
 \subsection{Models}
-Two Models were addded to the given code from 'ASP.net' in order to store data on the image that has been pose estimated and any account information specific to a user.
+Two Models were added to the given code from 'ASP.net' in order to store data on the image that has been pose estimated and any account information specific to a user.
 
     \begin{itemize}
       \item \textbf  ApplicationUsers
@@ -223,12 +229,10 @@ Two Models were addded to the given code from 'ASP.net' in order to store data o
 
       \item \textbf  PoseDrawnImage
       PoseDrawnImage uses the {get; set;} property to store the ID, Description and Name for a given image.
-      \begin{itemize}
-        \item int ID
-        \item string Name
-        \item string Description
-      \end{itemize}
-
+        int ID
+        string Name
+        string Description
+      
     \end{itemize}
 
 \subsection{HomeController}
@@ -237,7 +241,7 @@ The HomeController is a simple controller that is used to display the Index, Abo
   \textbf Function: Index()
   \begin{itemize}
     \item Expected Arguments:
-
+    NA
     \item Returns:
     The view of Index.cshtml.
     \item Description:
@@ -246,8 +250,8 @@ The HomeController is a simple controller that is used to display the Index, Abo
 
   \textbf Function: About()
   \begin{itemize}
-  \item Expected Arguments:
-    
+    \item Expected Arguments:
+    NA
     \item Returns:
     The view of About.cshtml.
     \item Description:
@@ -257,7 +261,7 @@ The HomeController is a simple controller that is used to display the Index, Abo
   \textbf Function: Contact()
   \begin{itemize}
     \item Expected Arguments:
-    
+    NA
     \item Returns:
     The view of Contact.cshtml.
     \item Description:
@@ -276,7 +280,7 @@ The AccountController is used in order to verify Register and Login information 
     \item Description:
     Displays the Login page and stores the ReturnUrl to be taken back.
   \end{itemize}
-
+  \\
   \textbf Function HTTP[Post] Login(args)
   \begin{itemize}
     \item Expected Arguments:
@@ -284,9 +288,9 @@ The AccountController is used in order to verify Register and Login information 
     string returnUrl = null;
     \item Returns:
     The user to the previous page if complete.
-
+    \\
     Locks the user out if the number of attempts are exceeded.
-
+    \\
     Refreshes the page if something unexpected occurs.
     \item Description:
     Uses the async feature in order to access the account model.Email, model.Password, model.RememberMe and test the login. After which the reponse is returned in any as one of the above situations.
@@ -307,26 +311,160 @@ The AccountController is used in order to verify Register and Login information 
     \item Expected Arguments:
     RegisterViewModel model;
     string returnUrl = null;
-    \item Results:
-    Upon sucessful registration the user is returned to the previous page. 
+    \item Returns:
+    Upon successful registration the user is returned to the previous page. 
 
-    If an error occured within the registration process the user is shown the error or the page is refreshed as something unexpected occured.
+    If an error occurred within the registration process the user is shown the error or the page is refreshed as something unexpected occurred.
     \item Description:
-    The function creates a new ApplicationUser and stores the email/username and password in model.Email/Username and model.Password respectivly. They are then signed in or shown the errors that may have occured during the account creation.
+    The function creates a new ApplicationUser and stores the email/username and password in model.Email/Username and model.Password respectivly. They are then signed in or shown the errors that may have occurred during the account creation.
   \end{itemize}
 
 \subsection{ManageController}
-
+At revision 0 there are no account management options available to users so the functions that came with 'ASP.net' won't be referenced below. If the management options are expanded to include these pages or options at the time of revision 1 they will be included.
 
 \subsection{ImagePoseDrawController}
+In order to run pose estimation from the web interface the MVC has to access a database and external software which is done through the ImagePoseDraw Controller. The two important variables declared in the Controller are ApplicationDbContext \_context, and IHostingEnvironment \_environment and will be referred to by their variable names throughout. In addition to two variables 
 
-...
+  \textbf Function: DataTable()
+  \begin{itemize}
+    \item Expected Arguments:
+    NA
+    \item Returns:
+    The View of DataTable.cshtml.
+    \item Description:
+    Is used to display the Datatable that contains the uploaded media.
+  \end{itemize}
+
+  \textbf Function: DoesImageExist(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    int id;
+    \item Returns:
+    A boolean.
+    \item Description:
+    Uses the async feature in order to determine if the image exists within the PoseDrawnImages Model.
+  \end{itemize}
+
+  \textbf Function: ImagePoseDrawController(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    ApplicationdbContext context;
+    IHostingEnvironment environment;
+    \item Returns:
+    NA
+    \item Description:
+    Using dependency injection the database context and environment are set in the controller.
+  \end{itemize}
+
+  \textbf Function: Index()
+  \begin{itemize}
+    \item Expected Arguments:
+    NA
+    \item Returns:
+    Displays the View of Index.cshtml.
+    \item Description:
+    The index page displays a list of Names, Descriptions and Pose Estimated images.
+  \end{itemize}
+
+  \textbf Function: Details()
+  \begin{itemize}
+    \item Expected Arguments:
+    int? id;
+    \item Returns:
+    If the id is null or the image found is null, it displays a Not Found page.
+    \\
+    If the id and image are not null it shows the Details.cshtml.
+    \item Description:
+    Returns a view of the pose estimated image, Name and Description or a Not Found page.
+  \end{itemize}
+
+  \textbf Function: HTTP[Get] Create()
+  \begin{itemize}
+    \item Expected Arguments:
+    NA
+    \item Returns:
+    Displays the View of Create.cshtml.
+    \item Description:
+    Displays the page where new images are uploaded in order to set Name, Description and the image.
+  \end{itemize}
+
+  \textbf Function: HTTP[Post] Create(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    [Bind("ID, Name, Description")] PoseDrawnImage posedImage;
+    IFormFile image;
+    \item Returns:
+    An asynchronous task that will return a view showing the ImagePoseDraw page or throwing an error.
+    \item Description:
+    The function inserts a new entry into the pose estimation database creating a unique ID. It takes in an image and saves the metadata before running pose estimation and storing the image after pose estimation. In order to accomplish this the function calls a estimate\_pose\_wrapper which takes in the raw image before running pose estimation, it then uploads the new image to the database in order to be called from the web.
+  \end{itemize}
+
+  \textbf Function: HTTP[Get] Edit()
+  \begin{itemize}
+    \item Expected Arguments:
+    NA
+    \item Returns:
+    Displays the View of Edit.cshtml.
+    \item Description:
+    Displays the page where the Name and Description of an upload can be manipulated.
+  \end{itemize}
+
+  \textbf Function: HTTP[Post] Edit(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    int id;
+    [Bind("ID, Name, Description")] PoseDrawnImage image;
+    \item Returns:
+    Returns a modified upload of the Name and Description to the ImagePoseDraw page.
+    \item Description:
+    Takes the id argument and uses \_context.Update in order to update changes that were made to the Name and Description.
+  \end{itemize}
+
+  \textbf Function: HTTP[Get] Delete(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    int? id;
+    \item Returns:
+    The ImagePoseDraw page with the upload removed if confirmation was successful, otherwise returns to the ImagePoseDraw page with the uploads still there.
+    \item Description:
+    Calls await Details(id) in order to confirm the removing of the upload.
+  \end{itemize}
+
+  \textbf Function: HTTP[Post] DeleteConfirmation(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    int id;
+    \item Returns:
+    The ImagePoseDraw page with the upload removed if confirmation was successful, otherwise returns to the ImagePoseDraw page with the uploads still there.
+    \item Description:
+    Uses the database \_context and PoseDrawnImages in order to remove the image when confirmed. Then redirects to the ImagePoseDraw page.
+  \end{itemize}
 
 \subsection{TextToMotionController}
+The TextToMotion Controller will be used to preform full text search through the database once completed for the final revision. At this time it displays two pages and does not search the database.
 
-...
+  \textbf Function: Index()
+  \begin{itemize}
+    \item Expected Arguments:
+    NA
+    \item Returns:
+    Displays the View of TextToMotion/Index.cshtml.
+    \item Description:
+    Calls the View of TextToMotion/Index.cshtml in order to show the page.
+  \end{itemize}
 
+  \textbf Function: Search(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    string Query;
+    \item Returns:
+    Displays the View of TextToMotion/Search.cshtml to show the page.
+    \item Description:
+    Calls the View of TextToMotion/Search.cshtml and saves the Title and Query in ViewData.
+  \end{itemize}
+  
 \break
+
 
 \section{Flowing Convnets - Human Pose Estimation}
 
