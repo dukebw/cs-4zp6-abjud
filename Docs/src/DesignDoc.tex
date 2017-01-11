@@ -148,34 +148,479 @@ January 5, 2017 & 0.0 & File created\\
 \chapter{Overview}
 The Text to Motion Database aims to provide a living database of pose estimation and word pairings. This purpose of this document is to provide a detailed description of the design choices for each section of the Text to Motion Database. 
 
-\chapter{Anticipated and Unlikely Changes}
-
-\section{Anticipated Changes}
-It is not expected that the Text to Motion Database will require changes to the web interface or functionality of running pose estimation on uploaded images and video. The area that are expected to have changes are the command line processing, and specific application use for the database.
-\section{Unlikely Changes}
-
-
 \chapter{User Experience}
+The following section is used to describe the user expierence while using the web interface. The user expierence is meant to describe the users journey between web pages and the design choices that were made with respect to the user interface.
+
+\begin{figure}[!ht]
+        \caption{McMaster Text-to-Motion Database User Expierence}
+        \label{userExp}
+        \centering
+        \includegraphics[width=0.8\textwidth]{../data/UserExperience.png}
+\end{figure}
 
 \section{User Journey}
-\section{Home Page}
-\section{Image Pose Draw}
-\section{Command Line}
+When a user first lands on the web interface they will see the home page. At this point of development they will see a header with additional tabs, some information about the application, the software used, and breif instructions for the website. Looking at Figure 1 the next step will be to use one of the tabs found in the header to sign in, register, view the contact information, learn more about the application, or access the deep learning algorithm to view pose estimated images and video. Upon logging in the user will be taken back to the home page with the ability to create new pose estimated images and video, if the user registered they will be taken to the Log In screen where after logging on they are taken to the home page with the ability to now log out.
 
+If the user attempts to upload a new image while they are not logged in they will be taken to the Log In screen and after successfuly logging in they will return to the previous page. This process will be repeated if any additonal functions of the website require the user to be logged in, they will be taken to the log in screen and returned to the previous page after successfuly logging in.
+
+\section{Home Page}
+When first ariaving on the website the user should be greated with a clean design that informs them of their options without feeling congested or difficult to understand. The home page current contains plain text to describe the websites function as a Text to Motion Database, along with the additonal softwares used, and instructions. Currently the desing doesn't contain any information about the deep learning algorithm or instructions as an image or video but will be updated to include a user friendly view that catches the eye and keeps the user on the website. In order to keep the users attention the header bar is easy to use and see in order to allow the user quick navigation to other web pages.
+
+\section{About}
+The about page contains a high level description of the project overview, problem statement, and what the websites intended function is. The page uses simple plain text but may be updated to include descriptive images or media to better describe the projects overview or function.
+
+\section{Contact}
+The contact page has the contact infromation for each group member, along with the internal supervisor, and external supervisors. It uses plain text for the information and clearly labels vital information like email addresses, and positions within the project.
+
+\section{Header}
+In order to easily find and access the ability to navigate between pages the header remains at the top of the page with all tabs in the same location. This allows users to create an association between the structure of the header and where they should look to preform an action. Remaining in the same location helps the user expierence and usability of the website.
+
+\section{Log In}
+When navigating to the log in page the use is meet by a visually clean page, with two text boxes labeled username and password. The text boxes and button below labeled Log In helps eliminate confusion about the page, and helps inform the user of the pages functionality.
+
+\section{Register}
+Following the same design as the log in page the register page displays a visually clean page, with labeled text boxes to create a username, passowrd, and confirm the previously entered password.
+
+\section{Text To Motion}
+The ability to search the database for a pose estimated image or video is preformed on this page and visually informs the user that through the large search bar and image at the center of the page. The usability of the page is quickly determined as the user has a single clear option for the search bar with an image that helps them determine they are searching through a database.
+
+\subsection{Search Results}
+Once the search bar has recieved input it will parse through the database and existing uploads to return uploads that match or have strong ressemblence of the input in a column format. Each result will take the user to a seperate page with the Name, Description and pose estimated media. The layout of the results shows the user what was returned without any additional information to promote the usability and accuracy of the search.
+
+\section{Image Pose Draw}
+After landing on the page labeled Image Pose Draw the user is greated by a table that with a Name, Descriptions, and three labeled hyperlinks. This is where the most recent uploads are displayed with the name and description given during the upload and the pose estiamted media that was uploaded. Looking beyond the table there is a text box labeled Search that allows the user to search through the uploaded images and a hyperlinked label Create that allows the user to upload a new image for pose estimation.
+
+This is the most visually complex screen but is seperated and organized to direct the users attention to the table first and notice the create and search functions after they understand what the page contains. The table conatins simple information and follows typical conventions for labels and hyperlinks that can preform a task in order to help the user understand what will happen as they click or update information. It also seperates the Name from the Desription by using seperate background colours in order to help the user differntiate between the two subsections. The search bar is positioned to the upper right of the table itself to help create the relationship of searching within the table itself. Following the conventions used within the table the Create is hyperlinked in order to promote clicking on it to preform the labels task which takes the user to upload a new image. 
+
+\subsection{Create}
+Once the user has navigated to the create page they have the ability to upload new media in order to be pose esimated and stored within the database. Uploading the image allows the user to chose an image from storage or by url. In addition to uploading the image there are two text boxes that allow the user to provide a name for the image and short description to provide some information on their uploaded image. Once these steps have been completed using the button labeled create will upload the image and return the user to the ImagePoseDraw page upon completion in order to inform them the task has been completed.
+
+\subsection{Description}
+In order to see the uploaded media the user can use the name that the image was uplaoded with by using the search box or sorting alphabetically. After the upload was located the user can edit the tags of the image, delete the image and tages, or view the pose estimated media. If the user decides to edit the upload they are taken to a new screen and given the options to change the Name or Description that was preiously input but the media itself can not be changed. If the user wants to remove the or change their upload they have to first delete their previous upload using the Delete option and go through the steps of creating again. Lastly if the user wants to view the media that has been pose estimated they need to use the Details option which will take them to a new page.
+
+\subsection{Details}
+Once on the details page the user sees the Name and Description that was uploaded and the media which currently estimates the chin, and upper arms. Each section is cleary defines with joints being represnted by red circles and arm sections being represented by green lines. This shows the user where the algorithm believes the labeled sections are and the seperation of colour allows for an easy understanding of the positioning. 
 
 \chapter{Database Structure}
 
 \section{Database Schema}
 \section{Table Description}
 
-
-\chapter{Tensor Flow}
-
-
 \chapter{Module Decomposition}
 
-\section{Text To Motion}
-\section{Home}
+\section{Text To Motion - ASP.NET Application}
+
+
+\subsection{Overview}
+This component of the application is used to display the web interface and responsible for linking the database and pose estimation. In order to preform these tasks 'ASP.net' and the Model, View, Controller (MVC) structure are utilized. A general description of additions or customizations to the 'ASP.net' code along with the argument types, models used, and veiw output will be outlined below.
+
+\subsection{Models}
+Two Models were addded to the given code from 'ASP.net' in order to store data on the image that has been pose estimated and any account information specific to a user.
+
+    \begin{itemize}
+      \item \textbf  ApplicationUsers
+      The ApplicationUsers model will be used to add profile data to application, but is currently empty as there are no properties being stored.
+
+      \item \textbf  PoseDrawnImage
+      PoseDrawnImage uses the {get; set;} property to store the ID, Description and Name for a given image.
+      \begin{itemize}
+        \item int ID
+        \item string Name
+        \item string Description
+      \end{itemize}
+
+    \end{itemize}
+
+\subsection{HomeController}
+The HomeController is a simple controller that is used to display the Index, About and Contact pages. 
+
+  \textbf Function: Index()
+  \begin{itemize}
+    \item Expected Arguments:
+
+    \item Returns:
+    The view of Index.cshtml.
+    \item Description:
+    Calls the View of Index through the MVC, in order to display the ImagePoseDraw.
+  \end{itemize}
+
+  \textbf Function: About()
+  \begin{itemize}
+  \item Expected Arguments:
+    
+    \item Returns:
+    The view of About.cshtml.
+    \item Description:
+    Calls the View of About in order to display the About page.
+  \end{itemize}
+
+  \textbf Function: Contact()
+  \begin{itemize}
+    \item Expected Arguments:
+    
+    \item Returns:
+    The view of Contact.cshtml.
+    \item Description:
+    Calls the View of Contacts in order to display the Contact information.
+  \end{itemize}
+
+\subsection{AccountController}
+The AccountController is used in order to verify Register and Login information for a user, using the HTTP Get and Post. It utilizes built in functions of 'ASP.net' but a majority are not being used for revision 0, so they are omitted below.
+
+  \textbf Function:  HTTP[Get] Login(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    string returnUrl = null;
+    \item Returns:
+    The View of Login.cshtml.
+    \item Description:
+    Displays the Login page and stores the ReturnUrl to be taken back.
+  \end{itemize}
+
+  \textbf Function HTTP[Post] Login(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    LoginViewModel model;
+    string returnUrl = null;
+    \item Returns:
+    The user to the previous page if complete.
+
+    Locks the user out if the number of attempts are exceeded.
+
+    Refreshes the page if something unexpected occurs.
+    \item Description:
+    Uses the async feature in order to access the account model.Email, model.Password, model.RememberMe and test the login. After which the reponse is returned in any as one of the above situations.
+  \end{itemize}
+
+  \textbf Function: HTTP[Get] Register(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    string returnUrl = null;
+    \item Returns:
+    The View of Register.cshtml.
+    \item Description:
+    Displays the Register page and stores the ReturnUrl.
+  \end{itemize}
+
+  \textbf Function: HTTP[Post] Register(args)
+  \begin{itemize}
+    \item Expected Arguments:
+    RegisterViewModel model;
+    string returnUrl = null;
+    \item Results:
+    Upon sucessful registration the user is returned to the previous page. 
+
+    If an error occured within the registration process the user is shown the error or the page is refreshed as something unexpected occured.
+    \item Description:
+    The function creates a new ApplicationUser and stores the email/username and password in model.Email/Username and model.Password respectivly. They are then signed in or shown the errors that may have occured during the account creation.
+  \end{itemize}
+
+\subsection{ManageController}
+
+
+\subsection{ImagePoseDrawController}
+
+...
+
+\subsection{TextToMotionController}
+
+...
+
+\break
+
+\section{Flowing Convnets - Human Pose Estimation}
+
+\subsection{Overview}
+
+This component of the project actually renders the skeleton overlay onto an image submitted to the website.
+\\
+Mapping out the joints of a person in an image requires the use of image manipulation and deep learning libraries. As of now, this proces is based on a research paper and is implemented with \textbf{Caffe} and \textbf{OpenCV} in \textbf{C++}. (*The parameters for functions given below will reference 'caffe' and 'cv' types in c++)
+
+
+
+\subsection{Shared Object File}
+
+The website is able to take an uploaded image and process it by using a shared object file (.so). The web app can make function calls to functions in the shared object file and pass in images as the parameters.
+\\\\
+The C++ file \textbf{"estimate\_pose.cpp"} contains all of the functions that interface with Caffe and OpenCV. The C file \textbf{"estimate\_pose\_wrapper.c"} is used to wrap the C++ function in C, and create the shared object file so that the C++ function can be accessed from the website.
+
+\subsection{Pose Estimation C Program (estimate\_pose\_wrapper.c)}
+The file \textbf{"estimate\_pose\_wrapper.c"} just contains 1 function. This function references a C++ function in \textbf{estimate\_pose.cpp}
+\\\\
+\textbf{function: int32\_t estimate\_pose\_wrapper(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    void\quad\textit{*image}
+    \\
+    uint32\_t\quad\textit{*size\_bytes}
+    \\
+    uint32\_t\quad\textit{max\_size\_Bytes}
+
+    \item\quad\textbf{Returns:}
+
+    if \textit{image} is processed and saved, returns:\\\textbf{int32\_t size}
+    (describing size of file that was uploaded)
+    \\\\
+    else returns error object
+
+    \item \textbf{Description:}
+
+    this function makes a direct call to the C++ function \textbf{"estimate\_pose\_from\_c"} in \textbf{"estimate\_pose.cpp"} and simply returns the result of that C++ function call.
+    \\
+    The C++ function takes in the same args as this function
+\end{itemize}
+
+\subsection{Pose Estimation C++ Program (estimate\_pose.cpp)}
+
+This C++ Program file contains 8 functions. All of these functions take in objects from the 'openCV'(cv) and 'Caffe'(caffe) libraries as arguments
+\\\\
+The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of the functions serve as helpers to this function
+\\\\
+\textbf{List of Functions and Descriptions (PE = Pose Estimation):}
+\\
+\subsubsection{PE function 1: void channels\_from\_blob(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    std::vector\textless cv::Mat\textgreater\quad\textit{channels}
+    \\
+    boost::shared\_ptr\textless caffe::Blob\textgreater\quad\textit{blob}
+    \\
+    int32\_t\quad\textit{width}
+    \\
+    int32\_t\quad\textit{height}
+
+    \item \textbf{Returns:}
+
+    void (saves data into \textit{channels})
+
+    \item \textbf{Description:}
+
+    The \textit{blob} object contains concatenated mulit-channel data
+    \\
+    The \textit{channels} object is empty to begin with
+    \\
+    This function converts the raw data in a Caffe blob into a 'container of channels' (vector of openCV matrices)
+    \\
+    The \textit{width} and \textit{heigth} parameters let the program know what the dimensions of the channels are in the \textit{blob}
+    \\
+    The extracted information from \textit{blobs} is saved into the \textit{channels} vector
+    \\\\
+    This function is just used as a helper for other functions
+\end{itemize}
+
+
+\subsubsection{PE function 2: void copy\_image\_to\_input\_blob(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    caffe::Net \textless float\textgreater\quad\textit{heatmap\_net}
+    \\
+    cv::Mat\quad\textit{image}
+
+    \item \textbf{Returns:}
+
+    void (saves data into \textit{heatmap\_net})
+
+    \item \textbf{Description:}
+
+    This function converts the \textit{image} object from OpenCV BGR format to 32-bit-floating point RGB format and copies the image to the input blob of \textit{heatmap\_net}. It lso divides the input layer of the \textit{heatmap\_net} from a multi-channel array into several single-channel arrays by calling a helper function
+    \\
+    \textit{image} is the image that will serve as the input layer to the caffe network
+    \\
+    \textit{heatmap\_net} is the caffe network that will get its input layer filled with the RGB pixel data from \textit{image}
+    \\\\
+    This function makes a call to \textbf{PE-cpp function 1} when it splits up the newly updated image in \textit{heatmap\_net}'s input layer into several 'input\_channels'
+\end{itemize}
+
+
+\subsubsection{PE function 3: void get\_joints\_from\_network(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    cv::Point \quad\textit{*joints}
+    \\
+    cv::Size \quad\textit{channel\_size}
+    \\
+    caffe::Net\textless float\textgreater\quad\textit{heatmap\_net}
+
+    \item \textbf{Returns:}
+
+    void (saves data into \textit{joints})
+
+    \item \textbf{Description:}
+
+    This function uses the \textit{heatmap\_net}'s "conv5\_fusion" layer to get a set of joint locations for that heatmap.
+    \\
+    The joint locations get saved into \textit{*joints}
+    \\
+    The \textit{channel\_size} is used to maintain the accuracy of the position of the joints relative to the image as the image matrix is resized multiple times
+    \\\\
+    This function makes a call to \textbf{PE-cpp function 1} when it uses the \textit{heatmap\_net} to save all of the joint locations in a 'joint\_channel' vector of cv::Mat objects
+\end{itemize}
+
+
+\subsubsection{PE function 4: void draw\_skeleton(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    cv::Mat \quad\textit{image}
+    \\
+    cv::Point \quad\textit{*joints}
+
+    \item \textbf{Returns:}
+
+    void (saves image data into \textit{image})
+
+    \item \textbf{Description:}
+
+    This function uses the joint\_locations described in \textit{*joints} to draw an upper-body skeleton on the \textit{image} matrix passed in.
+    \\
+    \textit{image} is the image to draw the skeleton overlay on
+    \\
+    \textit{*joints} contain the locations for the set of joints (wrists, elbows, shoulders and head)
+\end{itemize}
+
+\subsubsection{PE function 5: std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater init\_pose\_estimator\_network(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    std::string\quad\textit{model}
+    \\
+    std::string\quad\textit{trained\_weights}
+
+    \item \textbf{Returns:}
+
+    \textbf{std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater} heatmap\_net
+    \\
+    pointer to an object that represents a whole caffe network
+
+    \item \textbf{Description:}
+
+    This function creates a Caffe network and copies over the trained layers from a given option for \textit{trained\_weights}
+    \\
+    For this application, a caffe network is initialized with the default settings:
+    \\
+    (\textit{model} = 'MODEL\_DEFAULT', \textit{trained\_weights} = TRAINED\_WEIGHTS\_DEFAULT)
+\end{itemize}
+
+
+\subsubsection{PE function 6: void image\_pose\_overlay(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    caffe::Net\textless float\textgreater\quad\textit{heatmap\_net}
+    \\
+    cv::Mat\quad\textit{image}
+
+    \item \textbf{Returns:}
+
+    void (saves to \textit{image})
+
+    \item \textbf{Description:}
+
+    This function processes the \textit{image} passed in using the \textit{heatmap\_net} to draw a skeleton on the openCV Matrix
+    \\\\
+    Details on the actions taken by the function:
+    \begin{enumerate}
+        \item Resizes \textit{image} to 256x256
+
+        \item calls \textbf{PE function 2} to copy the image into the input layer of the \textit{heatmap\_net}
+
+        \item after allowing the network to extract some data, declares an array object of cv::Point called \textit{joints}
+
+        \item calls \textbf{PE function 3} to load in joint locations into \textit{joints}
+
+        \item converts image to a format so that it can be drawn on by the program
+
+        \item calls \textbf{PE function 4} to draw the skeleton overlay on top of the \textit{image}
+    \end{enumerate}
+\end{itemize}
+
+
+\subsubsection{PE function 7: void square\_image\_with\_borders(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    cv::Mat\quad\textit{image\_mat}
+
+    \item \textbf{Returns:}
+
+    void (saves image data to \textit{image\_mat})
+
+    \item \textbf{Description:}
+
+    If the image's dimensions do not fit a square (length != width), this function makes it so that the image dimensions are expanded so that it fits into a square
+    \\
+    This is to avoid distorting the image drastically when the image is resized to 256x256
+    \\\\
+    This is just a simple helper function to pre-process the image
+\end{itemize}
+
+
+
+\subsubsection{PE function 8: int32\_t estimate\_pose\_from\_c(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    void\quad\textit{*image}
+    \\
+    uint32\_t\quad\textit{*size\_bytes}
+    \\
+    unit32\_t\quad\textit{max\_size\_bytes}
+
+    \item \textbf{Returns:}
+
+    if \textit{image} is processed and saved, returns:\\\textbf{int32\_t size}
+    (describing size of file that was uploaded)
+    \\\\
+    else returns error object
+
+    \item \textbf{Description:}
+
+    This function is the key method in this file. This function overwrites the contents of the memory allocated for \textit{*image} so that a given image is updated to show the skeleton overlay on that image
+    \\\\
+    This function creates a new Caffe network and calls a lot of helper functions needed to process the \textit{image}
+    \\\\
+    Details on the actions taken by the function:
+    \begin{enumerate}
+        \item calls \textbf{PE function 5} to create a new caffe Network, stores new network in \textit{heatmap\_net}
+
+        \item uses \textit{*image} and \textit{*size\_bytes} to create a cv::InputArray object to represent the uploaded image
+
+        \item creates a cv::Mat image matrix, and decodes the contents of the cv::InputArray object into the newly created matrix object
+
+        \item calls \textbf{PE function 7} to pre-process the image matrix to reaffirm that the image is square
+
+        \item calls \textbf{PE function 6} using \textit{heatmap\_net} and the image matrix so that the image\_matrix includes the skeleton overlay
+
+        \item converts and compresses the image\_matrix into a png
+
+        \item finally, overwrites the contents of \textit{*image} with the newly created image that has the pose estimation 'skeleton overlay'
+    \end{enumerate}
+
+\end{itemize}
+
+
+
+
+\section{Features In Development}
+
+\subsection{Video Estimation C++ Program}
+
+...
+\subsection{Tensorflow}
+
+..just mention to the possibility of using it...
+
+\subsection{Standalone HTTP Server}
+
+...
+
+\chapter{Communication Protocol}
+
+...just mention to HTTP...
 
 
 \chapter{Development Details}
