@@ -159,7 +159,7 @@ The following section is used to describe the user expierence while using the we
 \end{figure}
 
 \section{User Journey}
-When a user first lands on the web interface they will see the home page. At this point, they will see a header with additional tabs, some information about the application, the software used, and brief instructions for the website. Looking at Figure 1 the next step will be to use one of the tabs found in the header to sign in, register, view the contact information, learn more about the application, view the text-to-motion search page or access the deep learning algorithm to view pose estimated images and video. Upon logging in the user will be taken back to the home page with the ability to create new pose estimated images and video, if the user is not registered they will be taken to the Log In screen where after logging on they are taken to the home page with the ability to now log out.
+When a user first lands on the website they will see the home page. At this point, they will see a header with additional tabs, some information about the application, the software used, and brief instructions for the website. Looking at Figure 1 the next step will be to use one of the tabs found in the header to sign in, register, view the contact information, learn more about the application, view the text-to-motion search page or access the deep learning algorithm to view pose estimated images and video. Upon logging in the user will be taken back to the home page with the ability to create new pose estimated images and video, if the user is not registered they will be taken to the Log In screen where after logging on they are taken to the home page with the ability to now log out.
 
 If the user attempts to upload a new image while they are not logged in they will be taken to the Log In screen and after successfuly logging in they will return to the previous page. This process will be repeated if any additonal functions of the website require the user to be logged in, they will be taken to the log in screen and returned to the previous page after successfuly logging in.
 
@@ -212,27 +212,29 @@ Once on the details page the user sees the Name and Description that was uploade
 
 
 \subsection{Overview}
-This component of the application is used to run the web interface and responsible for linking the database and pose estimation. In order to perform these tasks 'ASP.net' and the Model, View, Controller (MVC) structure are utilized. A general description of additions or customizations to the 'ASP.net' code along with the argument types, models used, and view output will be outlined below.
+This component of the application is used to run the web interface and is responsible for linking the database and pose estimation functionality. Performing these tasks relies on 'ASP.net' and the Model, View, Controller (MVC) structure. A general description of ASP.NET and its components will be detailed below
 \\\\
 \textbf{ASP.NET core:}
 \\
 framework responsible for handling all http requests to a specific port (\href{159.203.10.112}{Live Website})
-\\
+\\\\
 \textbf{.NET Entity Framework}
 \\Object-Relational-Mapper (ORM) that can allow for .NET web apps to perform queries and updates on existing databases (or even create new databases with migration files). This is done through using 'Model' files.
 
 \subsection{Models}
 
-Each Model file represents a 'table' in a database. The Model file contains information on the columns of the table and its relation to other tables.
+Each Model file represents a 'table' in a database. The Model file contains information on the columns of the 'table' and its relation to other tables in the database.
 \\
 The current version of the live website does not use the relational database schema described in Section 3 of this document. A simpler schema was used for the prototype
 \\\\
-Two Models were addded to the given code from 'ASP.net' in order to store data on the image that gets the pose estimation algorithm run on it and any account information specific to a user.
+Two Models were addded to the .NET web app
 
     \begin{itemize}
       \item \textbf{ApplicationUsers}
       \\
       The ApplicationUsers model will be used to add profile data to application, but is currently empty as there are no properties being stored.
+      \\
+      This table gets filled up when users register on the live website
 
       \item \textbf{PoseDrawnImage}
       \\
@@ -246,98 +248,260 @@ Two Models were addded to the given code from 'ASP.net' in order to store data o
 
     \end{itemize}
 
+\subsection{Controllers}
+
+In the ASP.NET web application, every function in a 'Controller' file has a corresponding 'View' file (.cshtml) that is associated with in in the 'Views' folder.
+\\\\
+A View in the .NET MVC can qualify for the type of \textbf{IActionResult}, and is usually returned by the Controller function
+\\\\
+HTTP[Get] and HTTP[Post] methods can return a type of \textbf{IActionResult} (sync) or \textbf{Task\textless IActionResult\textgreater} (async)
+
 \subsection{HomeController}
 The HomeController is a simple controller that is used to display the Index, About and Contact pages.
 
-  \textbf Function: Index()
-  \begin{itemize}
-    \item Expected Arguments:
+\subsubsection{Function: HTTP[Get] Index()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+    \item \textbf{Returns:}
 
-    \item Returns:
-    The view of Index.cshtml.
-    \item Description:
-    Calls the View of Index through the MVC, in order to display the ImagePoseDraw.
-  \end{itemize}
+    The View of 'Home/Index.cshtml' in the 'Views' folder of the .NET application
 
-  \textbf Function: About()
-  \begin{itemize}
-  \item Expected Arguments:
+    \item \textbf{Description:}
 
-    \item Returns:
-    The view of About.cshtml.
-    \item Description:
-    Calls the View of About in order to display the About page.
-  \end{itemize}
+    Calls the View of 'Index' through the MVC, in order to display the home page
+\end{itemize}
 
-  \textbf Function: Contact()
-  \begin{itemize}
-    \item Expected Arguments:
+\subsubsection{Function: HTTP[Get] About()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+    \item \textbf{Returns:}
 
-    \item Returns:
-    The view of Contact.cshtml.
-    \item Description:
-    Calls the View of Contacts in order to display the Contact information.
-  \end{itemize}
+    The View of 'Home/About.cshtml' in the 'Views' folder of the .NET application
+
+    \item \textbf{Description:}
+
+    Calls the View of 'About' through the MVC, in order to display the About page
+\end{itemize}
+
+\subsubsection{Function: HTTP[Get] Contact()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+    \item \textbf{Returns:}
+
+    The View of 'Home/Contact.cshtml' in the 'Views' folder of the .NET application
+
+    \item \textbf{Description:}
+
+    Calls the View of 'Contact' through the MVC, in order to display the Contact Information
+\end{itemize}
+
+
 
 \subsection{AccountController}
 The AccountController is used in order to verify Register and Login information for a user, using the HTTP Get and Post. It utilizes built in functions of 'ASP.net' but a majority are not being used for revision 0, so they are omitted below.
 
-  \textbf Function:  HTTP[Get] Login(args)
-  \begin{itemize}
-    \item Expected Arguments:
-    string returnUrl = null;
-    \item Returns:
-    The View of Login.cshtml.
-    \item Description:
-    Displays the Login page and stores the ReturnUrl to be taken back.
-  \end{itemize}
+\subsubsection{Function: HTTP[Get] Login(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
 
-  \textbf Function HTTP[Post] Login(args)
-  \begin{itemize}
-    \item Expected Arguments:
-    LoginViewModel model;
-    string returnUrl = null;
-    \item Returns:
-    The user to the previous page if complete.
+    string\quad\textit{returnUrl} = null;
 
+    \item \textbf{Returns:}
+
+    The View of 'Account/Login.cshtml' in the 'Views' folder of the .NET application
+
+    \item \textbf{Description:}
+
+    Displays the Login page and stores the ReturnURL to be taken back into \textit{returnUrl}
+\end{itemize}
+
+\subsubsection{Function: HTTP[Post] Login(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    LoginViewModel\quad\textit{model};
+    \\
+    string\quad\textit{returnUrl} = null;
+
+    \item \textbf{Returns:}
+
+    Returns the user to the previous page if complete.
+    \\
     Locks the user out if the number of attempts are exceeded.
-
+    \\
     Refreshes the page if something unexpected occurs.
-    \item Description:
+
+    \item \textbf{Description:}
+
     Uses the async feature in order to access the account model.Email, model.Password, model.RememberMe and test the login. After which the reponse is returned in any as one of the above situations.
-  \end{itemize}
 
-  \textbf Function: HTTP[Get] Register(args)
-  \begin{itemize}
-    \item Expected Arguments:
-    string returnUrl = null;
-    \item Returns:
-    The View of Register.cshtml.
-    \item Description:
-    Displays the Register page and stores the ReturnUrl.
-  \end{itemize}
+\end{itemize}
 
-  \textbf Function: HTTP[Post] Register(args)
-  \begin{itemize}
-    \item Expected Arguments:
-    RegisterViewModel model;
-    string returnUrl = null;
-    \item Results:
+
+\subsubsection{Function: HTTP[Get] Register(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    string\quad\textit{returnUrl} = null;
+
+    \item \textbf{Returns:}
+
+    The View of 'Account/Register.cshtml' in the 'Views' folder of the .NET application
+
+    \item \textbf{Description:}
+
+    Displays the Register page and stores the ReturnURL to be taken back into \textit{returnUrl}
+\end{itemize}
+
+
+\subsubsection{Function: HTTP[Post] Register(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    RegisterViewModel\quad\textit{model};
+    \\
+    string\quad\textit{returnUrl} = null;
+
+    \item \textbf{Returns:}
+
     Upon sucessful registration the user is returned to the previous page.
+    \\
+    If an error occured within the registration process the user is shown the
+    \\
+    error or the page is refreshed as something unexpected occured.
 
-    If an error occured within the registration process the user is shown the error or the page is refreshed as something unexpected occured.
-    \item Description:
+    \item \textbf{Description:}
+
     The function creates a new ApplicationUser and stores the email/username and password in model.Email/Username and model.Password respectivly. They are then signed in or shown the errors that may have occured during the account creation.
-  \end{itemize}
+\end{itemize}
+
+
+\subsection{TextToMotionController}
+
+This controller is used to facilitate the 'text-to-motion' search.
+\\
+As of now, this search functionality has not been implemented due to the lack of a database on the live website. Submitting a search form just passes the search query to the ASP.NET backend and into a new webpage. This will be detailed in the function definitions below
+
+\subsubsection{Function: HTTP[Get] Index()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+    \item \textbf{Returns:}
+
+    The View of 'TextToMotion/Index.cshtml' in the 'Views' folder of the .NET application
+
+    \item \textbf{Description:}
+
+    Returns the View of 'Index' through the MVC, in order to display the Search page (just a simple view with a text input)
+\end{itemize}
+
+
+\subsubsection{Function:: HTTP[Post] Search(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    string\quad\textit{query}
+
+    \item \textbf{Returns:}
+
+    The View of 'TextToMotion/Search.cshtml' in the 'Views' folder of the .NET application with \textit{query} passed into the View
+
+    \item \textbf{Description:}
+
+    Puts the value of \textit{query} into the View. Then, Returns the View of 'Search' through the MVC, which shows the user the search term they entered (This will be built on to actually implement a search functionality)
+
+\end{itemize}
 
 
 \subsection{ImagePoseDrawController}
 
-...
+This Controller handles the create/view/edit/delete functionalities for images that users upload
+\\
+This file also imports a shared object file to access a function defined in C. This function is a call to a C++ program that uses OpenCV and Caffe to analyze a given image and draw a skeleton overlay on the image
+\\\\
+\underline{List of Functions (IPD = ImagePoseDraw)}
 
-\subsection{TextToMotionController}
+\subsubsection{IPD Function 1: Task\textless bool\textgreater DoesImageExist(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
 
-...
+    int\quad\textit{id}
+
+    \item \textbf{Returns:}
+
+    \textbf{true} if an model of PoseDrawnImage with id = the \textit{id} passed into the function exists
+    \\
+    \textbf{false} if no database row found with the given \textit{id}
+
+    \item \textbf{Description:}
+
+    This is just a simple async helper function
+\end{itemize}
+
+\subsubsection{IPD Function 2: ImagePoseDrawController(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    ApplicationDbContext\quad\textit{context}
+    \\
+    IHostingEnvironment\quad\textit{environment}
+
+    \item \textbf{Returns:}
+
+    This function is a Constructor for its class and returns an object of type ImagePoseDrawController
+
+    \item \textbf{Description:}
+
+    The Constructor function is used to set the database session context and environment.
+    \\
+    \textit{environment} is used to get the absolute path when saving images
+\end{itemize}
+
+
+\subsubsection{IPD Function 3: HTTP[Get] Index()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    \item \textbf{Returns:}
+
+    The View of 'ImagePoseDraw/Index.cshtml' in the 'Views' folder of the .NET
+
+    \item \textbf{Description:}
+
+    Passes in the list of image names and description into the view. Then, returns the 'Index' View through the MVC, which shows a table of all of the user's uploaded images
+\end{itemize}
+
+\subsubsection{IPD Function 4: HTTP[Get] Details()}
+\begin{itemize}
+    \item int\quad\textit{id}
+
+    \item \textbf{Returns:}
+
+    if \textit{id} is NOT null and a model of type PoseDrawnImage with the given \textit{id} exists, returns the View of 'ImagePoseDraw/Details.cshtml' in the 'Views' folder of the .NET application
+    \\\\
+    else returns an error obejct
+
+    \item \textbf{Description:}
+
+    Passes in the processed image from the database into the view. Then, returns the 'Details' View, which shows an image with a skeleton overlay on top of the original picture.
+\end{itemize}
+
+
+\subsubsection{Function  : HTTP[Get] Create()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+    \item \textbf{Returns:}
+
+    The View of 'TextToMotion/Create.cshtml' in the 'Views' folder of the .NET application
+
+    \item \textbf{Description:}
+
+    Returns the View of 'Create' through the MVC, which is a form that allows a user to upload an image to run the pose estimation algorithm on
+\end{itemize}
+
+
+
+...looking to add 3 more funcs...
+
 
 \break
 
@@ -359,7 +523,7 @@ The C++ file \textbf{"estimate\_pose.cpp"} contains all of the functions that in
 \subsection{Pose Estimation C Program (estimate\_pose\_wrapper.c)}
 The file \textbf{"estimate\_pose\_wrapper.c"} just contains 1 function. This function references a C++ function in \textbf{estimate\_pose.cpp}
 \\\\
-\textbf{function: int32\_t estimate\_pose\_wrapper(args)}
+\textbf{Function: int32\_t estimate\_pose\_wrapper(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -418,7 +582,7 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
 
 \end{itemize}
 
-\subsubsection{PE function 1: void channels\_from\_blob(args)}
+\subsubsection{PE Function 1: void channels\_from\_blob(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -450,7 +614,7 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
 \end{itemize}
 
 
-\subsubsection{PE function 2: void copy\_image\_to\_input\_blob(args)}
+\subsubsection{PE Function 2: void copy\_image\_to\_input\_blob(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -470,11 +634,11 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
     \\
     \textit{heatmap\_net} is the caffe network that will get its input layer filled with the RGB pixel data from \textit{image}
     \\\\
-    This function makes a call to \textbf{PE-cpp function 1} when it splits up the newly updated image in \textit{heatmap\_net}'s input layer into several 'input\_channels'
+    This function makes a call to \textbf{PE-cpp Function 1} when it splits up the newly updated image in \textit{heatmap\_net}'s input layer into several 'input\_channels'
 \end{itemize}
 
 
-\subsubsection{PE function 3: void get\_joints\_from\_network(args)}
+\subsubsection{PE Function 3: void get\_joints\_from\_network(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -496,11 +660,11 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
     \\
     The \textit{channel\_size} is used to maintain the accuracy of the position of the joints relative to the image as the image matrix is resized multiple times
     \\\\
-    This function makes a call to \textbf{PE-cpp function 1} when it uses the \textit{heatmap\_net} to save all of the joint locations in a 'joint\_channel' vector of cv::Mat objects
+    This function makes a call to \textbf{PE-cpp Function 1} when it uses the \textit{heatmap\_net} to save all of the joint locations in a 'joint\_channel' vector of cv::Mat objects
 \end{itemize}
 
 
-\subsubsection{PE function 4: void draw\_skeleton(args)}
+\subsubsection{PE Function 4: void draw\_skeleton(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -521,7 +685,7 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
     \textit{*joints} contain the locations for the set of joints (wrists, elbows, shoulders and head)
 \end{itemize}
 
-\subsubsection{PE function 5: std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater init\_pose\_estimator\_network(args)}
+\subsubsection{PE Function 5: std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater init\_pose\_estimator\_network(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -545,7 +709,7 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
 \end{itemize}
 
 
-\subsubsection{PE function 6: void image\_pose\_overlay(args)}
+\subsubsection{PE Function 6: void image\_pose\_overlay(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -565,20 +729,20 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
     \begin{enumerate}
         \item Resizes \textit{image} to 256x256
 
-        \item calls \textbf{PE function 2} to copy the image into the input layer of the \textit{heatmap\_net}
+        \item calls \textbf{PE Function 2} to copy the image into the input layer of the \textit{heatmap\_net}
 
         \item after allowing the network to extract some data, declares an array object of cv::Point called \textit{joints}
 
-        \item calls \textbf{PE function 3} to load in joint locations into \textit{joints}
+        \item calls \textbf{PE Function 3} to load in joint locations into \textit{joints}
 
         \item converts image to a format so that it can be drawn on by the program
 
-        \item calls \textbf{PE function 4} to draw the skeleton overlay on top of the \textit{image}
+        \item calls \textbf{PE Function 4} to draw the skeleton overlay on top of the \textit{image}
     \end{enumerate}
 \end{itemize}
 
 
-\subsubsection{PE function 7: void square\_image\_with\_borders(args)}
+\subsubsection{PE Function 7: void square\_image\_with\_borders(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -599,7 +763,7 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
 
 
 
-\subsubsection{PE function 8: int32\_t estimate\_pose\_from\_c(args)}
+\subsubsection{PE Function 8: int32\_t estimate\_pose\_from\_c(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
@@ -624,15 +788,15 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
     \\\\
     Details on the actions taken by the function:
     \begin{enumerate}
-        \item calls \textbf{PE function 5} to create a new caffe Network, stores new network in \textit{heatmap\_net}
+        \item calls \textbf{PE Function 5} to create a new caffe Network, stores new network in \textit{heatmap\_net}
 
         \item uses \textit{*image} and \textit{*size\_bytes} to create a cv::InputArray object to represent the uploaded image
 
         \item creates a cv::Mat image matrix, and decodes the contents of the cv::InputArray object into the newly created matrix object
 
-        \item calls \textbf{PE function 7} to pre-process the image matrix to reaffirm that the image is square
+        \item calls \textbf{PE Function 7} to pre-process the image matrix to reaffirm that the image is square
 
-        \item calls \textbf{PE function 6} using \textit{heatmap\_net} and the image matrix so that the image\_matrix includes the skeleton overlay
+        \item calls \textbf{PE Function 6} using \textit{heatmap\_net} and the image matrix so that the image\_matrix includes the skeleton overlay
 
         \item converts and compresses the image\_matrix into a png
 
