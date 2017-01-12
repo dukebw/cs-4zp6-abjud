@@ -1,6 +1,10 @@
 import os
 import tensorflow as tf
 
+# @debug
+from IPython.core.debugger import Tracer
+from PIL import Image, ImageDraw
+
 # TODO(brendan): Alter `write_tf_record` code to spit out
 # shards with about 1024 examples each.
 EXAMPLES_PER_SHARD = 1024
@@ -9,14 +13,15 @@ class TrainingBatch(object):
     """Contains a training batch of images along with corresponding
     ground-truth joint vectors for the annotated person in that image.
 
-    images, joints and joint_indices should all be lists of length
+    images, *_joints and joint_indices should all be lists of length
     `batch_size`.
     """
-    def __init__(self, images, joints, joint_indices, batch_size):
+    def __init__(self, images, joint_indices, x_joints, y_joints, batch_size):
         assert images.get_shape()[0] == batch_size
         self._images = images
-        self._joints = joints
         self._joint_indices = joint_indices
+        self._x_joints = x_joints
+        self._y_joints = y_joints
         self._batch_size = batch_size
 
     @property
@@ -75,6 +80,45 @@ def _setup_example_queue(filename_queue,
     return examples_queue.dequeue()
 
 
+def _parse_example_proto(example_serialized):
+    """Parses an example proto and returns a tuple containing
+    (raw image in float32 format, sparse joint indices, sparse joints).
+    """
+    feature_map = {
+        'image_jpeg': tf.FixedLenFeature(shape=[], dtype=tf.string),
+        'joint_indices': tf.VarLenFeature(dtype=tf.int64),
+        'x_joints': tf.VarLenFeature(dtype=tf.float32),
+        'y_joints': tf.VarLenFeature(dtype=tf.float32)
+    }
+    features = tf.parse_single_example(
+        serialized=example_serialized, features=feature_map)
+
+    img_jpeg = features['image_jpeg']
+    with tf.name_scope(name='decode_jpeg', values=[img_jpeg]):
+        img_tensor = tf.image.decode_jpeg(contents=img_jpeg,
+                                          channels=3)
+        decoded_img = tf.image.convert_image_dtype(
+            image=img_tensor, dtype=tf.float32)
+
+    parsed_example = (decoded_img,
+                      features['joint_indices'],
+                      features['x_joints'],
+                      features['y_joints'])
+
+    return parsed_example
+
+
+def _get_renormalized_joints(joints, old_img_dim, new_center, new_img_dim):
+    """Renormalizes a 1-D vector of joints to a new co-ordinate system given by
+    `new_center`, and returns the renormalized joints.
+
+    N(x, b') = 1/w'*(x - x_c')
+             = 1/w'*(w*N(x; b) + (x_c - x_c'))
+    """
+    return (1/new_img_dim*
+            (old_img_dim*tf.cast(joints, tf.float64) + (old_img_dim/2 - new_center)))
+
+
 def _parse_and_preprocess_images(example_serialized,
                                  num_preprocess_threads,
                                  image_dim):
@@ -100,33 +144,104 @@ def _parse_and_preprocess_images(example_serialized,
     """
     images_and_joints = []
     for thread_id in range(num_preprocess_threads):
-        feature_map = {
-            'image_jpeg': tf.FixedLenFeature(shape=[], dtype=tf.string),
-            'joint_indices': tf.VarLenFeature(dtype=tf.int64),
-            'joints': tf.VarLenFeature(dtype=tf.float32)
-        }
-        features = tf.parse_single_example(
-            serialized=example_serialized, features=feature_map)
+        # TODO(brendan): split up into one function that does image distortion
+        # (for train), and one that doesn't (for eval).
+        parsed_example = _parse_example_proto(example_serialized)
+        decoded_img, joint_indices, x_joints, y_joints = parsed_example
 
-        img_jpeg = features['image_jpeg']
-        with tf.name_scope(name='decode_jpeg', values=[img_jpeg]):
-            img_tensor = tf.image.decode_jpeg(contents=img_jpeg,
-                                              channels=3)
-            decoded_img = tf.image.convert_image_dtype(
-                image=img_tensor, dtype=tf.float32)
+        bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
+            image_size=[image_dim, image_dim, 3],
+            bounding_boxes=[[[0, 0, 1.0, 1.0]]],
+            min_object_covered=0.5,
+            aspect_ratio_range=[0.75, 1.33],
+            area_range=[0.5, 1.0],
+            max_attempts=100,
+            use_image_if_no_bounding_boxes=True)
 
-        # TODO(brendan): Image distortion goes here.
+        distorted_image = tf.slice(input_=decoded_img,
+                                   begin=bbox_begin,
+                                   size=bbox_size)
 
-        decoded_img = tf.sub(x=decoded_img, y=0.5)
-        decoded_img = tf.mul(x=decoded_img, y=2.0)
+        distorted_image = tf.image.resize_images(images=[distorted_image],
+                                                 size=[image_dim, image_dim],
+                                                 method=thread_id % 4,
+                                                 align_corners=False)
 
-        decoded_img = tf.reshape(
-            tensor=decoded_img,
+        distorted_center = tf.cast(bbox_begin, tf.float64) + bbox_size/2
+
+        distorted_center_y = distorted_center[0]
+        distorted_center_x = distorted_center[1]
+        distorted_height = bbox_size[0]
+        distorted_width = bbox_size[1]
+
+        new_x_joint_vals = _get_renormalized_joints(x_joints.values,
+                                                    image_dim,
+                                                    distorted_center_x,
+                                                    distorted_width)
+        new_y_joint_vals = _get_renormalized_joints(y_joints.values,
+                                                    image_dim,
+                                                    distorted_center_y,
+                                                    distorted_height)
+
+        x_joints = tf.SparseTensor(x_joints.indices,
+                                   new_x_joint_vals,
+                                   x_joints.shape)
+        y_joints = tf.SparseTensor(y_joints.indices,
+                                   new_y_joint_vals,
+                                   y_joints.shape)
+
+        distorted_image = tf.reshape(
+            tensor=distorted_image,
             shape=[image_dim, image_dim, 3])
 
-        images_and_joints.append([decoded_img,
-                                  features['joint_indices'],
-                                  features['joints']])
+        # @debug
+        distorted_image = tf.image.convert_image_dtype(
+            image=distorted_image, dtype=tf.uint8)
+        x_sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
+                                          sp_values=x_joints,
+                                          vocab_size=16)
+        x_dense_joints = tf.sparse_tensor_to_dense(sp_input=x_sparse_joints,
+                                                   default_value=0)
+        y_sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
+                                          sp_values=y_joints,
+                                          vocab_size=16)
+        y_dense_joints = tf.sparse_tensor_to_dense(sp_input=y_sparse_joints,
+                                                   default_value=0)
+        dense_joints = tf.concat(0, [x_dense_joints, y_dense_joints])
+        session = tf.InteractiveSession()
+        init = tf.global_variables_initializer()
+        session.run(init)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(session, coord)
+        for _ in range(16):
+            [dense_joints0, image] = session.run(
+                fetches=[dense_joints, distorted_image])
+            pil_image = Image.fromarray(image)
+            draw = ImageDraw.Draw(pil_image)
+            joints = image_dim*(dense_joints0 + 0.5)
+            for joint_index in range(16):
+                x = joints[joint_index]
+                y = joints[joint_index + 16]
+                box = (x - 2, y - 2, x + 2, y + 2)
+                red = int(0xFF*(joint_index % 5)/5)
+                green = int(0xFF*(joint_index % 10)/10)
+                blue = int(0xFF*joint_index/16)
+                colour = (red, green, blue)
+                draw.ellipse(box, fill=colour)
+
+            # @debug
+            Tracer()()
+
+            # @debug
+            pil_image.show()
+
+        distorted_image = tf.sub(x=distorted_image, y=0.5)
+        distorted_image = tf.mul(x=distorted_image, y=2.0)
+
+        images_and_joints.append([distorted_image,
+                                  joint_indices,
+                                  x_joints,
+                                  y_joints])
 
     return images_and_joints
 
@@ -155,14 +270,14 @@ def _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads):
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
     """
-    images, joint_indices, joints = tf.train.batch_join(
+    images, joint_indices, x_joints, y_joints = tf.train.batch_join(
         tensors_list=images_and_joints,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
     tf.summary.image(name='images', tensor=images)
 
-    return TrainingBatch(images, joints, joint_indices, batch_size)
+    return TrainingBatch(images, joint_indices, x_joints, y_joints, batch_size)
 
 
 def setup_eval_input_pipeline(data_dir,
