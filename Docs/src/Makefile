@@ -1,6 +1,8 @@
 SRS=SoftwareRequirementsSpecification
 POC=ProofOfConceptPlan
 TEST=TestPlan
+DESIGNDOC=DesignDoc
+SYSARCHITECTURE=SystemArchitecture
 
 .phony: srs poc test_plan
 
@@ -25,6 +27,16 @@ test_plan:
 	xelatex $(TEST).tex
 	$(MAKE) clean
 	mv $(TEST).pdf ..
+
+design_doc:
+	xelatex $(DESIGNDOC).tex
+	xelatex $(DESIGNDOC).tex
+	$(MAKE) clean
+	mv $(DESIGNDOC).pdf ..
+	xelatex $(SYSARCHITECTURE).tex
+	xelatex $(SYSARCHITECTURE).tex
+	$(MAKE) clean
+	mv $(SYSARCHITECTURE).pdf ..
 
 clean:
 	rm -rf *.acn *.alg *.glg *.glo *.gls *.glsdefs *.ist *.xdy *.acr *.bbl *.blg *.aux *.dvi *.log *.lot *.idx *.toc *.lof *.brf *.out

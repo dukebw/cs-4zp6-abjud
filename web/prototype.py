@@ -20,8 +20,6 @@ class SkeltonOverlayHandler(tornado.web.RequestHandler):
         self.render('imgUpload.html')
     def post(self):
         fileInfo = self.request.files['image'][0]
-        #you can also print the binary representation of the image
-        #print fileInfo
         fileName = fileInfo['filename']
         extn = os.path.splitext(fileName)[1]
         #uuid just produces a unique id string + .<ext> (ex. png, jpg, mp4)
@@ -34,7 +32,7 @@ class SkeltonOverlayHandler(tornado.web.RequestHandler):
         imageRGB = Image.open(__UPLOADS__ + 'bird.jpg')
         im = imageRGB.convert('RGB')
         print im
-        im.save(__UPLOADS__ + 'test.png')
+        #im.save(__UPLOADS__ + 'test.png')
 
         self.finish(uniqueName + ' is uploaded')
 
