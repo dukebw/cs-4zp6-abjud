@@ -73,7 +73,7 @@ def _summarize_inception_model(endpoints):
                 tensor=tf.nn.zero_fraction(value=activation))
 
 
-def _sparse_joints_to_dense_one_dim(batch_size, joint_indices, joints):
+def _sparse_joints_to_dense_one_dim(dense_shape, joint_indices, joints):
     """Converts a sparse vector of joints in a single dimension to dense
     joints, and returns those dense joints.
     """
@@ -83,9 +83,7 @@ def _sparse_joints_to_dense_one_dim(batch_size, joint_indices, joints):
     dense_joints = tf.sparse_tensor_to_dense(sp_input=sparse_joints,
                                              default_value=0)
 
-    dense_shape = [batch_size, NUM_JOINTS]
-
-    return tf.reshape(tensor=dense_joints, shape=dense_shape)
+    return tf.reshape(tensor=dense_joints, shape=dense_shape), sparse_joints
 
 
 def _sparse_joints_to_dense(training_batch):
@@ -102,22 +100,24 @@ def _sparse_joints_to_dense(training_batch):
         present in the sparse vector. `weights` contains 1s for all the present
         joints and 0s otherwise.
     """
-    x_dense_joints = _sparse_joints_to_dense_one_dim(
-        training_batch.batch_size,
+    dense_shape = [training_batch.batch_size, NUM_JOINTS]
+
+    x_dense_joints, x_sparse_joints = _sparse_joints_to_dense_one_dim(
+        dense_shape,
         training_batch.joint_indices,
         training_batch.x_joints)
 
-    y_dense_joints = _sparse_joints_to_dense_one_dim(
-        training_batch.batch_size,
+    y_dense_joints, _ = _sparse_joints_to_dense_one_dim(
+        dense_shape,
         training_batch.joint_indices,
         training_batch.y_joints)
 
-    weights = tf.sparse_to_dense(sparse_indices=sparse_joints.indices,
+    weights = tf.sparse_to_dense(sparse_indices=x_sparse_joints.indices,
                                  output_shape=dense_shape,
                                  sparse_values=1,
                                  default_value=0)
 
-    return x_dense_joints, y_dense_joints, weights
+    return x_dense_joints, y_dense_joints, tf.concat(concat_dim=1, values=[weights, weights])
 
 
 def _inference(training_batch):
@@ -147,7 +147,7 @@ def _inference(training_batch):
             x_dense_joints, y_dense_joints, weights = _sparse_joints_to_dense(
                 training_batch)
 
-            dense_joints = tf.concat(concat_dim=0,
+            dense_joints = tf.concat(concat_dim=1,
                                      values=[x_dense_joints, y_dense_joints])
 
             auxiliary_logits = endpoints['AuxLogits']

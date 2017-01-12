@@ -1,10 +1,6 @@
 import os
 import tensorflow as tf
 
-# @debug
-from IPython.core.debugger import Tracer
-from PIL import Image, ImageDraw
-
 # TODO(brendan): Alter `write_tf_record` code to spit out
 # shards with about 1024 examples each.
 EXAMPLES_PER_SHARD = 1024
@@ -29,8 +25,12 @@ class TrainingBatch(object):
         return self._images
 
     @property
-    def joints(self):
-        return self._joints
+    def x_joints(self):
+        return self._x_joints
+
+    @property
+    def y_joints(self):
+        return self._y_joints
 
     @property
     def joint_indices(self):
@@ -194,46 +194,34 @@ def _parse_and_preprocess_images(example_serialized,
             tensor=distorted_image,
             shape=[image_dim, image_dim, 3])
 
-        # @debug
-        distorted_image = tf.image.convert_image_dtype(
-            image=distorted_image, dtype=tf.uint8)
-        x_sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
-                                          sp_values=x_joints,
-                                          vocab_size=16)
-        x_dense_joints = tf.sparse_tensor_to_dense(sp_input=x_sparse_joints,
-                                                   default_value=0)
-        y_sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
-                                          sp_values=y_joints,
-                                          vocab_size=16)
-        y_dense_joints = tf.sparse_tensor_to_dense(sp_input=y_sparse_joints,
-                                                   default_value=0)
-        dense_joints = tf.concat(0, [x_dense_joints, y_dense_joints])
-        session = tf.InteractiveSession()
-        init = tf.global_variables_initializer()
-        session.run(init)
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(session, coord)
-        for _ in range(16):
-            [dense_joints0, image] = session.run(
-                fetches=[dense_joints, distorted_image])
-            pil_image = Image.fromarray(image)
-            draw = ImageDraw.Draw(pil_image)
-            joints = image_dim*(dense_joints0 + 0.5)
-            for joint_index in range(16):
-                x = joints[joint_index]
-                y = joints[joint_index + 16]
-                box = (x - 2, y - 2, x + 2, y + 2)
-                red = int(0xFF*(joint_index % 5)/5)
-                green = int(0xFF*(joint_index % 10)/10)
-                blue = int(0xFF*joint_index/16)
-                colour = (red, green, blue)
-                draw.ellipse(box, fill=colour)
+        rand_uniform = tf.random_uniform(shape=[],
+                                         minval=0,
+                                         maxval=1.0)
+        should_flip = rand_uniform < 0.5
+        distorted_image = tf.cond(
+            pred=should_flip,
+            fn1=lambda: tf.image.flip_left_right(image=distorted_image),
+            fn2=lambda: distorted_image)
+        x_joints = tf.cond(
+            pred=should_flip,
+            fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.shape),
+            fn2=lambda: x_joints)
 
-            # @debug
-            Tracer()()
+        colour_ordering = thread_id % 2
 
-            # @debug
-            pil_image.show()
+        # NOTE(brendan): The colour distortions are non-commutative, so we do
+        # them in a random order.
+        distorted_image = tf.image.random_brightness(image=distorted_image, max_delta=32./255.)
+        if colour_ordering == 0:
+            distorted_image = tf.image.random_saturation(image=distorted_image, lower=0.5, upper=1.5)
+            distorted_image = tf.image.random_hue(image=distorted_image, max_delta=0.2)
+            distorted_image = tf.image.random_contrast(image=distorted_image, lower=0.5, upper=1.5)
+        else:
+            distorted_image = tf.image.random_contrast(image=distorted_image, lower=0.5, upper=1.5)
+            distorted_image = tf.image.random_saturation(image=distorted_image, lower=0.5, upper=1.5)
+            distorted_image = tf.image.random_hue(image=distorted_image, max_delta=0.2)
+
+        distorted_image = tf.clip_by_value(t=distorted_image, clip_value_min=0.0, clip_value_max=1.0)
 
         distorted_image = tf.sub(x=distorted_image, y=0.5)
         distorted_image = tf.mul(x=distorted_image, y=2.0)
