@@ -194,7 +194,7 @@ def _int64_feature(value):
 
 def _append_scaled_joint(joints, joint_dim, max_joint_dim, image_center):
     """Appends to joints the value of joint_dim, scaled down to be in the range
-    [-1.0, 1.0].
+    [-0.5, 0.5].
 
     Args:
         joints: List of joints, in the order [x0, y0, x1, y1, ...]
@@ -203,12 +203,12 @@ def _append_scaled_joint(joints, joint_dim, max_joint_dim, image_center):
             appears, e.g. height of 1080 in a 1920x1080 image.
     """
     scaled_joint = _clamp_range(
-        (joint_dim - image_center)/max_joint_dim, -1, 1)
+        (joint_dim - image_center)/max_joint_dim, -0.5, 0.5)
     joints.append(scaled_joint)
 
 
-def _extract_labeled_joints(person,
-                            image_shape,
+def _extract_labeled_joints(person_joints,
+                            cropped_img_shape,
                             padding,
                             offsets):
     """Extracts all of the joints for a single person in image, and puts them
@@ -216,56 +216,57 @@ def _extract_labeled_joints(person,
 
     Not all joints are labeled for each person, so this function also returns a
     sparse list of indices for person, where each index indicates which joint
-    is labeled. The x coordinates have even sparse indices, while y coordinates
-    have odd sparse indices.
+    is labeled. The indices correspond to two sparse lists of joint
+    coordinates, one for x and one for y.
 
     Args:
-        person: Person in the image to get joints for.
-        image_shape: The shape of the given image, in the format
-            Point(cols, rows).
+        person_joints: Joints of person in the image.
+        cropped_img_shape: The shape of the given image post-cropping, in the
+            format Point(cols, rows).
         padding: Pixels of padding in Point(width, height) dimensions.
-        offsets: The Point(width, height) offsets of this cropped image in the
-            original image. This is needed to translate the joint labels.
+        offsets: The Point(width, height) offsets of the top left corner of
+            this cropped image in the original image. This is needed to
+            translate the joint labels.
 
     Returns:
-        (sparse_joints, sparse_joint_indices tuple, where `sparse_joints` is a
-        list of joint coordinates, and sparse_joint_indices is a list of
-        indices indicate which joints are which.
+        (x_sparse_joints, y_sparse_joints, sparse_joint_indices) tuple, where
+        `*_sparse_joints` are lists of x and y joint coordinates, and
+        sparse_joint_indices is a list of indices indicate which joints are
+        which.
 
-        Visually: `sparse_joints` [x0, y0, x1, y1, x2, y2]
-                  `sparse_joint_indices` [0, 1, 2, 3, 6, 7]
+        Visually: `x_sparse_joints` [x0, x1, x2]
+                  `y_sparse_joints` [y0, y1, y2]
+                  `sparse_joint_indices` [0, 1, 3]
 
                   The above corresponds to a person for whom (x0, y0), (x1, y1)
                   and (x2, y2) are joints 0, 1 and 3 (indexed 0-15 in (x, y)
                   pairs as in the MPII dataset) for `person`, respectively.
     """
-    sparse_joints = []
+    x_sparse_joints = []
+    y_sparse_joints = []
     sparse_joint_indices = []
-    max_image_dim = max(image_shape.x, image_shape.y)
-    image_center = int(max_image_dim/2)
+    max_cropped_img_dim = max(cropped_img_shape.x, cropped_img_shape.y)
+    abs_image_center = Point(offsets.x + cropped_img_shape.x/2,
+                             offsets.y + cropped_img_shape.y/2)
 
-    for joint_index in range(len(person.joints)):
-        joint = person.joints[joint_index]
+    for joint_index in range(len(person_joints)):
+        joint = person_joints[joint_index]
         if joint is not None:
             joint = Point(joint[0], joint[1])
-            if ((offsets.x <= joint.x <= (offsets.x + image_shape.x)) and
-                (offsets.y <= joint.y <= (offsets.y + image_shape.y))):
-                joint.x -= offsets.x
-                joint.y -= offsets.y
-                _append_scaled_joint(sparse_joints,
-                                     joint.x + padding.x,
-                                     max_image_dim,
-                                     image_center)
-                _append_scaled_joint(sparse_joints,
-                                     joint.y + padding.y,
-                                     max_image_dim,
-                                     image_center)
+            if ((offsets.x <= joint.x <= (offsets.x + cropped_img_shape.x)) and
+                (offsets.y <= joint.y <= (offsets.y + cropped_img_shape.y))):
+                _append_scaled_joint(x_sparse_joints,
+                                     joint.x,
+                                     max_cropped_img_dim,
+                                     abs_image_center.x)
+                _append_scaled_joint(y_sparse_joints,
+                                     joint.y,
+                                     max_cropped_img_dim,
+                                     abs_image_center.y)
 
-                x_sparse_index = 2*joint_index
-                sparse_joint_indices.append(x_sparse_index)
-                sparse_joint_indices.append(x_sparse_index + 1)
+                sparse_joint_indices.append(joint_index)
 
-    return sparse_joints, sparse_joint_indices
+    return x_sparse_joints, y_sparse_joints, sparse_joint_indices
 
 
 def _find_person_bounding_box(person, img_shape):
@@ -290,14 +291,14 @@ def _find_person_bounding_box(person, img_shape):
     Returns:
         A `Rectangle` describing the box bounding `person`.
     """
-    head_rect = Rectangle(person.head_rect)
-    head_width = head_rect.get_width()
-    head_height = head_rect.get_height()
+    x = person.objpos.x
+    y = person.objpos.y
 
-    top_left = Point(head_rect.top_left.x - 4*head_width,
-                     head_rect.top_left.y - head_height)
-    bottom_right = Point(head_rect.top_left.x + 4*head_width,
-                         head_rect.top_left.y + 7*head_height)
+    # NOTE(brendan): The MPII `scale` is with respect to 200px object height,
+    # and `objpos` is at the person's center.
+    person_half_dim = 100*person.scale
+    top_left = Point(x - person_half_dim, y - person_half_dim)
+    bottom_right = Point(x + person_half_dim, y + person_half_dim)
 
     return Rectangle(_clamp_point_to_image(top_left, img_shape) +
                      _clamp_point_to_image(bottom_right, img_shape))
@@ -320,7 +321,7 @@ def _find_padded_person_dim(person_rect):
     """
     person_width = person_rect.get_width()
     person_height = person_rect.get_height()
-    padding = int(abs(person_height - person_width)/2)
+    padding = abs(person_height - person_width)/2
     if person_height > person_width:
         height_pad = 0
         width_pad = padding
@@ -338,7 +339,7 @@ def _find_padded_person_dim(person_rect):
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
 
-    See `_extract_labeled_joints` for the format of `sparse_joints` and
+    See `_extract_labeled_joints` for the format of `*_sparse_joints` and
     `sparse_joint_indices`.
     """
     img_shape = coder.decode_jpeg(image_jpeg)
@@ -356,18 +357,20 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             padding_xy,
             padded_img_dim)
 
-        sparse_joints, sparse_joint_indices = _extract_labeled_joints(
-            person,
+        labels = _extract_labeled_joints(
+            person.joints,
             person_shape_xy,
             padding_xy,
             person_rect.top_left)
+        x_sparse_joints, y_sparse_joints, sparse_joint_indices = labels
 
         example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     'image_jpeg': _bytes_feature(scaled_img_jpeg),
                     'joint_indices': _int64_feature(sparse_joint_indices),
-                    'joints': _float_feature(sparse_joints)
+                    'x_joints': _float_feature(x_sparse_joints),
+                    'y_joints': _float_feature(y_sparse_joints)
                 }))
         writer.write(example.SerializeToString())
 

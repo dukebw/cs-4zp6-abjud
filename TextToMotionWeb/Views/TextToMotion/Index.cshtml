@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "Text To Motion - Search";
+}
+<div class="row">
+    <h2 class='text-center'>@ViewData["Title"]</h2>
+    <hr>
+</div>
+<div class='row'>
+    <div class="col-lg-10 col-md-12 col-sm-12 col-xs-12 col-lg-offset-1 img-responsive">
+        <img src = '/images/banner.jpg' class='img-responsive' style="width:100%; max-height: 25em;">
+    </div>
+</div>
+<br>
+<div class='row'>
+    <div class='col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1'>
+        <form action="/TextToMotion/Search" method="POST">
+            <div class='row'>
+                <div class='col-lg-8 col-md-8 col-sm-12 col-xs-12'>
+                    <input type='text' name="Query" class='form-control noMargins fullWidth'>
+                </div>
+                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                    <button type="submit" class="btn btn-primary fullWidth"><span class='glyphicon glyphicon-search'></span> Search</button>
+                </div>
+                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                    <a class='btn btn-info fullWidth'><span class='glyphicon glyphicon-tasks'></span> Options</a>
+                </div>
+            </div>
+        </form>
+    </div>    
+</div>
+<br><br>
