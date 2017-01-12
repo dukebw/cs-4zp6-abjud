@@ -129,7 +129,12 @@ On the details page the user can see the name and description that was chosen at
 \section{Database Schema}
 The Figure below shows an entity relationship diagram for the current iteration of the database schema. The live website does not use this schema, as the full implementation of the database is still underway.
 
-
+\begin{figure}[!ht]
+    \caption{Database Entity-Relationship Diagram}
+    \label{erDiagram}
+	\centering
+	\includegraphics[width=0.8\textwidth]{../Docs/data/ER-Diagram.png}
+\end{figure}
 
 
 \section{Table Description}
@@ -454,9 +459,9 @@ This file also imports a shared object file to access a function defined in C. T
 
     \item \textbf{Returns:}
 
-    If the process is completed with no errors, returns the View 'TextToMotion/Index.cshtml'
+    If the process is completed with no errors, returns the View 'ImagePoseDraw/Index.cshtml'
     \\\\
-    if any error is caught, returns the View 'TextToMotion/Create.cshtml' so that the user can submit the request again as a form
+    if any error is caught, returns the View 'ImagePoseDraw/Create.cshtml' so that the user can submit the request again as a form
 
     \item \textbf{Description:}
 
@@ -469,10 +474,81 @@ This file also imports a shared object file to access a function defined in C. T
     The object referred to in the shared object file will be discussed in detail in the next section.
     \\
     Once the image has been processed and overwritten to include the pose estimation data (joint positions), \textit{posedImage} is saved to the database
+\end{itemize}
 
+
+\subsubsection{IPD Function 7: HTTP[Get] Edit()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+    \item \textbf{Returns:}
+
+    The View of 'ImagePoseDraw/Edit.cshtml' in the 'Views' folder of the .NET application
+
+    \item \textbf{Description:}
+
+    Returns the View of 'Edit' through the MVC, which displays the page where the Name and Description of an upload can be manipulated.
+\end{itemize}
+
+
+\subsubsection{IPD Function 8: HTTP[Post] Edit(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    int\quad\textit{id}
+    \\
+    \textbf{PoseDrawnImage}\quad\textit{image}
+
+    \item \textbf{Returns:}
+
+    If the process is completed with no errors, returns the View 'ImagePoseDraw/Index.cshtml'
+    \\\\
+    else returns back to the Edit page so the user can re-submit the form
+
+    \item \textbf{Description:}
+
+    \textit{id} refers to the id of the \textbf{PoseDrawnImage} model to update
+    \\
+    Takes in text input for the new 'Name' and/or 'Description' via the HTTP Request
+    \\
+    Updates the content of the pose-drawn image database entry (columns for Name and Description).
 
 \end{itemize}
 
+
+\subsubsection{IPD Function 9: HTTP[Get] Delete()}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    int\quad\textit{id}
+
+    \item \textbf{Returns:}
+
+    if the The View of 'ImagePoseDraw/DElet.cshtml' with the upload associated with the \textit{id} removed if confirmation was successful, otherwise returns to the ImagePoseDraw page with the uploads still there.
+
+    \item \textbf{Description:}
+
+    Calls await Details(id) in order to confirm the removing of the upload.
+\end{itemize}
+
+
+
+\subsubsection{IPD Function 10: HTTP[Post] DeleteConfirmation(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+    int\quad\textit{id}
+
+    \item \textbf{Returns:}
+
+    If the process is completed with no errors, returns the View 'ImagePoseDraw/Index.cshtml', which will no longer show the upload associated with the \textit{id}
+
+    \item \textbf{Description:}
+
+    \textit{id} refers to the id of the \textbf{PoseDrawnImage} model to delete
+    \\
+    Uses the database \_context and \textbf{PoseDrawnImages} model in order to remove the image when confirmed. Then redirects to the ImagePoseDraw/Index.cshtml page.
+
+\end{itemize}
 
 \break
 
@@ -822,18 +898,65 @@ individual frames.
 
 \subsection{Standalone HTTP Server}
 
+In addition to the ASP.NET website, the idea is to have a dedicated HTTP server that is separate from the .net website that can take in HTTP requests and run the pose estimation algorithm and save the image/video to the database.
+\\\\
+The main purpose of this dedicated server is to optimize mass-uploads of large sets of images/videos. This server would not have to deal with the overhead of running an entire MVC framework, and would be better suited for uploads that take longer. This server could also be configured to be optimized for GPU-based execution of the pose estimation algorithm.
+\\
+Having a separate site would also prevent the possibility of overloading the main website with too many long-polling requests. This is a definite possibility if there are a lot of users and activity.
+\\\\
+There is no module or code for this standalone server yet, but it might be implemented using Python and HTTP Requests
 
 
 \chapter{Communication Protocol}
 
-...just mention to HTTP...
+This application uses the HTTP (HyperText Transfer Protocol) to communicate between the web interface and the server. There is the possibility of using HTTPS for securse communication, but this is not a strong requirement
 
 
 \chapter{Development Details}
 
-\section{Languages}
+\section{Languages of implementation}
+
+\begin{itemize}
+    \item \textbf{C\#}: ASP.NET Core MVC Framework
+    \item \textbf{C++}: Pose Estimation program based on research paper
+    \item \textbf{C}: used to wrap the C++ function so that it can be made into a shared object file that can be called from the web app
+    \item \textbf{SQLite}: to store database of images
+\end{itemize}
+
+\subsubsection{supporting frameworks/plugins:}
+
+\begin{itemize}
+    \item \href{http://getbootstrap.com/}{Bootstrap}
+    \item \href{https://jquery.com/}{JQuery JS}
+    \item \href{https://datatables.net/}{DataTables JS}
+\end{itemize}
+
+\section{Languages of Features in development}
+
+\begin{itemize}
+    \item \textbf{Python}: Tensorflow
+    \item \textbf{MySQL}: for the database schema described in \textbf{section 3}
+
+\end{itemize}
+
 \section{Software}
+
+\begin{itemize}
+    \item \textbf{Caffe}: to run pose estimation on heatmaps generated from images
+    \item \textbf{OpenCV}: for image manipulation so that uploaded images can be converted into types accepted by Caffe
+\end{itemize}
+
+\section{Software - for features in development}
+
+\begin{itemize}
+    \item \textbf{Tensorflow:} to replace Caffe as the deep learning framework
+    \item \textbf{Sphinx Search:} indexing tool for SQL databases that can speed up search queries. will be included once the SQL database is up and running
+\end{itemize}
+
 \section{Hardware}
 
+\begin{itemize}
+    \item \textbf{Ubuntu Server - 16.0.4:} hosts the live website at \href{159.203.10.112}{this link}
+\end{itemize}
 
 \end{document}
