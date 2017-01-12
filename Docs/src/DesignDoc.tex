@@ -140,6 +140,8 @@ The Figure below shows an entity relationship diagram for the current iteration 
 
 Note that there is an issue with the image above, the diagram has a redundancy.
 The 'Media' and 'Tags' table should not have a column for "media\_tag\_id". This column will not be mentioned in the table description and this image will be updated.
+\\\\
+There is also a discrepancy with the arrow mapping the 'Media' table to the 'Media\_Tags' table. This relationship is a Many-to-Many relationship and not a one-to-many.
 
 
 \section{Table Description}
@@ -405,7 +407,7 @@ This file also imports a shared object file to access a function defined in C. T
 \\
 \href{http://docs.opencv.org/3.1.0/}{Reference to OpenCV}
 \\\\
-\underline{List of Functions (IPD = ImagePoseDraw)}
+\underline{ \textbf{List of Functions (IPD = ImagePoseDraw)}}
 
 \subsubsection{IPD Function 1: Task\textless bool\textgreater DoesImageExist(args)}
 \begin{itemize}
@@ -646,7 +648,7 @@ This C++ Program file contains 8 functions. All of these functions take in objec
 \\\\
 The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of the functions serve as helpers to this function
 \\\\
-\underline{List of Functions and Descriptions (PE = Pose Estimation):}
+\underline{ \textbf{List of Functions and Descriptions (PE = Pose Estimation):}}
 \\
 \subsubsection{References for Objects used in C++ functions}
 
