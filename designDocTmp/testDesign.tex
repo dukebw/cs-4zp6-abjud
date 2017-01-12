@@ -42,82 +42,6 @@
 \newcommand{\ds}[1]{\authornote{blue}{DS}{#1}}
 
 
-%% The following are used for pretty printing of events and requirements
-\makeatletter
-
-\define@cmdkey      [TP] {test}     {name}       {}
-\define@cmdkey      [TP] {test}     {desc}       {}
-\define@cmdkey      [TP] {test}     {type}       {}
-\define@cmdkey      [TP] {test}     {init}       {}
-\define@cmdkey      [TP] {test}     {input}      {}
-\define@cmdkey      [TP] {test}     {output}     {}
-\define@cmdkey      [TP] {test}     {pass}       {}
-\define@cmdkey      [TP] {test}     {user}       {}
-\define@cmdkey      [TP] {test}     {reqnum}     {}
-
-
-\newcommand{\getCurrentSectionNumber}{%
-  \ifnum\c@section=0 %
-  \thechapter
-  \else
-  \ifnum\c@subsection=0 %
-  \thesection
-  \else
-  \ifnum\c@subsubsection=0 %
-  \thesubsection
-  \else
-  \thesubsubsection
-  \fi
-  \fi
-  \fi
-}
-
-\newcounter{TestNum}
-
-\@addtoreset{TestNum}{section}
-\@addtoreset{TestNum}{subsection}
-\@addtoreset{TestNum}{subsubsection}
-
-\newcommand{\testauto}[1]{
-\setkeys[TP]{test}{#1}
-\refstepcounter{TestNum}
-\begin{mdframed}[linewidth=1pt]
-\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
-{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
-{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
-{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
-{\bf Initial State:} & \cmdTP@test@init\\[0.5\baselineskip]
-{\bf Input:} & \cmdTP@test@input\\[0.5\baselineskip]
-{\bf Output:} & \cmdTP@test@output\\[0.5\baselineskip]
-{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
-{\bf Req. \#:} & \cmdTP@test@reqnum
-\end{tabularx}
-\end{mdframed}
-}
-
-\newcommand{\testmanual}[1]{
-\setkeys[TP]{test}{#1}
-\refstepcounter{TestNum}
-\begin{mdframed}[linewidth=1pt]
-\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
-{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
-{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
-{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
-{\bf Testers:} & \cmdTP@test@user\\[0.5\baselineskip]
-{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
-{\bf Req. \#:} & \cmdTP@test@reqnum
-\end{tabularx}
-\end{mdframed}
-}
-
-\makeatother
-
-\newcommand{\ZtoT}{
-\begin{tabularx}{3.85cm}{@{}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}@{}}
-0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10
-\end{tabularx}
-}
-
 \begin{document}
 \title{\bf Text to Motion Database\\[\baselineskip]\Large Design Document}
 \author{Brendan Duke\\Andrew Kohnen\\Udip Patel\\David Pitkanen\\Jordan Viveiros}
@@ -149,7 +73,7 @@ January 5, 2017 & 0.0 & File created\\
 The Text to Motion Database aims to provide a living database of pose estimated media with word pairings and tags. The purpose of this document is to provide a detailed description of the design choices for each section of the Text to Motion Database.
 
 \chapter{User Experience}
-A user experience is the overall journey of a person on the Text to Motion Database with respects to the learnability and usability. This section is organized to describe the journey between web pages and any design choices that went into the user interface in order to improve the overall experience.
+A user experience is the overall journey of a person on the Text to Motion Database with respect to learnability and usability. This section is organized to describe the journey between web pages and any design choices that went into the user interface in order to improve the overall experience.
 
 \begin{figure}[!ht]
         \caption{McMaster Text-to-Motion Database User Expierence}
@@ -159,51 +83,51 @@ A user experience is the overall journey of a person on the Text to Motion Datab
 \end{figure}
 
 \section{User Journey}
-As seen in the Figure above when a user comes to the Text to Motion Database they will see the home page. At first glance they see some information about the website and how it can be used along with some different page options located at the top. Each of these different pages displays something different and is hinted at within the name of the page; with ImagePoseDraw being the most ambiguous. All the pages can be accessed by an anonymous user but in order to upload media a user must register or sign in. Each page will be described in greater detail below with additional functionality and design choices.
+As seen in Figure~\ref{userExp}, when a user comes to the Text to Motion Database they will see the home page. At first glance they see some information about the website and how it can be used along with some different page options located at the top. Each of these different pages displays something different and is hinted at within the name of the page, with ImagePoseDraw being the most ambiguous. All the pages can be accessed by an anonymous user, but in order to upload media a user must register or sign in. Each page will be described in greater detail below with additional functionality and design choices.
 
 \section{Home Page}
-As previously mentioned the first page seen on the Text to Motion Database is the home page, it contains an application description, resources that were used, and brief instructions on how to use the website. The overall design of the page was to be simple and present the information to the user front and center so that they could explore the options given to them on their own.
+As previously mentioned the first page seen on the Text to Motion Database is the home page. It contains an application description, resources that were used, and brief instructions on how to use the website. The overall design of the page was to be simple and present the information to the user front and center so that they could explore the options given to them on their own.
 
 \section{About}
-The about page is a more granular description of the Text to Motion Database’s overview, problem statement and what the intended use of the website is. Like the home page a simple design and colour scheme was chosen along with plain text for easier reading.
+The about page is a more granular description of the Text to Motion Database’s overview, problem statement and what the intended use of the website is. Like the home page a simple design and colour scheme were chosen along with plain text for easier reading.
 
 \section{Contact}
-The contact page maintains the overall look and feel of the website with plain text and individual boxes for the contact information of each group member and supervisors. Every box contains the member’s name, and email at minimum with the addition of titles for each supervisor and the department for each group member.
+The contact page maintains the overall look and feel of the website with plain text and individual boxes for the contact information of each group member and supervisors. Every box contains the member's name and e-mail at minimum, with the addition of titles for each supervisor and the department for each group member.
 
 \section{Navigation Bar}
-In order to maintain an easy way to navigate the website the navigation bar located at the top of the page contains links to each page with fixed locations. This allows the users to learn the link location and makes for a more enjoyable experience.
+In order to maintain an easy way to navigate the website, the navigation bar located at the top of the page contains links to each page with fixed locations regardless of which page the user is currently on. This allows the users to learn the link location and makes for a more enjoyable experience.
 
 \section{Log In}
-If the user has already made an account with the Text to Motion Database they can use the login page to access the account in order to upload images and video. While on the login page before successfully logging in the page location on the navigation bar is in the far right corner, and after logging in is replaced by the option to log off.
+If the user has already made an account with the Text to Motion Database they can use the login page to access the account in order to upload images and video. While on the login page before successfully logging in the page location on the navigation bar is in the far right corner, and after logging in it is replaced by the option to log off.
 \\
 From a design standpoint the login page contains two text boxes for entry, an option for the username to be remembered, a login button, and hyperlinks to register or recover a lost password. Overall it is a very standard login screen and should help a first time user navigate through without any confusion or misunderstanding.
 
 
 \section{Register}
-If the user has not already made an account and wishes to do so the option to register can be accessed from the navigation bar or the login page. It follows the same website standards that the login page does and has three text boxes for a username, password and password confirmation along with the button to complete a registration. Once a user has made and account or successfully logged in the register option in the navigation bar will be replaced by a greeting and take them to the account management options which at revision 0 are not fully complete.
+If the user has not already made an account, and wishes to do, so the option to register can be accessed from the navigation bar or the login page. It follows the same website standards that the login page does and has three text boxes for a username, password and password confirmation along with the button to complete a registration. Once a user has made an account or successfully logged in, the register option in the navigation bar will be replaced by a greeting and take them to the account management options, which at revision 0 are not fully complete.
 
 \section{Text To Motion}
-Searching the database is not restricted by the users account and can be accessed by anyone since it is one of the core features of the Text to Motion Database. The ability to search through the pose estimated data is done through the large search bar on the page, helping the user focus on it in order to explain the functionality of the page.
+Searching the database is not restricted by a given user's account and rather can be accessed by anyone, since it is one of the core features of the Text to Motion Database. The ability to search through the pose estimated data is done through the large search bar on the page, helping the user focus on it in order to explain the functionality of the page.
 
 \subsection{Search Results}
 Once the search bar has received input it will parse through the database to return uploads that match or have strong resemblance of the input in a column format. Each result will take the user to a separate page with the Name, Description and pose estimated media. The layout of the results shows the user what was returned without any additional information to promote the usability and accuracy of the search.
 
 \section{Image Pose Draw}
-Once the user has navigated to the page labeled ImagePoseDraw the initial view is that of a table with names, descriptions and hyperlinks. This is currently where the most recent uploads are displayed with the name and description that were given during the uploading process. The table is designed to separate each upload through a dark and light shading in order to easy distinguish two different entries. Beyond the table the page has two other key functions in the ability to search through the table with by the name or description, and create new pose estimated uploads through the hyperlink above the table.
+Once the user has navigated to the page labeled ImagePoseDraw, the initial view is that of a table with names, descriptions and hyperlinks. This is currently where the most recent uploads are displayed with the name and description that were given during the upload process. The table is designed to contrast consecutive uploads through a dark and light shading in order to easy distinguish two different entries. Beyond the table, the page has two other key functions in the ability to search through the table with by the name or description, and to create new pose estimated uploads through the hyperlink above the table.
 
 \subsection{Create}
-If the option to create a new entry has been selected the user is taken to a new page where they have the ability to upload a new image in order to be pose estimated and stored within the database. Choosing the image to upload can be done from a URL or internal storage and opens a file explorer when selected. After an image has been picked the user has to provide a name and description to the image before it has been pose estimated to be stored in the database and provide a search option. Upon completion of the above steps the image can be uploaded, taking the user back to the ImagePoseDraw page with the new entry after the processing has happened.
+If the option to create a new entry has been selected, the user is taken to a new page where they have the ability to upload a new image to be pose estimated and stored within the database. Choosing the image to upload can be done from a URL or internal storage, which opens a file explorer when selected. After an image has been picked, the user has to provide a name and description for the image before it has been pose estimated so that once stored the result can be retrieved from the database using a search option. Upon completion of the above steps the image can be uploaded, taking the user back to the ImagePoseDraw page with the new entry after the processing has happened.
 
 \subsection{Description}
-In order to see the uploaded media the user can use the name associated with an image to find it by searching or scrolling through alphabetically. After the upload is located the user can edit the tags of the image, delete the image and tags, or view the pose estimated media. Deciding to edit the upload takes them to a new screen where the options to change the name or description that was previously input are given. As of revision 0 if the user wants to remove or change their uploaded image they have to first delete the previous entry using the Delete option and go through the steps of creating again. If the user wants to view the selected entry the details option will take them to a new page to view this.
+In order to see the uploaded media the user can use the name associated with an image to find it by searching or scrolling through alphabetically. After the upload is located, the user can edit the tags of the image, delete the image and tags, or view the pose estimated media. Deciding to edit the upload takes them to a new screen where the options to change the name or description that were previously input are given. As of revision 0, if the user wants to remove or change their uploaded image they have to first delete the previous entry using the Delete option and go through the steps of creating an upload again. If the user wants to view the selected entry the details option will take them to a new page to view this.
 
 \subsection{Details}
-On the details page the user can see the name and description that was chosen at the time of the upload and the image that was been pose estimated to show the chin, and upper arms. Each section of the image is clearly defined with the chin and joints being represented by red circles and the upper arms being represented by two green lines connected at a joint. This shows the user where the algorithm believes the labeled sections are and the separation of colour allows for an easy understanding of the positioning.
+On the details page the user can see the name and description that was chosen at the time of the upload and the image that has been pose estimated to show the chin, and upper arms. Each section of the image is clearly defined with the chin and joints being represented by red circles and the upper arms being represented by two green lines connected at a joint. This shows the user where the algorithm believes the labeled sections are and the separation of colour allows for an easy understanding of the positioning.
 
 \chapter{Database Structure}
 
 \section{Database Schema}
-The Figure below shows and entity relationship diagram for the current iteration of the database schema. The live website does not use this schema yet due to a lack of a database server.
+The Figure below shows an entity relationship diagram for the current iteration of the database schema. The live website does not use this schema, as the full implementation of the database is still underway.
 
 
 
@@ -861,13 +785,40 @@ The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of t
 
 Since a video can be considered as just a set (or array) of images, this pose estimation algorithm can be executed on videos as well as images. At this point in the project,a C++ program does exist that references a function from the file \textbf{"estimate\_pose.cpp"} to analyze videos, but the code has not been finalized. It is also far too slow to be used from a web interface.
 \\\\
-Since this functionality is not a part of the system yet, this module was not given a formal declaration/definition. In addition to the reasons mentioned above, the Caffe submodule as a whole will soon be replaced by a newer deep learning framework described in the section below (Tensorflow). So this module is not going to be included in the final revision of this document
+Since this functionality is not a part of the system yet, this module was not given a formal declaration/definition. In addition to the reasons mentioned above, the Caffe submodule as a whole will soon be replaced by a newer deep learning framework described in the section below (TensorFlow). So this module is not going to be included in the final revision of this document
 
-\subsection{Tensorflow}
+\subsection{TensorFlow}
 
-Moving Forward, the Caffe deep learning framework (C++) will be replaced by Tensorflow. Tensorflow is a newer framework with more support for developers compared to Caffe. Tensorflow is a library in Python that can generate graphs needed for neural networks and deep learning algorithms. Replacing the deep learning framework will not drastically change the logic of the web application. The web application would just refer to a different kind of executable when processing an uploaded image (it refers to a shared object file as of now).
-\\\\
-The project repository contains several test Python files and functions that work with the simpler aspects of Tensorflow. These are attempts at trying to learn Tensorflow and the functions or files are not referenced by the ASP.NET web app at all. Since these files are separate from the functionality of the main application, these modules detailing Tensorflow test code have not been included in the design documentation.
+Moving Forward, the Caffe deep learning framework (C++) will be replaced by
+TensorFlow. TensorFlow is a newer framework with more support for developers
+compared to Caffe. TensorFlow is a library in Python that can generate dataflow
+graphs needed for neural networks and deep learning algorithms.
+
+Thanks to the modularity of the project design, replacing the deep learning
+framework will not drastically change the logic of the web application. The web
+application would just refer to a different kind of executable when processing
+an uploaded image (it refers to a shared object file as of now).
+
+Current development of the TensorFlow backend is focused on training a neural
+network from scratch, or re-training a standard network such as VGG-16. The
+re-training can use parameters learned by the network on a task with massive
+datasets available, such as image classification on ImageNet. Certain layers of
+the network can then be re-trained to solve the task at hand, human pose
+estimation, taking advantage of the image recognition features learned by the
+network on the larger dataset.
+
+The focus of the TensorFlow backend is to improve the existing methods by
+experimenting with state of the art results in human pose estimation using a
+common framework (that being TensorFlow). Once completed this code could be
+contributed back to the open source community, so that others can also run the
+TensorFlow implementation of current human pose estimation research methods.
+
+Optical flow will also be added to the TensorFlow single-frame human pose
+estimation, in order to extend those estimations to video. An additional
+optical flow layer in the network will use the context information from
+adjacent frames to better predict joint positions over time in video, as
+compared with concatenating the results of making predictions on many
+individual frames.
 
 \subsection{Standalone HTTP Server}
 
