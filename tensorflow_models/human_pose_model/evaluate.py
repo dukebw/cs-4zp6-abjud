@@ -29,6 +29,8 @@ def evaluate():
                                                    FLAGS.num_preprocess_threads,
                                                    FLAGS.image_dim)
 
+            # TODO(brendan): Deal with change to separate x and y sparse joint
+            # lists.
             num_joint_coords = 32
             with slim.arg_scope([slim.model_variable], device='/cpu:0'):
                 with slim.arg_scope(inception.inception_v3_arg_scope()):
