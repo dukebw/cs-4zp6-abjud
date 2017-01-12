@@ -526,6 +526,25 @@ This file also imports a shared object file to access a function defined in C. T
 
     \textbf{PoseDrawnImage}\quad\textit{posedImage}
     \\
+    IFormFile\quad\textit{image}\quad\quad\quad\href{https://docs.microsoft.com/en-us/aspnet/core/api/microsoft.aspnetcore.http.iformfile}{[ Reference to IFormFile ]}
+
+    \item \textbf{Returns:}
+
+    If the process is completed with no errors, returns the View 'TextToMotion/Index.cshtml'
+    \\\\
+    if any error is caught, returns the View 'TextToMotion/Create.cshtml' so that the user can submit the request again as a form
+
+    \item \textbf{Description:}
+
+    the model \textbf{PoseDrawnImage} \textit{posedImage} stores 'metadata' for the image that gets overlaid with a sketch of joint positions. This can be considered metadata because this model stores the location of the image (best case: URL, system-as-is: file path to SQLite DB on the live website server)
+    \\\\
+    The \textit{image} is the uploaded image that will have a skeleton overlay drawn onto it
+    \\\\
+    The function inserts a new entry into the pose estimation database table by creating a new row with a unique ID (in ASP.NET, this inclues built-in error checks). The function takes in \textit{image} and saves it to a file path, and the \textit{posedImage} model has an attribute/value that stores the file path that the image is saved in. In order to actually analyze the \textit{image}, the function calls the "estimate\_pose\_wrapper" function from a shared object file. This shared object file's function (originally written in C++) takes in the raw image, writes the skeleton overlay outline of joints onto the raw image and returns it.
+    \\\\
+    The object referred to in the shared object file will be discussed in detail in the next section.
+    \\
+    Once the image has been processed and overwritten to include the pose estimation data (joint positions), \textit{posedImage} is saved to the database
 
 
 \end{itemize}
