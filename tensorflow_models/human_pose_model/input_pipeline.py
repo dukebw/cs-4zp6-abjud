@@ -121,7 +121,8 @@ def _get_renormalized_joints(joints, old_img_dim, new_center, new_img_dim):
 
 def _parse_and_preprocess_images(example_serialized,
                                  num_preprocess_threads,
-                                 image_dim):
+                                 image_dim,
+                                 is_train):
     """Parses Example protobufs containing input images and their ground truth
     vectors and preprocesses those images, returning a vector with one
     preprocessed tensor per thread.
@@ -149,79 +150,83 @@ def _parse_and_preprocess_images(example_serialized,
         parsed_example = _parse_example_proto(example_serialized)
         decoded_img, joint_indices, x_joints, y_joints = parsed_example
 
-        bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
-            image_size=[image_dim, image_dim, 3],
-            bounding_boxes=[[[0, 0, 1.0, 1.0]]],
-            min_object_covered=0.5,
-            aspect_ratio_range=[0.75, 1.33],
-            area_range=[0.5, 1.0],
-            max_attempts=100,
-            use_image_if_no_bounding_boxes=True)
-
-        distorted_image = tf.slice(input_=decoded_img,
-                                   begin=bbox_begin,
-                                   size=bbox_size)
-
-        distorted_image = tf.image.resize_images(images=[distorted_image],
-                                                 size=[image_dim, image_dim],
-                                                 method=thread_id % 4,
-                                                 align_corners=False)
-
-        distorted_center = tf.cast(bbox_begin, tf.float64) + bbox_size/2
-
-        distorted_center_y = distorted_center[0]
-        distorted_center_x = distorted_center[1]
-        distorted_height = bbox_size[0]
-        distorted_width = bbox_size[1]
-
-        new_x_joint_vals = _get_renormalized_joints(x_joints.values,
-                                                    image_dim,
-                                                    distorted_center_x,
-                                                    distorted_width)
-        new_y_joint_vals = _get_renormalized_joints(y_joints.values,
-                                                    image_dim,
-                                                    distorted_center_y,
-                                                    distorted_height)
-
-        x_joints = tf.SparseTensor(x_joints.indices,
-                                   new_x_joint_vals,
-                                   x_joints.shape)
-        y_joints = tf.SparseTensor(y_joints.indices,
-                                   new_y_joint_vals,
-                                   y_joints.shape)
-
-        distorted_image = tf.reshape(
-            tensor=distorted_image,
+        decoded_img = tf.reshape(
+            tensor=decoded_img,
             shape=[image_dim, image_dim, 3])
 
-        rand_uniform = tf.random_uniform(shape=[],
-                                         minval=0,
-                                         maxval=1.0)
-        should_flip = rand_uniform < 0.5
-        distorted_image = tf.cond(
-            pred=should_flip,
-            fn1=lambda: tf.image.flip_left_right(image=distorted_image),
-            fn2=lambda: distorted_image)
-        x_joints = tf.cond(
-            pred=should_flip,
-            fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.shape),
-            fn2=lambda: x_joints)
+        # TODO(brendan): clean up
+        if is_train:
+            bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
+                image_size=[image_dim, image_dim, 3],
+                bounding_boxes=[[[0, 0, 1.0, 1.0]]],
+                min_object_covered=0.5,
+                aspect_ratio_range=[0.75, 1.33],
+                area_range=[0.5, 1.0],
+                max_attempts=100,
+                use_image_if_no_bounding_boxes=True)
 
-        colour_ordering = thread_id % 2
+            distorted_image = tf.slice(input_=decoded_img,
+                                       begin=bbox_begin,
+                                       size=bbox_size)
 
-        # NOTE(brendan): The colour distortions are non-commutative, so we do
-        # them in a random order.
-        distorted_image = tf.image.random_brightness(image=distorted_image, max_delta=32./255.)
-        if colour_ordering == 0:
-            distorted_image = tf.image.random_saturation(image=distorted_image, lower=0.5, upper=1.5)
-            distorted_image = tf.image.random_hue(image=distorted_image, max_delta=0.2)
-            distorted_image = tf.image.random_contrast(image=distorted_image, lower=0.5, upper=1.5)
+            distorted_image = tf.image.resize_images(images=[distorted_image],
+                                                     size=[image_dim, image_dim],
+                                                     method=thread_id % 4,
+                                                     align_corners=False)
+
+            distorted_center = tf.cast(bbox_begin, tf.float64) + bbox_size/2
+
+            distorted_center_y = distorted_center[0]
+            distorted_center_x = distorted_center[1]
+            distorted_height = bbox_size[0]
+            distorted_width = bbox_size[1]
+
+            new_x_joint_vals = _get_renormalized_joints(x_joints.values,
+                                                        image_dim,
+                                                        distorted_center_x,
+                                                        distorted_width)
+            new_y_joint_vals = _get_renormalized_joints(y_joints.values,
+                                                        image_dim,
+                                                        distorted_center_y,
+                                                        distorted_height)
+
+            x_joints = tf.SparseTensor(x_joints.indices,
+                                       new_x_joint_vals,
+                                       x_joints.shape)
+            y_joints = tf.SparseTensor(y_joints.indices,
+                                       new_y_joint_vals,
+                                       y_joints.shape)
+
+            rand_uniform = tf.random_uniform(shape=[],
+                                             minval=0,
+                                             maxval=1.0)
+            should_flip = rand_uniform < 0.5
+            distorted_image = tf.cond(
+                pred=should_flip,
+                fn1=lambda: tf.image.flip_left_right(image=distorted_image),
+                fn2=lambda: distorted_image)
+            x_joints = tf.cond(
+                pred=should_flip,
+                fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.shape),
+                fn2=lambda: x_joints)
+
+            colour_ordering = thread_id % 2
+
+            # NOTE(brendan): The colour distortions are non-commutative, so we do
+            # them in a random order.
+            distorted_image = tf.image.random_brightness(image=distorted_image, max_delta=32./255.)
+            if colour_ordering == 0:
+                distorted_image = tf.image.random_saturation(image=distorted_image, lower=0.5, upper=1.5)
+                distorted_image = tf.image.random_hue(image=distorted_image, max_delta=0.2)
+                distorted_image = tf.image.random_contrast(image=distorted_image, lower=0.5, upper=1.5)
+            else:
+                distorted_image = tf.image.random_contrast(image=distorted_image, lower=0.5, upper=1.5)
+                distorted_image = tf.image.random_saturation(image=distorted_image, lower=0.5, upper=1.5)
+                distorted_image = tf.image.random_hue(image=distorted_image, max_delta=0.2)
+
+            distorted_image = tf.clip_by_value(t=distorted_image, clip_value_min=0.0, clip_value_max=1.0)
         else:
-            distorted_image = tf.image.random_contrast(image=distorted_image, lower=0.5, upper=1.5)
-            distorted_image = tf.image.random_saturation(image=distorted_image, lower=0.5, upper=1.5)
-            distorted_image = tf.image.random_hue(image=distorted_image, max_delta=0.2)
-
-        distorted_image = tf.clip_by_value(t=distorted_image, clip_value_min=0.0, clip_value_max=1.0)
+            distorted_image = decoded_img
 
         distorted_image = tf.sub(x=distorted_image, y=0.5)
         distorted_image = tf.mul(x=distorted_image, y=2.0)
@@ -286,7 +291,8 @@ def setup_eval_input_pipeline(data_dir,
     images_and_joints = _parse_and_preprocess_images(
         example_serialized,
         num_preprocess_threads,
-        image_dim)
+        image_dim,
+        False)
 
     return _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads)
 
@@ -344,7 +350,7 @@ def setup_train_input_pipeline(data_dir,
                                                   batch_size)
 
         images_and_joints = _parse_and_preprocess_images(
-            example_serialized, num_preprocess_threads, image_dim)
+            example_serialized, num_preprocess_threads, image_dim, True)
 
         return _setup_batch_queue(images_and_joints,
                                   batch_size,
