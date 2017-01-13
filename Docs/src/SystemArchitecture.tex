@@ -41,88 +41,11 @@
 \newcommand{\wss}[1]{\authornote{magenta}{SS}{#1}}
 \newcommand{\ds}[1]{\authornote{blue}{DS}{#1}}
 
-
-%% The following are used for pretty printing of events and requirements
-\makeatletter
-
-\define@cmdkey      [TP] {test}     {name}       {}
-\define@cmdkey      [TP] {test}     {desc}       {}
-\define@cmdkey      [TP] {test}     {type}       {}
-\define@cmdkey      [TP] {test}     {init}       {}
-\define@cmdkey      [TP] {test}     {input}      {}
-\define@cmdkey      [TP] {test}     {output}     {}
-\define@cmdkey      [TP] {test}     {pass}       {}
-\define@cmdkey      [TP] {test}     {user}       {}
-\define@cmdkey      [TP] {test}     {reqnum}     {}
-
-
-\newcommand{\getCurrentSectionNumber}{%
-  \ifnum\c@section=0 %
-  \thechapter
-  \else
-  \ifnum\c@subsection=0 %
-  \thesection
-  \else
-  \ifnum\c@subsubsection=0 %
-  \thesubsection
-  \else
-  \thesubsubsection
-  \fi
-  \fi
-  \fi
-}
-
-\newcounter{TestNum}
-
-\@addtoreset{TestNum}{section}
-\@addtoreset{TestNum}{subsection}
-\@addtoreset{TestNum}{subsubsection}
-
-\newcommand{\testauto}[1]{
-\setkeys[TP]{test}{#1}
-\refstepcounter{TestNum}
-\begin{mdframed}[linewidth=1pt]
-\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
-{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
-{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
-{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
-{\bf Initial State:} & \cmdTP@test@init\\[0.5\baselineskip]
-{\bf Input:} & \cmdTP@test@input\\[0.5\baselineskip]
-{\bf Output:} & \cmdTP@test@output\\[0.5\baselineskip]
-{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
-{\bf Req. \#:} & \cmdTP@test@reqnum
-\end{tabularx}
-\end{mdframed}
-}
-
-\newcommand{\testmanual}[1]{
-\setkeys[TP]{test}{#1}
-\refstepcounter{TestNum}
-\begin{mdframed}[linewidth=1pt]
-\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
-{\bf Test \getCurrentSectionNumber.\theTestNum:} & {\bf \cmdTP@test@name}\\[\baselineskip]
-{\bf Description:} & \cmdTP@test@desc\\[0.5\baselineskip]
-{\bf Type:} & \cmdTP@test@type\\[0.5\baselineskip]
-{\bf Testers:} & \cmdTP@test@user\\[0.5\baselineskip]
-{\bf Pass:} & \cmdTP@test@pass\\[0.5\baselineskip]
-{\bf Req. \#:} & \cmdTP@test@reqnum
-\end{tabularx}
-\end{mdframed}
-}
-
-\makeatother
-
-\newcommand{\ZtoT}{
-\begin{tabularx}{3.85cm}{@{}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}p{0.35cm}@{}}
-0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10
-\end{tabularx}
-}
-
 \begin{document}
-\title{\bf Text to Motion Database\\[\baselineskip]\Large Design Document}
+\title{\bf Text to Motion Database\\[\baselineskip]\Large System Architecture}
 \author{Brendan Duke\\Andrew Kohnen\\Udip Patel\\David Pitkanen\\Jordan Viveiros}
 \date{\today}
-	
+
 \maketitle
 
 \pagenumbering{roman}
@@ -146,21 +69,21 @@ January 5, 2017 & 0.0 & File created\\
 \pagenumbering{arabic}
 
 \chapter{Overview}
-This document will provide a general overview of how the McMaster Text to Motion Database will be constructed. The first chapter will talk about the changes that the Text to Motion Database may undergo during the development. The second chapter will contains high level component decomposition for the web interface and the options available to a user when registered.
+This document will provide a general overview of how the McMaster Text to Motion Database will be constructed. The first chapter will talk about the changes that the Text to Motion Database may undergo during the development. The second chapter will contain high level component decomposition for the web interface and the options available to a user who has registered through the web interface.
 
 \chapter{Anticipated and Unlikely Changes}
 As the Text to Motion Database continues to grow and be developed there are inevitably going to be changes in the design and structure of the overall project. The next sections aim to outline the aspects of the project that may be prone to change versus the aspects that are core to the functionality of the database.
 
 \section{Anticipated Changes}
   \begin{itemize}
-    \item \textbf {User Interface Design:} The user interface will likely be changed throughout the development process due to users and supervisors feedback. The changes should improve the user experience and add functionality when possible in order to promote the usability.
-    \item \textbf {HTTP Server:} The HTTP server should see some changes during development as at the time of revision 0 it is still in its infancy with respects to the other sections. It will be used to upload images and videos through the command line which will be outlined below.
-    \item \textbf{Deep Learning Network:} The deep learning network will see improvement through the accuracy of the pose estimation preformed on uploaded images or video. This may occur by training to the network done by the development team or a new method/algorithm that is applied to the network.
+    \item \textbf {User Interface Design:} The user interface will likely be changed throughout the development process due to feedback from users and supervisors. The changes should improve the user experience and add functionality when possible in order to promote the usability of the database through the web interface.
+    \item \textbf {HTTP Server:} The HTTP server should see some changes during development as at the time of revision 0 it is still in an early stage of development compared with other modules. It will be used to upload images and videos through the command line, which will be outlined below.
+    \item \textbf{Deep Learning Network:} The deep learning network will see improvement through the accuracy of the pose estimation performed on uploaded images or video. This may occur by re-training the existing network by the development team, or more state of the art methods and algorithms can be applied.
   \end{itemize}
 
 \section{Unlikely Changes}
   \begin{itemize}
-    \item \textbf {Image/Video Upload:} At the core of the McMaster Text to Motion Database the ability to upload video and images is one of the primary functions and will remain an option throughout the projects development.
+    \item \textbf {Image/Video Upload:} At the core of the McMaster Text to Motion Database the ability to upload video and images is one of the primary functions and will remain an option throughout the project's development.
     \item \textbf {Database Search:} The ability to search through the database is something that the Text to Motion Database should always provide and will evolve when the full text search is implemented.
   \end{itemize}
 
@@ -170,21 +93,21 @@ As the Text to Motion Database continues to grow and be developed there are inev
 Figure 1 shows the user experience from landing on the Home page to options within the web interface.
 
 \begin{enumerate}
-  \item \textbf {1.} Home page for the Text to Motion Database provides information and is the starting point for the journey.
-  \item \textbf {2.} Contact contains the contact information of the development group and its supervisors.
-  \item \textbf {3.} About is about the Text to Motion Database and contains a more detailed description of the application.
-  \item \textbf {4.} ImagePoseDraw accesses the database in order to create, display or manipulate uploads.
+  \item Home page for the Text to Motion Database provides information and is the starting point for the journey.
+  \item Contact contains the contact information of the development group and its supervisors.
+  \item About is about the Text to Motion Database and contains a more detailed description of the application.
+  \item ImagePoseDraw accesses the database in order to create, display or manipulate uploads.
   \begin{enumerate}
-    \item \textbf {4.1} Create is used to take a user that has logged in to the page in order to upload a new image or video to the database.
-    \item \textbf {4.2} Searching through the current database entries is done through the search bar located by the data.
-    \item \textbf {4.3} Details contains the description of the entry, and the options to edit, view or delete the upload.
+    \item Create is used to take a user, who has logged in to the page in order to upload a new image or video, to the database.
+    \item Searching through the current database entries is done through the search bar located above the data table.
+    \item Details contains the description of the entry, and the options to edit, view or delete the upload.
   \end{enumerate}
-  \item \textbf {5.} Login takes the user to the login page to sign in with a registered account.
-  \item \textbf {6.} Register allows the user to register a new account in order to create new uploads.
-  \item \textbf {7.} Text to Motion provides the user the ability to utilize full text search to find associated tags.
+  \item Login takes the user to the login page to sign in with a registered account.
+  \item Register allows the user to register a new account in order to create new uploads.
+  \item Text to Motion provides the user the ability to utilize full text search to find associated tags.
   \begin{enumerate}
-    \item \textbf {7.1} Search is in reference to the search bar that receives input and searches the database.
-    \item \textbf {7.2} Search returns the query results and displays the results to the user.
+    \item Search is in reference to the search bar that receives input and searches the database.
+    \item Search returns the query results and displays the results to the user.
   \end{enumerate}
 \end{enumerate}
 
@@ -199,11 +122,14 @@ Figure 1 shows the user experience from landing on the Home page to options with
 Figure 2 displays the process that a verified user can go through in order to upload and interact with the Text to Motion Database.
 
 \begin{enumerate}
-  \item \textbf {1.} The user must first be logged into the website in order to upload an image or video.
-  \item \textbf {2.} Using the web interface allows the user multiple options with respect uploading images and video.
-  \item \textbf {3.} The standalone HTTP server allows the user to access the database through the command line in order to upload images and videos.
-  \item \textbf {4.} Both the web interface and HTTP server access the Cafe/Tensorflow process in order to run pose estimation and save them to the database for future use.
-  \item \textbf {5.} Database takes in search queries from the web interface and receives uploads from the pose estimation process.
+  \item The user must first be logged into the website in order to upload an image or video.
+  \item Using the web interface allows the user multiple options with respect to uploading images and video.
+  \item The standalone HTTP server allows the user to access the database
+        remotely through the command line, or other application using HTTP
+        requests, in order to upload images and videos and perform human pose
+        estimation.
+  \item Both the web interface and HTTP server access the Caffe/Tensorflow backend process in order to run pose estimation and save the results to the database for future use.
+  \item The database takes in search queries from the web interface and receives uploads from the pose estimation process.
 \end{enumerate}
 
 
@@ -215,4 +141,3 @@ Figure 2 displays the process that a verified user can go through in order to up
 \end{figure}
 
 \end{document}
-

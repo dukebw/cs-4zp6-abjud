@@ -13,7 +13,11 @@ class Test(object):
     def cosine(self, param):
         lib.Test_cosine(self.obj, param)
 
+    def LoadRandomVals(self, pointer, arraySize):
+        lib.Test_load(self.obj, pointer, arraySize)
 
+    def loadVoidArr(self, arrayToLoad, pointer, arraySize):
+        lib.Test_voidLoad(self.obj, arrayToLoad, pointer, arraySize)
 
 def main():
 
@@ -32,6 +36,40 @@ def main():
 
     degrees = c_double(float(raw_input('Please enter an angle (no error checks in place):\n')))
     simpleTest.cosine(degrees)
+
+
+    #simple 1D int array --> let the user decide what the size is
+    arraySize = int(raw_input('\nPlease enter an array size to be created and loaded (no error checks):\n'))
+
+
+    pointerToArr = (c_uint*arraySize)()
+    print '\n'
+    print pointerToArr
+    #this cast function is from the ctypes library, and can allow the variable to represent a C pointer
+    cast(pointerToArr, POINTER(c_uint*arraySize))
+
+    print '\nPre-Randomized string repr\n'
+    string = ''
+    for arrayElement in pointerToArr[0:arraySize-1]:
+        string +=  "{0} ".format(arrayElement)
+    print string
+
+    #note that we must cast arraySize as a ctype type before sending it to the shared object file
+    simpleTest.LoadRandomVals(pointerToArr, c_uint(arraySize))
+
+    print '\nPost-Randomized string repr\n'
+    string = ''
+    for arrayElement in pointerToArr[0:arraySize-1]:
+        string += "{0} ".format(arrayElement)
+    print string + '\n'
+
+    #loading the values of the randomized array above into a void pointer
+    voidPointer = (c_void_p*arraySize)()
+    print voidPointer
+    cast(voidPointer, POINTER(c_void_p*arraySize))
+
+    simpleTest.loadVoidArr(voidPointer, pointerToArr, c_uint(arraySize))
+
 
 
 if __name__ == "__main__":
