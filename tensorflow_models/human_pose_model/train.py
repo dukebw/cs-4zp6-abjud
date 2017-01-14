@@ -17,7 +17,7 @@ RMSPROP_EPSILON = 1.0
 
 NUM_JOINTS = 16
 
-tf.app.flags.DEFINE_string('data_dir', '.',
+tf.app.flags.DEFINE_string('data_dir', './train',
                            """Path to take input TFRecord files from.""")
 tf.app.flags.DEFINE_string('log_dir', './log',
                            """Path to take summaries and checkpoints from, and
