@@ -1,3 +1,4 @@
+import os
 import threading
 import numpy as np
 import tensorflow as tf
@@ -11,11 +12,21 @@ tf.app.flags.DEFINE_string(
     '/mnt/data/datasets/MPII_HumanPose/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat',
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
+
+tf.app.flags.DEFINE_string('train_dir', './train',
+                            """Path in which to write the TFRecord files.""")
+
 tf.app.flags.DEFINE_boolean('is_train', True,
                             """Write training (True) or test (False)
                             TFRecords?""")
+
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             """Number of threads to use to write TF Records""")
+
+tf.app.flags.DEFINE_integer('train_shards', 16,
+                            """Number of output shards (TFRecord files
+                            containing training examples) to create.""")
+
 tf.app.flags.DEFINE_integer('image_dim', 299,
                             """Dimension of the square image to output.""")
 
@@ -375,6 +386,18 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
         writer.write(example.SerializeToString())
 
 
+def _spacing_to_ranges(spacing):
+    """Takes a list of spacings indicating intervals, e.g. [0, 1, 2] indicating
+    intervals 0-1 and 1-2, and returns a list of lists indicating ranges, i.e.
+    [[0, 1], [1, 2]].
+    """
+    ranges = []
+    for spacing_index in range(len(spacing) - 1):
+        ranges.append([spacing[spacing_index], spacing[spacing_index + 1]])
+
+    return ranges
+
+
 def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset):
     """Processes a range of filenames and labels in the MPII dataset
     corresponding to the given thread index.
@@ -391,16 +414,29 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
     else:
         base_name = 'test'
 
-    tfrecord_filename = '{}{}.tfrecord'.format(base_name, thread_index)
-    with tf.python_io.TFRecordWriter(path=tfrecord_filename) as writer:
-        for img_index in range(ranges[thread_index][0], ranges[thread_index][1]):
-            with tf.gfile.FastGFile(name=mpii_dataset.img_filenames[img_index], mode='rb') as f:
-                image_jpeg = f.read()
+    shards_per_thread = FLAGS.train_shards/FLAGS.num_threads
+    shard_spacing = np.linspace(ranges[thread_index][0],
+                                ranges[thread_index][1],
+                                shards_per_thread + 1).astype(np.int)
 
-            _write_example(coder,
-                           image_jpeg,
-                           mpii_dataset.people_in_imgs[img_index],
-                           writer)
+    shard_ranges = _spacing_to_ranges(shard_spacing)
+
+    for shard_index in range(len(shard_ranges)):
+        tfrecord_filename = '{}{}.tfrecord'.format(base_name,
+                                                   thread_index*shards_per_thread + shard_index)
+        tfrecord_filepath = os.path.join(FLAGS.train_dir, tfrecord_filename)
+
+        with tf.python_io.TFRecordWriter(path=tfrecord_filepath) as writer:
+            shard_start = shard_ranges[shard_index][0]
+            shard_end = shard_ranges[shard_index][1]
+            for img_index in range(shard_start, shard_end):
+                with tf.gfile.FastGFile(name=mpii_dataset.img_filenames[img_index], mode='rb') as f:
+                    image_jpeg = f.read()
+
+                _write_example(coder,
+                               image_jpeg,
+                               mpii_dataset.people_in_imgs[img_index],
+                               writer)
 
 
 def _process_image_files(mpii_dataset, num_examples, session):
@@ -413,9 +449,7 @@ def _process_image_files(mpii_dataset, num_examples, session):
     num_threads = FLAGS.num_threads
 
     spacing = np.linspace(0, num_examples, num_threads + 1).astype(np.int)
-    ranges = []
-    for spacing_index in range(len(spacing) - 1):
-        ranges.append([spacing[spacing_index], spacing[spacing_index + 1]])
+    ranges = _spacing_to_ranges(spacing)
 
     coder = ImageCoder(session)
 
@@ -432,6 +466,11 @@ def _process_image_files(mpii_dataset, num_examples, session):
 @timethis
 def write_tf_record(mpii_dataset, num_examples=None):
     # TODO(brendan): Docstring...
+    assert ((FLAGS.train_shards % FLAGS.num_threads) == 0)
+
+    if not os.path.exists(FLAGS.train_dir):
+        os.mkdir(FLAGS.train_dir)
+
     with tf.Graph().as_default():
         with tf.Session() as session:
             if num_examples == None:
