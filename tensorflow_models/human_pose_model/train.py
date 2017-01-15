@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import tf_logging
 from logging import INFO
-from tensorflow.contrib.slim.nets import inception
+from tensorflow.contrib.slim.nets import vgg
 from input_pipeline import setup_train_input_pipeline
 
 FLAGS = tf.app.flags.FLAGS
@@ -138,11 +138,9 @@ def _inference(training_batch):
         logits, added to regularization losses).
     """
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-        with slim.arg_scope(inception.inception_v3_arg_scope()):
-            logits, endpoints = inception.inception_v3(inputs=training_batch.images,
-                                                       num_classes=2*NUM_JOINTS)
-
-            _summarize_inception_model(endpoints)
+        with slim.arg_scope(vgg.vgg_arg_scope()):
+            logits, endpoints = vgg.vgg_16(inputs=training_batch.images,
+                                           num_classes=2*NUM_JOINTS)
 
             x_dense_joints, y_dense_joints, weights = _sparse_joints_to_dense(
                 training_batch)
@@ -150,15 +148,9 @@ def _inference(training_batch):
             dense_joints = tf.concat(concat_dim=1,
                                      values=[x_dense_joints, y_dense_joints])
 
-            auxiliary_logits = endpoints['AuxLogits']
-
             slim.losses.mean_squared_error(predictions=logits,
                                            labels=dense_joints,
                                            weights=weights)
-            slim.losses.mean_squared_error(predictions=auxiliary_logits,
-                                           labels=dense_joints,
-                                           weights=weights,
-                                           scope='aux_logits')
 
             # TODO(brendan): Calculate loss averages for tensorboard
 

@@ -1,5 +1,12 @@
 # `write_tf_record` Related Information
 
+## Running VGG
+
+```
+python3 -m train --log_dir ./log/temp --checkpoint_path /export/mlrg/soe-bduke/checkpoints/vgg_16.ckpt --checkpoint_exclude_scopes vgg_16/fc --trainable_scopes vgg_16/fc --image_dim 224 --batch_size 16 --initial_learning_rate 0.01
+python3 -m write_tf_record --train_dir ./train --image_dim 224
+```
+
 ## Writing TensorFlow Records
 
 It is possible to write TFRecords using the `tf.python_io.TFRecordWriter`

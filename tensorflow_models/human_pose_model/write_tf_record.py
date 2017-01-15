@@ -13,7 +13,7 @@ tf.app.flags.DEFINE_string(
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
 
-tf.app.flags.DEFINE_string('train_dir', '.',
+tf.app.flags.DEFINE_string('train_dir', './train',
                             """Path in which to write the TFRecord files.""")
 
 tf.app.flags.DEFINE_boolean('is_train', True,
