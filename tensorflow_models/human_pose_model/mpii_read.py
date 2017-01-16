@@ -29,11 +29,39 @@ images, meaning that they have at least one person with joints labelled,
 Test images do not seem to have head rectangles or joint annotations, and
 rather only contain the `objpos` and `scale` values as methods of estimating
 where the person is in the picture.
+
+15247 of the training images contain annotations for single people, indicated
+by the `single_person` list.
+
+Each joint has an `is_visible` attribute, indicating whether it is visible or
+occluded.
 """
 import sys
 import os
 import scipy.io
 import numpy as np
+
+class Joint(object):
+    """Class to represent a joint, including x and y position and `is_visible`
+    indicating whether the joint is visible or occluded.
+    """
+    def __init__(self, x, y, is_visible):
+        self._x = x
+        self._y = y
+        self._is_visible = is_visible
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def is_visible(self):
+        return self._is_visible
+
 
 class Person(object):
     """A class representing each person in a given image, including their
@@ -75,7 +103,17 @@ class Person(object):
         joints = _make_iterable(joints)
 
         for joint in joints:
-            self._joints[joint.id] = (joint.x, joint.y)
+            # NOTE(brendan): Only certain joints have the `is_visible`
+            # annotation, and some images have no `is_visible` annotations at
+            # all. Since the majority of joints are visible, we convert
+            # unannotated joints to visible.
+            # An experiment would be to try the opposite and compare results.
+            if (type(joint.is_visible) is not int):
+                is_visible = 1
+            else:
+                is_visible = joint.is_visible
+
+            self._joints[joint.id] = Joint(joint.x, joint.y, is_visible)
 
         self._objpos = objpos
         self._scale = scale
@@ -141,7 +179,10 @@ def _make_iterable(maybe_iterable):
     return maybe_iterable
 
 
-def _parse_annotation(img_annotation, mpii_images_dir, is_train):
+def _parse_annotation(img_annotation,
+                      single_person_list,
+                      mpii_images_dir,
+                      is_train):
     """Parses a single image annotation from the MPII dataset.
 
     Looks at the annotations for a single image, and returns the people in the
@@ -150,7 +191,11 @@ def _parse_annotation(img_annotation, mpii_images_dir, is_train):
     Args:
         img_annotation: The annotations coming from annolist(index) from the
             MPII dataset.
+        single_person_list: List of MATLAB indices (starts from 1) of singular
+            people in this image.
         mpii_images_dir: Path to the directory where the MPII images are.
+        is_train: Training or test annotation? Training annotations require at
+            least one joint to be annotated in order to be useful.
 
     Returns:
         img_abs_filepath: Filepath of the image corresponding to
@@ -164,7 +209,9 @@ def _parse_annotation(img_annotation, mpii_images_dir, is_train):
     img_annotation.annorect = _make_iterable(img_annotation.annorect)
 
     people = []
-    for img_annorect in img_annotation.annorect:
+    for annorect_index in single_person_list:
+        img_annorect = img_annotation.annorect[annorect_index - 1]
+
         try:
             objpos = img_annorect.objpos
             if (not hasattr(objpos, 'x')) or (not hasattr(objpos, 'y')):
@@ -245,7 +292,9 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
     filenames_on_disk = set(os.listdir(mpii_images_dir))
     for img_index in range(len(mpii_annotations)):
         if train_or_test[img_index] == int(is_train):
+            single_person_list = _make_iterable(mpii_dataset_mat.single_person[img_index])
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
+                                                         single_person_list,
                                                          mpii_images_dir,
                                                          is_train)
             if len(people) == 0:
