@@ -149,7 +149,7 @@ def _randomly_crop_image(decoded_img,
                          y_joints,
                          image_dim,
                          thread_id):
-    """Randomly crops `deocded_img` to a bounding box covering at least 0.5 of
+    """Randomly crops `deocded_img` to a bounding box covering at least 0.9 of
     the image, and maintaining an aspect ratio between 0.75 and 1.33.
 
     Joints have to be re-normalized such that their values have been translated
@@ -177,9 +177,9 @@ def _randomly_crop_image(decoded_img,
     bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
         image_size=[image_dim, image_dim, 3],
         bounding_boxes=[[[0, 0, 1.0, 1.0]]],
-        min_object_covered=0.5,
+        min_object_covered=0.9,
         aspect_ratio_range=[0.75, 1.33],
-        area_range=[0.5, 1.0],
+        area_range=[0.9, 1.0],
         max_attempts=100,
         use_image_if_no_bounding_boxes=True)
 

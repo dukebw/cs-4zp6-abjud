@@ -252,18 +252,21 @@ def _get_init_pretrained_fn():
     if FLAGS.checkpoint_path is None:
         return None
 
-    exclusions = [scope.strip()
-                  for scope in FLAGS.checkpoint_exclude_scopes.split(',')]
+    if FLAGS.checkpoint_exclude_scopes is None:
+        variables_to_restore = slim.get_model_variables()
+    else:
+        exclusions = [scope.strip()
+                      for scope in FLAGS.checkpoint_exclude_scopes.split(',')]
 
-    variables_to_restore = []
-    for var in slim.get_model_variables():
-        excluded = False
-        for exclusion in exclusions:
-            if var.op.name.startswith(exclusion):
-                excluded = True
-                break
-        if not excluded:
-            variables_to_restore.append(var)
+        variables_to_restore = []
+        for var in slim.get_model_variables():
+            excluded = False
+            for exclusion in exclusions:
+                if var.op.name.startswith(exclusion):
+                    excluded = True
+                    break
+            if not excluded:
+                variables_to_restore.append(var)
 
     return slim.assign_from_checkpoint_fn(model_path=FLAGS.checkpoint_path,
                                           var_list=variables_to_restore)
