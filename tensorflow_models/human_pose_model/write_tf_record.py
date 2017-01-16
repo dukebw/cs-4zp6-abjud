@@ -1,9 +1,11 @@
 import os
 import threading
+import math
 import numpy as np
 import tensorflow as tf
 from mpii_read import mpii_read
 from timethis import timethis
+from shapes import Point, Rectangle
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -29,24 +31,6 @@ tf.app.flags.DEFINE_integer('train_shards', 16,
 
 tf.app.flags.DEFINE_integer('image_dim', 299,
                             """Dimension of the square image to output.""")
-
-class Point(object):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-
-class Rectangle(object):
-    def __init__(self, rect):
-        self.top_left = Point(rect[0], rect[1])
-        self.bottom_right = Point(rect[2], rect[3])
-
-    def get_height(self):
-        return self.bottom_right.y - self.top_left.y
-
-    def get_width(self):
-        return self.bottom_right.x - self.top_left.x
-
 
 class ImageCoder(object):
     """A class that holds a session, passed using dependency injection during
@@ -373,6 +357,9 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             person_rect.top_left)
         x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list = labels
 
+        head_size = 0.6*math.sqrt(person.head_rect.get_width()**2 +
+                                  person.head_rect.get_height()**2)
+
         example = tf.train.Example(
             features=tf.train.Features(
                 feature={
@@ -380,7 +367,8 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
                     'joint_indices': _int64_feature(sparse_joint_indices),
                     'x_joints': _float_feature(x_sparse_joints),
                     'y_joints': _float_feature(y_sparse_joints),
-                    'is_visible_list': _int64_feature(is_visible_list)
+                    'is_visible_list': _int64_feature(is_visible_list),
+                    'head_size': _float_feature(head_size)
                 }))
         writer.write(example.SerializeToString())
 
