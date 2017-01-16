@@ -40,6 +40,7 @@ import sys
 import os
 import scipy.io
 import numpy as np
+from shapes import Rectangle
 
 class Joint(object):
     """Class to represent a joint, including x and y position and `is_visible`
@@ -97,7 +98,7 @@ class Person(object):
     """
     NUM_JOINTS = 16
 
-    def __init__(self, joints, objpos, scale):
+    def __init__(self, joints, objpos, scale, head_rect):
         self._joints = Person.NUM_JOINTS*[None]
 
         joints = _make_iterable(joints)
@@ -117,6 +118,7 @@ class Person(object):
 
         self._objpos = objpos
         self._scale = scale
+        self._head_rect = head_rect
 
     @property
     def joints(self):
@@ -129,6 +131,10 @@ class Person(object):
     @property
     def scale(self):
         return self._scale
+
+    @property
+    def head_rect(self):
+        return self._head_rect
 
 
 class MpiiDataset(object):
@@ -223,7 +229,13 @@ def _parse_annotation(img_annotation,
             continue
 
         try:
-            people.append(Person(img_annorect.annopoints.point, objpos, scale))
+            head_rect = Rectangle((img_annorect.x1, img_annorect.y1,
+                                   img_annorect.x2, img_annorect.y2))
+            person = Person(img_annorect.annopoints.point,
+                            objpos,
+                            scale,
+                            head_rect)
+            people.append(person)
         except AttributeError:
             if is_train:
                 continue
