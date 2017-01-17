@@ -1,8 +1,6 @@
 import os
 import tensorflow as tf
 
-# TODO(brendan): Alter `write_tf_record` code to spit out
-# shards with about 1024 examples each.
 EXAMPLES_PER_SHARD = 1024
 
 class TrainingBatch(object):
@@ -12,12 +10,19 @@ class TrainingBatch(object):
     images, *_joints and joint_indices should all be lists of length
     `batch_size`.
     """
-    def __init__(self, images, joint_indices, x_joints, y_joints, batch_size):
+    def __init__(self,
+                 images,
+                 joint_indices,
+                 x_joints,
+                 y_joints,
+                 head_size,
+                 batch_size):
         assert images.get_shape()[0] == batch_size
         self._images = images
         self._joint_indices = joint_indices
         self._x_joints = x_joints
         self._y_joints = y_joints
+        self._head_size = head_size
         self._batch_size = batch_size
 
     @property
@@ -35,6 +40,10 @@ class TrainingBatch(object):
     @property
     def joint_indices(self):
         return self._joint_indices
+
+    @property
+    def head_size(self):
+        return self._head_size
 
     @property
     def batch_size(self):
@@ -89,7 +98,8 @@ def _parse_example_proto(example_serialized, image_dim):
         'image_jpeg': tf.FixedLenFeature(shape=[], dtype=tf.string),
         'joint_indices': tf.VarLenFeature(dtype=tf.int64),
         'x_joints': tf.VarLenFeature(dtype=tf.float32),
-        'y_joints': tf.VarLenFeature(dtype=tf.float32)
+        'y_joints': tf.VarLenFeature(dtype=tf.float32),
+        'head_size': tf.FixedLenFeature(shape=[], dtype=tf.float32)
     }
     features = tf.parse_single_example(
         serialized=example_serialized, features=feature_map)
@@ -104,7 +114,8 @@ def _parse_example_proto(example_serialized, image_dim):
     parsed_example = (decoded_img,
                       features['joint_indices'],
                       features['x_joints'],
-                      features['y_joints'])
+                      features['y_joints'],
+                      features['head_size'])
 
     return parsed_example
 
@@ -221,7 +232,7 @@ def _distort_image(parsed_example, image_dim, thread_id):
     that image.
 
     Args:
-        parsed_example: Tuple (decoded_img, joint_indices, x_joints, y_joints)
+        parsed_example: Tuple (decoded_img, joint_indices, x_joints, y_joints, head_size)
             returned from parsing a serialized example protobuf.
         image_dim: Dimension of the image as required when input to the
             network.
@@ -234,7 +245,7 @@ def _distort_image(parsed_example, image_dim, thread_id):
         distorted and the joints have been renormalized to account for those
         distortions.
     """
-    decoded_img, joint_indices, x_joints, y_joints = parsed_example
+    decoded_img, joint_indices, x_joints, y_joints, _ = parsed_example
 
     distorted_image, x_joints, y_joints = _randomly_crop_image(decoded_img,
                                                                x_joints,
@@ -293,7 +304,7 @@ def _parse_and_preprocess_images(example_serialized,
             distorted_image, joint_indices, x_joints, y_joints = _distort_image(
                 parsed_example, image_dim, thread_id)
         else:
-            distorted_image, joint_indices, x_joints, y_joints = parsed_example
+            distorted_image, joint_indices, x_joints, y_joints, head_size = parsed_example
 
             distorted_image = tf.reshape(
                 tensor=distorted_image,
@@ -306,7 +317,8 @@ def _parse_and_preprocess_images(example_serialized,
         images_and_joints.append([distorted_image,
                                   joint_indices,
                                   x_joints,
-                                  y_joints])
+                                  y_joints,
+                                  head_size])
 
     return images_and_joints
 
@@ -335,14 +347,19 @@ def _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads):
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
     """
-    images, joint_indices, x_joints, y_joints = tf.train.batch_join(
+    images, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
         tensors_list=images_and_joints,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
     tf.summary.image(name='images', tensor=images)
 
-    return TrainingBatch(images, joint_indices, x_joints, y_joints, batch_size)
+    return TrainingBatch(images,
+                         joint_indices,
+                         x_joints,
+                         y_joints,
+                         head_size,
+                         batch_size)
 
 
 def setup_eval_input_pipeline(data_dir,
@@ -366,7 +383,9 @@ def setup_eval_input_pipeline(data_dir,
         image_dim,
         False)
 
-    return _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads)
+    return _setup_batch_queue(images_and_joints,
+                              batch_size,
+                              num_preprocess_threads)
 
 
 def setup_train_input_pipeline(data_dir,

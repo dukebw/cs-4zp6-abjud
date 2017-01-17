@@ -3,6 +3,8 @@ import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import tf_logging
 from logging import INFO
 from tensorflow.contrib.slim.nets import vgg
+from mpii_read import Person
+from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_train_input_pipeline
 
 FLAGS = tf.app.flags.FLAGS
@@ -15,7 +17,7 @@ RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
 RMSPROP_EPSILON = 1.0
 
-NUM_JOINTS = 16
+NUM_JOINTS = Person.NUM_JOINTS
 
 tf.app.flags.DEFINE_string('data_dir', './train',
                            """Path to take input TFRecord files from.""")
@@ -73,53 +75,6 @@ def _summarize_inception_model(endpoints):
                 tensor=tf.nn.zero_fraction(value=activation))
 
 
-def _sparse_joints_to_dense_one_dim(dense_shape, joint_indices, joints):
-    """Converts a sparse vector of joints in a single dimension to dense
-    joints, and returns those dense joints.
-    """
-    sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
-                                    sp_values=joints,
-                                    vocab_size=NUM_JOINTS)
-    dense_joints = tf.sparse_tensor_to_dense(sp_input=sparse_joints,
-                                             default_value=0)
-
-    return tf.reshape(tensor=dense_joints, shape=dense_shape), sparse_joints
-
-
-def _sparse_joints_to_dense(training_batch):
-    """Converts a sparse vector of joints to a dense format, and also returns a
-    set of weights indicating which joints are present.
-
-    Args:
-        training_batch: A batch of training images with associated joint
-            vectors.
-
-    Returns:
-        (dense_joints, weights) tuple, where dense_joints is a dense vector of
-        shape [batch_size, NUM_JOINTS], with zeros in the indices not
-        present in the sparse vector. `weights` contains 1s for all the present
-        joints and 0s otherwise.
-    """
-    dense_shape = [training_batch.batch_size, NUM_JOINTS]
-
-    x_dense_joints, x_sparse_joints = _sparse_joints_to_dense_one_dim(
-        dense_shape,
-        training_batch.joint_indices,
-        training_batch.x_joints)
-
-    y_dense_joints, _ = _sparse_joints_to_dense_one_dim(
-        dense_shape,
-        training_batch.joint_indices,
-        training_batch.y_joints)
-
-    weights = tf.sparse_to_dense(sparse_indices=x_sparse_joints.indices,
-                                 output_shape=dense_shape,
-                                 sparse_values=1,
-                                 default_value=0)
-
-    return x_dense_joints, y_dense_joints, tf.concat(concat_dim=1, values=[weights, weights])
-
-
 def _inference(training_batch):
     """Sets up an Inception v3 model, computes predictions on input images and
     calculates loss on those predictions based on an input sparse vector of
@@ -142,8 +97,8 @@ def _inference(training_batch):
             logits, endpoints = vgg.vgg_16(inputs=training_batch.images,
                                            num_classes=2*NUM_JOINTS)
 
-            x_dense_joints, y_dense_joints, weights = _sparse_joints_to_dense(
-                training_batch)
+            x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense(
+                training_batch, NUM_JOINTS)
 
             dense_joints = tf.concat(concat_dim=1,
                                      values=[x_dense_joints, y_dense_joints])
