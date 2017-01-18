@@ -1,9 +1,11 @@
 import os
 import threading
+import math
 import numpy as np
 import tensorflow as tf
 from mpii_read import mpii_read
 from timethis import timethis
+from shapes import Point, Rectangle
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -29,24 +31,6 @@ tf.app.flags.DEFINE_integer('train_shards', 16,
 
 tf.app.flags.DEFINE_integer('image_dim', 299,
                             """Dimension of the square image to output.""")
-
-class Point(object):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-
-class Rectangle(object):
-    def __init__(self, rect):
-        self.top_left = Point(rect[0], rect[1])
-        self.bottom_right = Point(rect[2], rect[3])
-
-    def get_height(self):
-        return self.bottom_right.y - self.top_left.y
-
-    def get_width(self):
-        return self.bottom_right.x - self.top_left.x
-
 
 class ImageCoder(object):
     """A class that holds a session, passed using dependency injection during
@@ -256,6 +240,7 @@ def _extract_labeled_joints(person_joints,
     x_sparse_joints = []
     y_sparse_joints = []
     sparse_joint_indices = []
+    is_visible_list = []
     max_cropped_img_dim = max(cropped_img_shape.x, cropped_img_shape.y)
     abs_image_center = Point(offsets.x + cropped_img_shape.x/2,
                              offsets.y + cropped_img_shape.y/2)
@@ -263,7 +248,6 @@ def _extract_labeled_joints(person_joints,
     for joint_index in range(len(person_joints)):
         joint = person_joints[joint_index]
         if joint is not None:
-            joint = Point(joint[0], joint[1])
             if ((offsets.x <= joint.x <= (offsets.x + cropped_img_shape.x)) and
                 (offsets.y <= joint.y <= (offsets.y + cropped_img_shape.y))):
                 _append_scaled_joint(x_sparse_joints,
@@ -277,23 +261,21 @@ def _extract_labeled_joints(person_joints,
 
                 sparse_joint_indices.append(joint_index)
 
-    return x_sparse_joints, y_sparse_joints, sparse_joint_indices
+                is_visible_list.append(joint.is_visible)
+
+    return x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list
 
 
 def _find_person_bounding_box(person, img_shape):
     """Finds an enclosing bounding box for `person` in the image with
     `img_shape` dimensions.
 
-    Currently the bounding box is found by taking a generous multiple of the
-    size of the person's head bounding box, which is encoded in the `Person`
-    object.
+    Currently the bounding box is found by taking the
+    (scale*200px) by (scale*200px) rectangle centered around `objpos`.
 
-    This has the issue of potentially cropping people in weird positions, for
-    example upside-down people.
-
-    One improvement would be to take the bounding box found with the current
-    method, and expand each dimension so that all the labelled joints are
-    contained.
+    One experiment would be to take the bounding box found with the current
+    method, and expand or shrink each dimension to the minimum spanning
+    rectangle such that all the labelled joints are contained.
 
     Args:
         person: Person to find bounding box for.
@@ -373,7 +355,11 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             person_shape_xy,
             padding_xy,
             person_rect.top_left)
-        x_sparse_joints, y_sparse_joints, sparse_joint_indices = labels
+        x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list = labels
+
+        head_rect_width = person.head_rect.get_width()/padded_img_dim
+        head_rect_height = person.head_rect.get_height()/padded_img_dim
+        head_size = 0.6*math.sqrt(head_rect_width**2 + head_rect_height**2)
 
         example = tf.train.Example(
             features=tf.train.Features(
@@ -381,7 +367,9 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
                     'image_jpeg': _bytes_feature(scaled_img_jpeg),
                     'joint_indices': _int64_feature(sparse_joint_indices),
                     'x_joints': _float_feature(x_sparse_joints),
-                    'y_joints': _float_feature(y_sparse_joints)
+                    'y_joints': _float_feature(y_sparse_joints),
+                    'is_visible_list': _int64_feature(is_visible_list),
+                    'head_size': _float_feature(head_size)
                 }))
         writer.write(example.SerializeToString())
 
@@ -422,8 +410,8 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
     shard_ranges = _spacing_to_ranges(shard_spacing)
 
     for shard_index in range(len(shard_ranges)):
-        tfrecord_filename = '{}{}.tfrecord'.format(base_name,
-                                                   thread_index*shards_per_thread + shard_index)
+        tfrecord_index = int(thread_index*shards_per_thread + shard_index)
+        tfrecord_filename = '{}{}.tfrecord'.format(base_name, tfrecord_index)
         tfrecord_filepath = os.path.join(FLAGS.train_dir, tfrecord_filename)
 
         with tf.python_io.TFRecordWriter(path=tfrecord_filepath) as writer:
