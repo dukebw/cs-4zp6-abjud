@@ -123,6 +123,7 @@ def evaluate():
             print('PCKh:')
             for joint_index in range(Person.NUM_JOINTS):
                 print(JOINT_NAMES[joint_index], ':', PCKh[joint_index])
+            print('Total PCKh:', np.sum(PCKh)/len(PCKh))
 
             print('Average squared loss:', sum_squared_loss/num_test_data)
 
