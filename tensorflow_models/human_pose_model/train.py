@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import tf_logging
 from logging import INFO
-from tensorflow.contrib.slim.nets import vgg
+from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_train_input_pipeline
@@ -19,6 +19,9 @@ RMSPROP_EPSILON = 1.0
 
 NUM_JOINTS = Person.NUM_JOINTS
 
+tf.app.flags.DEFINE_string('network_name', None,
+                           """Name of desired network to use for part
+                           detection. Valid options: vgg, inception_v3.""")
 tf.app.flags.DEFINE_string('data_dir', './train',
                            """Path to take input TFRecord files from.""")
 tf.app.flags.DEFINE_string('log_dir', './log',
@@ -92,10 +95,14 @@ def _inference(training_batch):
         Tensor giving the total loss (combined loss from auxiliary and primary
         logits, added to regularization losses).
     """
+    part_detect_net = NETS[FLAGS.network_name]
+    net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
+    net_loss = NET_LOSS[FLAGS.network_name]
+
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-        with slim.arg_scope(vgg.vgg_arg_scope()):
-            logits, endpoints = vgg.vgg_16(inputs=training_batch.images,
-                                           num_classes=2*NUM_JOINTS)
+        with slim.arg_scope(net_arg_scope()):
+            logits, endpoints = part_detect_net(inputs=training_batch.images,
+                                                num_classes=2*NUM_JOINTS)
 
             x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense(
                 training_batch, NUM_JOINTS)
@@ -103,9 +110,7 @@ def _inference(training_batch):
             dense_joints = tf.concat(concat_dim=1,
                                      values=[x_dense_joints, y_dense_joints])
 
-            slim.losses.mean_squared_error(predictions=logits,
-                                           labels=dense_joints,
-                                           weights=weights)
+            net_loss(logits, endpoints, dense_joints, weights)
 
             # TODO(brendan): Calculate loss averages for tensorboard
 

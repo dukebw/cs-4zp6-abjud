@@ -301,6 +301,7 @@ def _parse_and_preprocess_images(example_serialized,
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
         if is_train:
+            head_size = 0
             distorted_image, joint_indices, x_joints, y_joints = _distort_image(
                 parsed_example, image_dim, thread_id)
         else:
