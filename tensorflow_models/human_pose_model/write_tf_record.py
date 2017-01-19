@@ -15,7 +15,7 @@ tf.app.flags.DEFINE_string(
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
 
-tf.app.flags.DEFINE_string('train_dir', '.',
+tf.app.flags.DEFINE_string('train_dir', './train',
                             """Path in which to write the TFRecord files.""")
 
 tf.app.flags.DEFINE_boolean('is_train', True,
@@ -357,8 +357,9 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             person_rect.top_left)
         x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list = labels
 
-        head_size = 0.6*math.sqrt(person.head_rect.get_width()**2 +
-                                  person.head_rect.get_height()**2)
+        head_rect_width = person.head_rect.get_width()/padded_img_dim
+        head_rect_height = person.head_rect.get_height()/padded_img_dim
+        head_size = 0.6*math.sqrt(head_rect_width**2 + head_rect_height**2)
 
         example = tf.train.Example(
             features=tf.train.Features(
@@ -409,8 +410,8 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
     shard_ranges = _spacing_to_ranges(shard_spacing)
 
     for shard_index in range(len(shard_ranges)):
-        tfrecord_filename = '{}{}.tfrecord'.format(base_name,
-                                                   thread_index*shards_per_thread + shard_index)
+        tfrecord_index = int(thread_index*shards_per_thread + shard_index)
+        tfrecord_filename = '{}{}.tfrecord'.format(base_name, tfrecord_index)
         tfrecord_filepath = os.path.join(FLAGS.train_dir, tfrecord_filename)
 
         with tf.python_io.TFRecordWriter(path=tfrecord_filepath) as writer:
