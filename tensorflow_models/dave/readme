@@ -1,21 +1,24 @@
-imanolspipeline.py now can read from the pos_DB.sqlite database and get 
-files and coordinates to produce training data for a session that trains a
-neuarl network
+Currently a program to create heat maps was made and is in the file 
+ heat_map_maker.py.
 
-Problems: 1) FLIC images have to be rescaled to 256 x 256 and the pose 
-coordinates haven't been changed after the scaling so the coordinates are
-currently wrong
+Within this file there is a function which reads joint positions from a database containing
+joint positions and filenames of jpegs.
 
-	2) it is supposed to also generate a test set to test the 
-	optimization but it doesn't do this yet.
+The joint posisitions are collected into separate np-arrays: one for x-coordinates and one for
+y-coordinates.  Then using tensor manipulations (mostly matrix multiplications with constant tensors
+and transposes) these lists are transformed into heat maps.
 
-	3) it grabs the same 20 files each time it's called I should 
-	randomize the files it grabs (which is easy to do because the
-	files are in a database with a primary key which ranges between 0 and 24000)
+Bachs of these heatmaps are collected as well as tensors of images.  Every time the function 
+_input_pipeline(database_access_file, data_path,  batch_length, image_dimension, rescale_size, num_channels, num_parts, stdev, gaussFact)
 
-	4) currently the Guassian it creates is only for one limb position -- I need
-	to create a label for each limb we are considering but it made sense to start
-	with just one
+is called a new batch of heat maps or jpegs is gathered.  The images can then be passed through the convulutional network and the
+L2 function can be called but currently it returns the value of infinity.  This could because of incomplete data in the 
+FLIC database or because initial values of the convulutional network were not set properly so the output is too large.
+
+Currently a method is needed that updates the weights everytime the function input_pipeline is called for the network to do any
+learning.
+
+
 
 
 The pose_DB.sqlite contains entries for the pose values of the 
