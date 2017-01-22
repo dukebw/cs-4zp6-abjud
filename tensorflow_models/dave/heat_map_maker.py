@@ -38,16 +38,11 @@ from tensorflow.python.ops import random_ops
 # it a function and takes as input a placeholder
 # and outputs a heatmap.
 
-dataset_path = "/home/david/FLIC-full/images/"
-train_labels_file = "pose_DB.sqlite"
-
 
 # constants
 
 # file Information
-data_folder = "/home/david"
-data_file = "labelContainer"
-database_access_file = "/home/david/programming/mcmaster-text-to-motion-database/tensorFlowModels/pose_DB.sqlite"
+database_access_file = "/home/david/programming/mcmaster-text-to-motion-database/tensorflow_models/dave/pose_DB.sqlite"
 data_path = "/home/david/FLIC-full/images/"
 
 
@@ -62,7 +57,7 @@ heat_map_size = 64
 
 
 # Gaussian Constants
-gauss_deviation = 1
+gauss_deviation = 0.5
 norm_factor = 2*math.pi*gauss_deviation*gauss_deviation
 norm_factor = 1/norm_factor
 
@@ -257,9 +252,16 @@ biases = {
     'bc8': tf.Variable(tf.random_normal([7]))
 }
 
-def read_label_file(file, path, num_parts):
+
+# here I read from the sqlite file that is in the parent folder
+# the purpose is to get a list of filenames for the batch
+# and an np-array of x and y coordinates.
+# it's important that they have the specific shape below
+# because they are used in matrix multiplication later on.
+def read_label_file(file, path, num_parts, image_dimension):
     numberOfFiles = 20
     #f = open(file, 'r')
+    print(file)
     conn = sqlite3.connect(file)
     c = conn.cursor()
     # note that can't adjust the number of files.Have to return multipes of 20 -- you can see why if
@@ -276,58 +278,42 @@ def read_label_file(file, path, num_parts):
     rows = fetch(numberOfFiles)
     count = 0;
     for row in rows:
-        print ("it's going")
-        filepaths.append(dataset_path + 'rescale_' + row[0].strip())
+        filepaths.append(path + row[0].strip())
+        # here I get factors that are used to rescale the x and y body positions because
+        # the jpeg will be reshaped to image_dimesion * image_dimension
+        width, height = get_jpeg_dimensions(path + row[0].strip())
         #rescale_the_image(path + row[0].strip(),path + 'rescale_'+row[0].strip())
+        width_factor = image_dimension/width
+        length_factor = image_dimension/height
         for part_num in range(0, num_parts):
-            x[count, part_num, 0] = row[2*part_num+1]
-            y[count, part_num, 0] = row[2*part_num+2]
+            x[count, part_num, 0] = width_factor * row[2*part_num+1]
+            y[count, part_num, 0] = length_factor * row[2*part_num+2]
         count = count +1
     return filepaths, x, y
 
+# function gets the scaling factors for each file used in the batch
+# to scale the joint positinos
+def get_jpeg_dimensions(path_to_file):
+    im = Image.open(path_to_file)
+    return im.size
 
-
-# create a variable that has the values 1, 2,3,4, 5, ...64 in it
-
+# this is a constant of the form (1,2,3,4... length)
+# it is used because in the generation of the heat maps we need terms
+# x-x_avg where x is the pixel location so this vector is used to keep track of the pixel value
 def create_index_constant(length):
     z = np.empty([1,length])
     for x in range(1,length+1):
         z[0,x-1] = x
     return z
 
-# the only way to put
-
-# going to have a placeholder with a shape that's
-# lets say (N, num_parts, x, y)
-# constant tensor of shape 256 x 256 which
-# nice if you could create a constant tensor of type (i,j) = i
-#                                   second one where (i,j) = j
-# new = x * constant Tensor
-
-count_constant =tf.constant(create_index_constant(64), dtype=tf.float32, shape=[64,1], name='Const')
-
-
-
 
 
 def _input_pipeline(filename, data_path, batch_size, image_dimension, rescale_size, num_channels, num_parts, stdev, gaussFact, num_epochs=None):
-    """The input pipeline for reading images classification data.
-    The data should be stored in a single text file of using the format:
-     /path/to/image_0 label_0
-     /path/to/image_1 label_1
-     /path/to/image_2 label_2
-     ...
-     Args:
-       filename: the path to the txt file
-       batch_size: size of batches produced
-       num_epochs: optionally limited the amount of epochs
-    Returns:
-       List with all filenames in file image_list_file
-    """
 
-    # Reads pfathes of images together with there labels
-    image_list, label_list_x, label_list_y = read_label_file(filename, dataset_path, num_parts)
+    # gets a list of files and x and y np arrays
+    image_list, label_list_x, label_list_y = read_label_file(filename, data_path, num_parts, image_dimension)
 
+    # converts the above into tensors
     images = ops.convert_to_tensor(image_list, dtype=dtypes.string)
     labels_x = ops.convert_to_tensor(label_list_x, dtype=dtypes.int32)
     labels_y = ops.convert_to_tensor(label_list_y, dtype=dtypes.int32)
@@ -336,16 +322,21 @@ def _input_pipeline(filename, data_path, batch_size, image_dimension, rescale_si
                                                 num_epochs=num_epochs,
                                                 shuffle=True)
 
-    # Reads the actual images from
+    # deques the queue and decodes the filenames into data which is returned as a tensor
+    # also in this function the images are rescaled to be image_dimension squared
     image, label_x, label_y = read_images_from_disk(input_queue, rescale_size, num_channels)
     pr_image = image #processing_image(image)
+    # transforms the image np array of x coordinates into
+    # an array of shape (image_dimension, image_dimension, num_parts)
+    # for each part the i, j th entry is
+    # i - x_(avg for that part) -- note this is independent of j
     pr_label_x = processing_labels(label_x, num_parts, image_dimension, 1)
+    # this is the same as above but for the y positions so value is independent of i not j
     pr_label_y = processing_labels(label_y, num_parts, image_dimension, 0)
+    # these two tensors are added together and exponentiated into a gaussian
     pr_label = combinexy(pr_label_x, pr_label_y, stdev, gaussFact)
     
-    # this is interesting have an opportunity to alter the label here which we'll have
-    # to do.
-
+    # batches are created
     image_batch, label_batch = tf.train.batch([pr_image, pr_label],
                                               batch_size=batch_size)
     
@@ -354,42 +345,52 @@ def _input_pipeline(filename, data_path, batch_size, image_dimension, rescale_si
     tf.image_summary(tensor_name + 'images', image_batch)
     return image_batch, label_batch
 
-def processing_labels(labelx, num_parts, image_dimension, xory):
-    # step 1 is create a tensor that is (1,64)
-    #
-    #a = create_index_constant(image_dimension)
-    b = tf.ones([1,image_dimension], tf.int32)
-    #b = tf.constant(a, dtype=np.int32)
-    outtx = tf.matmul(labelx,b)
-    # step 2 is create a (num_parts, 64) sized array
-    # create a matrix that is num_parts by image_dimesion in size
-    # 
 
-    # c1 is like b above
+# takes a np array of size (num_parts,1)
+# outputs on of size [num_parts,image_dimension, image_dimension]
+# each entry for each part should be (x - x_avg) ^2 for all body parts and
+# all x values
+def processing_labels(labelx, num_parts, image_dimension, xory):
+
+    # create a column vector of ones
+    b = tf.ones([1,image_dimension], tf.int32)
+    # multiply this column of ones by the input to get an output of a
+    # matrix where each column is of size image_dimension.  The matrix has the same value
+    # over the entire column (the x value for that joint)
+    outtx = tf.matmul(labelx,b)
+    # step 2 is to create a matrix that is of size
+    # num_parts * image_dimension but whose value denotes the x-coordinate
+    # it's again costant over the columns
     c1  = create_index_constant(image_dimension)
     c = tf.constant(c1, dtype=np.int32)
     d = tf.ones([num_parts,1], tf.int32)
     other = tf.matmul(d, c)
-    
-    squared_x = tf.squared_difference(outtx, other,name=None)
-    
-    squared_x = tf.reshape(squared_x, [1,num_parts*image_dimension])
 
-    
+    # now we are getting the value (x - x_avg) ^2
+    squared_x = tf.squared_difference(outtx, other,name=None)
+    # this is where things get tricky and I just went by trial and error until
+    # a tensor was printed on the screen that was arranged properly
+    squared_x = tf.reshape(squared_x, [1,num_parts*image_dimension])
     e = tf.ones([image_dimension, 1], tf.int32)
     final_x = tf.matmul(e, squared_x)
     final_x = tf.reshape(final_x, [image_dimension, image_dimension*num_parts])
     final_x = tf.transpose(final_x)
     final_x = tf.reshape(final_x, [num_parts,image_dimension, image_dimension])
+    # if we have the x positions passed we have to perform a transpose so that they
+    # are constant in the vertical direction.
+    # for the y -coordinate we don't have to do this.
     if xory == 1:
         final_x = tf.transpose(final_x, perm=[0,2,1])
     final_x = tf.cast(final_x, tf.float32)
     return final_x
 
 
+# have as input (x-x_avg)^2 and (y-y_avg)^2
+# so combine these into gaussians e ^-((x-x_avg)^2 and (y-y_avg)^2)
+
 def combinexy(labelx, labely, stdev, gaussFact):
     outt = tf.add(labelx, labely, name=None)
-    outt = tf.scalar_mul(stdev, outt)
+    outt = tf.scalar_mul(-1/stdev, outt)
     outt = tf.exp(outt, name=None)
     outt = tf.scalar_mul(gaussFact, outt)
     return outt
@@ -448,8 +449,6 @@ pred = conv_net(x, weights, biases)
 
 def test_pipeline(database_access_file, data_path,  batch_length, image_dimension, rescale_size, num_channels, num_parts, stdev, gaussFact):
     #_input_pipeline(filename, data_path, batch_size, num_parts, stdev, gaussFact, num_epochs=None)
-    filename = os.path.join(data_folder, data_file)
-    print(filename)
     # image_batch, label_batch = inputs(filename, 75, 2, data_folder)
     image_batch, label_batch = _input_pipeline(database_access_file, data_path,  batch_length, image_dimension, rescale_size, num_channels, num_parts, stdev, gaussFact)
 
