@@ -7,6 +7,9 @@ from mpii_read import Person
 from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_train_input_pipeline
 
+# @debug
+from IPython.core.debugger import Tracer
+
 FLAGS = tf.app.flags.FLAGS
 
 # NOTE(brendan): equal to the total number of joint-annotated people in the
@@ -248,6 +251,16 @@ def train():
                 FLAGS.batch_size,
                 FLAGS.num_preprocess_threads,
                 FLAGS.image_dim)
+
+            # @debug
+            # Gaussian with a standard deviation of 5 pixels
+            Tracer()()
+            normal = tf.contrib.distributions.MultivariateNormalDiag(
+                mu=[training_batch.x_joints[0, 0], training_batch.y_joints[0, 0]],
+                diag_stdev=[5, 5])
+            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=session, coord=coord)
 
             global_step, optimizer = _setup_optimizer(FLAGS.batch_size,
                                                       FLAGS.num_epochs_per_decay,
