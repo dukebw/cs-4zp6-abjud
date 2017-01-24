@@ -41,6 +41,7 @@ import os
 import scipy.io
 import numpy as np
 from shapes import Rectangle
+from tqdm import tqdm
 
 class Joint(object):
     """Class to represent a joint, including x and y position and `is_visible`
@@ -302,7 +303,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
     img_filenames = []
     people_in_imgs = []
     filenames_on_disk = set(os.listdir(mpii_images_dir))
-    for img_index in range(len(mpii_annotations)):
+    for img_index in tqdm(range(len(mpii_annotations))):
         if train_or_test[img_index] == int(is_train):
             single_person_list = _make_iterable(mpii_dataset_mat.single_person[img_index])
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
@@ -340,10 +341,11 @@ def mpii_read(mpii_dataset_filepath, is_train):
 
     Returns: Parsed `MpiiDataset` object from `parse_mpii_data_from_mat`.
     """
+    print('Reading the mpii .mat file')
     mpii_dataset_mat = scipy.io.loadmat(mpii_dataset_filepath,
                                         struct_as_record=False,
                                         squeeze_me=True)['RELEASE']
-
+    print('Parsing the mpii data to a python object')
     mpii_dataset_dir = os.path.dirname(mpii_dataset_filepath)
     mpii_images_dir = os.path.join(mpii_dataset_dir, '../images')
 

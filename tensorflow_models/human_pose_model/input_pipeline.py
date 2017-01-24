@@ -429,8 +429,7 @@ def setup_train_input_pipeline(data_dir,
         sparse vectors of joints (ground truth vectors), and sparse joint
         indices.
     """
-    # TODO(brendan): num_readers == 1 case
-    assert num_readers > 1
+    assert num_readers > 1, "For testing use setup_eval_input_pipeline"
 
     with tf.name_scope('batch_processing'):
         filename_queue = _setup_filename_queue(

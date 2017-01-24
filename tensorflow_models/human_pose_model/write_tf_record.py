@@ -29,8 +29,8 @@ tf.app.flags.DEFINE_integer('train_shards', 16,
                             """Number of output shards (TFRecord files
                             containing training examples) to create.""")
 
-tf.app.flags.DEFINE_integer('image_dim', 299,
-                            """Dimension of the square image to output.""")
+tf.app.flags.DEFINE_integer('image_dim', 380,
+                            """Dimension of the square image to output. Same as in Bulat paper""")
 
 class ImageCoder(object):
     """A class that holds a session, passed using dependency injection during

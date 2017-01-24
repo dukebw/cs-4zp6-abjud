@@ -3,3 +3,6 @@
 checkpoints/
 datasets/
 log/
+*.sw*
+.ipynb_checkpoints/
+
