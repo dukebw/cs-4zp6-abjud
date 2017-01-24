@@ -1,13 +1,16 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from tensorflow.contrib.slim.nets import vgg
+from nets import NETS, NET_ARG_SCOPES
 from mpii_read import Person
 from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('network_name', None,
+                           """Name of desired network to use for part
+                           detection. Valid options: vgg, inception_v3.""")
 tf.app.flags.DEFINE_string('data_dir', '.',
                            """Path to take input TFRecord files from.""")
 tf.app.flags.DEFINE_string('restore_path', None,
@@ -57,11 +60,14 @@ def evaluate():
                                                    FLAGS.num_preprocess_threads,
                                                    FLAGS.image_dim)
 
+            part_detect_net = NETS[FLAGS.network_name]
+            net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
+
             with tf.device(device_name_or_function='/gpu:0'):
                 with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-                    with slim.arg_scope(vgg.vgg_arg_scope()):
-                        logits, _ = vgg.vgg_16(inputs=eval_batch.images,
-                                               num_classes=2*Person.NUM_JOINTS)
+                    with slim.arg_scope(net_arg_scope()):
+                        logits, _ = part_detect_net(inputs=eval_batch.images,
+                                                    num_classes=2*Person.NUM_JOINTS)
 
             next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
                 eval_batch, Person.NUM_JOINTS)
@@ -84,6 +90,8 @@ def evaluate():
                 [predictions, x_gt_joints, y_gt_joints, weights, head_size] = session.run(
                     fetches=[logits, next_x_gt_joints, next_y_gt_joints, next_weights, eval_batch.head_size])
 
+                head_size = np.reshape(head_size, [FLAGS.batch_size, 1])
+
                 gt_joint_points = _get_points_from_flattened_joints(
                     x_gt_joints, y_gt_joints, FLAGS.batch_size)
 
@@ -93,7 +101,7 @@ def evaluate():
                     FLAGS.batch_size)
 
                 # NOTE(brendan): Here we are following steps to calculate the
-                # PCKh metric, which defins a joint estimate as matching the
+                # PCKh metric, which defines a joint estimate as matching the
                 # ground truth if the estimate lies within 50% of the head
                 # segment length. Head segment length is defined as the
                 # diagonal across the annotated head rectangle in the MPII
@@ -115,6 +123,7 @@ def evaluate():
             print('PCKh:')
             for joint_index in range(Person.NUM_JOINTS):
                 print(JOINT_NAMES[joint_index], ':', PCKh[joint_index])
+            print('Total PCKh:', np.sum(PCKh)/len(PCKh))
 
             print('Average squared loss:', sum_squared_loss/num_test_data)
 
