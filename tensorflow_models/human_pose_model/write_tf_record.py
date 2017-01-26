@@ -6,6 +6,7 @@ import tensorflow as tf
 from mpii_read import mpii_read
 from timethis import timethis
 from shapes import Point, Rectangle
+import cPickle as pickle
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -127,10 +128,45 @@ class ImageCoder(object):
             self._padded_img_dim: padded_dim
         }
 
-        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg,
-                                         feed_dict=feed_dict)
+        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg, feed_dict=feed_dict)
 
         return scaled_img_jpeg
+
+    def crop_pad_resize(self,
+                     image_data,
+                     crop_offsets,
+                     crop_dim,
+                     padding,
+                     padded_dim):
+        """Runs the entire sequence of decode -> crop -> pad -> resize, and returns the resultant tensor.
+
+        Args:
+            image_data: JPEG image data.
+            crop_offsets: A `Point` containing the offset in the original image
+                of the sub-image to crop to.
+            crop_dim: A `Point` containing the width and height of the cropped
+                section, in the format Point(width, height).
+            padding: Amount of padding to do on the cropped image in the format
+                Point(x_padding, y_padding).
+            padded_dim: Length of the edge length of the square padded image.
+
+        Returns: The image cropped and padded to the given bounding box, scaled
+            to FLAGS.image_dim*FLAGS.image_dim, and encoded as JPEG.
+        """
+        feed_dict = {
+            self._decode_jpeg_data: image_data,
+            self._crop_height_offset: crop_offsets.y,
+            self._crop_width_offset: crop_offsets.x,
+            self._crop_height: crop_dim.y,
+            self._crop_width: crop_dim.x,
+            self._height_pad: padding.y,
+            self._width_pad: padding.x,
+            self._padded_img_dim: padded_dim
+        }
+
+        img_tensor = self._sess.run(fetches=self._scaled_image_tensor, feed_dict=feed_dict)
+
+        return img_tensor
 
 
 def _clamp_range(value, min_val, max_val):
@@ -202,7 +238,7 @@ def _append_scaled_joint(joints, joint_dim, max_joint_dim, image_center):
     joints.append(scaled_joint)
 
 
-def _extract_labeled_joints(person_joints,
+def extract_labeled_joints(person_joints,
                             cropped_img_shape,
                             padding,
                             offsets):
@@ -266,7 +302,7 @@ def _extract_labeled_joints(person_joints,
     return x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list
 
 
-def _find_person_bounding_box(person, img_shape):
+def find_person_bounding_box(person, img_shape):
     """Finds an enclosing bounding box for `person` in the image with
     `img_shape` dimensions.
 
@@ -297,7 +333,7 @@ def _find_person_bounding_box(person, img_shape):
                      _clamp_point_to_image(bottom_right, img_shape))
 
 
-def _find_padded_person_dim(person_rect):
+def find_padded_person_dim(person_rect):
     """Finds the large dimension, shape and padding needed for the bounding box
     around a person.
 
@@ -395,7 +431,7 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
             from MPII.
         thread_index: Index of the current thread (must be unique).
         mpii_dataset: Instance of `MpiiDataset` containing data shuffled in the
-            order that those data should be written to TF Record.
+            order in which the data should be written to a TF Record.
     """
     if FLAGS.is_train:
         base_name = 'train'
@@ -476,7 +512,7 @@ def main(argv=None):
 
      Type 'python3 -m write_tf_record --help' for options.
     """
-    mpii_dataset = mpii_read(FLAGS.mpii_filepath, FLAGS.is_train)
+    mpii_dataset = pickle.load(open('MPII_Dataset.p','rb'))
     write_tf_record(mpii_dataset)
 
 

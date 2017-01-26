@@ -101,10 +101,12 @@ def _parse_example_proto(example_serialized, image_dim):
         'y_joints': tf.VarLenFeature(dtype=tf.float32),
         'head_size': tf.FixedLenFeature(shape=[], dtype=tf.float32)
     }
-    features = tf.parse_single_example(
+
+    # the term feature has a very specific meaning in machine learning; reason for changing to 'example'
+    example = tf.parse_single_example(
         serialized=example_serialized, features=feature_map)
 
-    img_jpeg = features['image_jpeg']
+    img_jpeg = example['image_jpeg']
     with tf.name_scope(name='decode_jpeg', values=[img_jpeg]):
         img_tensor = tf.image.decode_jpeg(contents=img_jpeg,
                                           channels=3)
@@ -112,10 +114,10 @@ def _parse_example_proto(example_serialized, image_dim):
             image=img_tensor, dtype=tf.float32)
 
     parsed_example = (decoded_img,
-                      features['joint_indices'],
-                      features['x_joints'],
-                      features['y_joints'],
-                      features['head_size'])
+                      example['joint_indices'],
+                      example['x_joints'],
+                      example['y_joints'],
+                      example['head_size'])
 
     return parsed_example
 
@@ -331,8 +333,9 @@ def _setup_filename_queue(data_dir,
                           capacity):
     """Sets up a filename queue of example-containing TFRecord files.
     """
-    data_filenames = tf.gfile.Glob(
-        os.path.join(data_dir, record_prefix + '*tfrecord'))
+    #data_filenames = tf.gfile.Glob(
+    #    os.path.join(data_dir, record_prefix + '*tfrecord'))
+    data_filenames = tf.gfile.Glob('*.tfrecord')
     assert data_filenames, ('No data files found.')
     assert len(data_filenames) >= num_readers
 
@@ -353,7 +356,8 @@ def _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads):
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
-    tf.summary.image(name='images', tensor=images)
+    # makes setup_eval_input_pipeline non-usable without other modules
+    #tf.summary.image(name='images', tensor=images)
 
     return TrainingBatch(images,
                          joint_indices,

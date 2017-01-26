@@ -40,7 +40,10 @@ import sys
 import os
 import scipy.io
 import numpy as np
+from PIL import Image
 from shapes import Rectangle
+import cPickle as pickle
+from tqdm import tqdm
 
 class Joint(object):
     """Class to represent a joint, including x and y position and `is_visible`
@@ -166,6 +169,24 @@ class MpiiDataset(object):
     def people_in_imgs(self):
         return self._people_in_imgs
 
+    def shuffle(seed = np.random.seed(17)):
+        """Shuffles the list of filenames and labels in the MPII dataset.
+
+        Args:
+            img_filenames: List of filenames in the MPII dataset to be shuffled.
+            people_in_imgs: List of `Person`s in the MPII dataset, to be shuffled.
+        """
+        img_indices = list(range(len(self._img_filenames)))
+        shuffled_indices = np.random.shuffle(img_indices, seed)
+        self._img_filenames = [self._img_filenames[index] for index in shuffled_indices]
+        self._people_in_imgs = [self._people_in_imgs[index] for index in shuffled_indices]
+
+    def to_pickle(self):
+        '''
+        Serializes the data in pickle format so the we will never ever have to use that .mat file again
+        '''
+        return pickle.dump(self, open('MPII_Dataset.p', 'wb'))
+
 
 def _make_iterable(maybe_iterable):
     """Checks whether `maybe_iterable` is iterable, and if not returns an
@@ -261,20 +282,6 @@ def _shuffle_list(list_l, shuffled_indices):
     return [list_l[index] for index in shuffled_indices]
 
 
-def _shuffle_dataset(img_filenames, people_in_imgs):
-    """Shuffles the list of filenames and labels in the MPII dataset.
-
-    Args:
-        img_filenames: List of filenames in the MPII dataset to be shuffled.
-        people_in_imgs: List of `Person`s in the MPII dataset, to be shuffled.
-    """
-    img_indices = list(range(len(img_filenames)))
-    np.random.shuffle(img_indices)
-
-    img_filenames = _shuffle_list(img_filenames, img_indices)
-    people_in_imgs = _shuffle_list(people_in_imgs, img_indices)
-
-    return img_filenames, people_in_imgs
 
 
 def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
@@ -302,7 +309,7 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
     img_filenames = []
     people_in_imgs = []
     filenames_on_disk = set(os.listdir(mpii_images_dir))
-    for img_index in range(len(mpii_annotations)):
+    for img_index in tqdm(range(len(mpii_annotations))):
         if train_or_test[img_index] == int(is_train):
             single_person_list = _make_iterable(mpii_dataset_mat.single_person[img_index])
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
@@ -322,8 +329,10 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
             img_filenames.append(img_abs_filepath)
             people_in_imgs.append(people)
 
-    img_filenames, people_in_imgs = _shuffle_dataset(img_filenames,
-                                                     people_in_imgs)
+    # I think we should rather keep shuffle as a method for the object
+    # Easier to reproduce results via random seed
+    #img_filenames, people_in_imgs = _shuffle_dataset(img_filenames,
+    #                                                 people_in_imgs)
 
     return MpiiDataset(img_filenames, people_in_imgs)
 

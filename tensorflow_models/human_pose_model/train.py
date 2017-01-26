@@ -25,7 +25,7 @@ NUM_JOINTS = Person.NUM_JOINTS
 tf.app.flags.DEFINE_string('network_name', None,
                            """Name of desired network to use for part
                            detection. Valid options: vgg, inception_v3.""")
-tf.app.flags.DEFINE_string('data_dir', './train',
+tf.app.flags.DEFINE_string('data_dir', './data',
                            """Path to take input TFRecord files from.""")
 tf.app.flags.DEFINE_string('log_dir', './log',
                            """Path to take summaries and checkpoints from, and
