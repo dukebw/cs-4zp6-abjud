@@ -254,6 +254,7 @@ def train():
                 FLAGS.num_preprocess_threads,
                 FLAGS.image_dim)
 
+            """
             # @debug
             # Gaussian with a standard deviation of 5 pixels
             Tracer()()
@@ -294,11 +295,15 @@ def train():
                             image0[y, x][colour_index] = min(255, image0[y, x][colour_index] + 4*255*scaled_prob[y, x])
                 pil_image = Image.fromarray(image0)
                 pil_image.show()
+            """
 
             global_step, optimizer = _setup_optimizer(FLAGS.batch_size,
                                                       FLAGS.num_epochs_per_decay,
                                                       FLAGS.initial_learning_rate,
                                                       FLAGS.learning_rate_decay_factor)
+
+            # @debug
+            Tracer()()
 
             train_op = _setup_training_op(training_batch,
                                           global_step,
