@@ -7,6 +7,7 @@ import img_utils
 import tensorflow as tf
 import threading
 import write_tf_record as mpii_utils
+import matplotlib.pyplot as plt
 import cPickle as pickle
 
 MPII_MAT_PATH = '/mnt/data/datasets/MPII_HumanPose/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat'
@@ -41,7 +42,7 @@ class MPIIBatchIterator(object):
     def __iter__(self):
         return self
 
-    def _load_img(self, fname):
+    def load_img(self, fname):
         '''
         Descr: Loads an image with a given size
         Load an image into PIL format.
@@ -57,7 +58,7 @@ class MPIIBatchIterator(object):
         img_arr = img_utils.img2array(img)
         return img_arr
 
-    def _load_binary_heatmap(self, pose):
+    def load_binary_heatmap(self, pose, img_tensor):
         '''
         Loads a person and gives a corresponding binary heatmap
         Args: person
@@ -66,13 +67,14 @@ class MPIIBatchIterator(object):
         '''
         # Do convnets understand the flattening and the deflattening operations well?
         x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list = pose
-        Ydet = np.zeros([16, self.WIDTH, self.HEIGHT])
+        Ydet = np.zeros([17, self.WIDTH, self.HEIGHT])
+        Ydet[0] = img_tensor[0:self.WIDTH, 0:self.HEIGHT,0]/255.
         i = 0
         for (x,y) in zip(x_sparse_joints,y_sparse_joints):
             if is_visible_list[i] != 0:
                 joint_pixel_x =int(self.WIDTH*x) + self.WIDTH/2
                 joint_pixel_y =int(self.HEIGHT*y) + self.HEIGHT/2
-                Ydet[i][joint_pixel_x:joint_pixel_x+5, joint_pixel_y:joint_pixel_y+5] = 1
+                Ydet[i][joint_pixel_y:joint_pixel_y+5,joint_pixel_x:joint_pixel_x+5] = 1
             i+=1
 
         return Ydet
@@ -86,21 +88,22 @@ class MPIIBatchIterator(object):
         z_2d = np.matmul(np.reshape(z1, [self.WIDTH, 1]), np.reshape(z2, [1, self.WIDTH]))
         return z_2d
 
-    def _load_gaussian_heatmap(self, pose, img_tensor):
+    def load_gaussian_heatmap(self, pose, img_tensor):
         '''
         Gaussian with a standard deviation of 5 pixels
         '''
         x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list = pose
         Yreg = np.zeros([17, self.WIDTH, self.HEIGHT])
-        Yreg[0] = img_tensor[0:self.WIDTH, 0:self.HEIGHT,0]
+        Yreg[0] = img_tensor[0:self.WIDTH, 0:self.HEIGHT,0]/255.
         i = 1
         for (x,y) in zip(x_sparse_joints, y_sparse_joints):
-            if is_visible_list[i] != 0:
+            if is_visible_list[i-1] != 0:
                 Yreg[i] = self.gaussian2d(x,y)
+            i+=1
         return Yreg
 
 
-    def _fetch_example(self, fname, people_in_img):
+    def fetch_example(self, fname, people_in_img):
         with tf.gfile.FastGFile(name=fname, mode='rb') as f:
             image_jpeg = f.read()
         img_shape = self.coder.decode_jpeg(image_jpeg)
@@ -134,14 +137,14 @@ class MPIIBatchIterator(object):
         # initialize input and target arrays
         X = np.zeros([self.BATCH_SIZE, self.WIDTH, self.HEIGHT, 3])
         # Ydet is a binary map for the whole image 
-        Ydet = np.zeros([self.BATCH_SIZE, 16, self.WIDTH, self.HEIGHT]) 
+        Ydet = np.zeros([self.BATCH_SIZE, 17, self.WIDTH, self.HEIGHT]) 
         Yreg = np.zeros([self.BATCH_SIZE, 17, self.WIDTH, self.HEIGHT])
         # set the value of each batch element of the 4D array 
         for i in range(self.BATCH_SIZE):
-                img_tensor, pose = self._fetch_example(fname_list[i],people_in_imgs[i])
+                img_tensor, pose = self.fetch_example(fname_list[i],people_in_imgs[i])
                 X[i] = img_tensor
-                Ydet[i] = self._load_binary_heatmap(pose)
-                Yreg[i] = self._load_gaussian_heatmap(pose, img_tensor)
+                Ydet[i] = self.load_binary_heatmap(pose, img_tensor)
+                Yreg[i] = self.load_gaussian_heatmap(pose, img_tensor)
         self._curr_step += self.BATCH_SIZE
         return X, Ydet, Yreg
 
@@ -153,6 +156,11 @@ class MPIIBatchIterator(object):
 
         return img_list
 
+def plot_data(Y):
+    fig, ax = plt.subplots(3,6, figsize=(20,20))
+    for i in range(len(Y[0])):
+        ax[i].imshow(Y[0])
+    plt.show()
 
 class SimpleRunner(object):
     """
@@ -160,34 +168,33 @@ class SimpleRunner(object):
         a queue full of data.
     """
     def __init__(self):
-        self.dataX = tf.placeholder(dtype=tf.float32, shape=[None, 380, 380, 3])
-        self.dataY = tf.placeholder(dtype=tf.float32, shape=[None, 380, 380, 3])
+        self.X = tf.placeholder(dtype=tf.float32, shape=[None, 380, 380, 3])
+        self.Ydet = tf.placeholder(dtype=tf.float32, shape=[None, 17, 380, 380])
+        self.Yreg = tf.placeholder(dtype=tf.float32, shape=[None, 17, 380, 380])
         # The actual queue of data. The queue contains a vector for
         # the mnist features, and a scalar label.
-        self.queue = tf.RandomShuffleQueue(shapes=[[380,380,3], [380,380,3]],
-                                           dtypes=[tf.float32, tf.float32],
+        self.queue = tf.RandomShuffleQueue(shapes=[[380,380,3], [17,380,380], [17,380,380]],
+                                           dtypes=[tf.float32, tf.float32, tf.float32],
                                            capacity=50,
                                            min_after_dequeue=15)
 
         # The symbolic operation to add data to the queue
-        # we could do some preprocessing here or do it in numpy. In this example
-        # we do the scaling in numpy
-        self.enqueue_op = self.queue.enqueue_many([self.dataX, self.dataY])
+        self.enqueue_op = self.queue.enqueue_many([self.X, self.Ydet, self.Yreg])
 
     def get_inputs(self):
         """
         Return's tensors containing a batch of images and labels
         """
-        images_batch, labels_batch = self.queue.dequeue_many(20)
-        return images_batch, labels_batch
+        X, Ydet, Yreg = self.queue.dequeue_many(20)
+        return X, Ydet, Yreg
 
     def thread_main(self, sess):
         """
         Function run on alternate thread. Basically, keep adding data to the queue.
         """
         batch_iterator = MPIIBatchIterator(MPII_RAW)
-        for dataX, dataY in batch_iterator:
-            sess.run(self.enqueue_op, feed_dict={self.dataX:dataX, self.dataY:dataY})
+        for X, Ydet, Yreg in batch_iterator:
+            sess.run(self.enqueue_op, feed_dict={self.X:X, self.Ydet:Ydet, self.Yreg:Yreg})
 
     def start_threads(self, sess, n_threads=1):
         """ Start background threads to feed queue """
@@ -198,23 +205,14 @@ class SimpleRunner(object):
             t.start()
             threads.append(t)
         return threads
-'''
+
 # Doing anything with data on the CPU is generally a good idea.
 with tf.device("/cpu:0"):
     simple_runner = SimpleRunner()
-    images_batch, labels_batch = simple_runner.get_inputs()
-'''
-'''
-# simple model
-w = tf.get_variable("w1", [28*28, 10])
-y_pred = tf.matmul(images_batch, w)
-loss = tf.nn.sparse_softmax_cross_entropy_with_logits(y_pred, labels_batch)
+    X,Ydet,Yreg = simple_runner.get_inputs()
 
-# for monitoring
-loss_mean = tf.reduce_mean(loss)
-train_op = tf.train.AdamOptimizer().minimize(loss)
-'''
-'''sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=8))
+
+sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=8))
 sess.run(tf.global_variables_initializer())
 
 # start the tensorflow QueueRunner's
@@ -222,7 +220,6 @@ tf.train.start_queue_runners(sess=sess)
 # start our custom queue runner's threads
 simple_runner.start_threads(sess)
 
-while True:
-    image=sess.run(images_batch)
+for i in range(4):
+    image=sess.run(X)
     print image
-    '''

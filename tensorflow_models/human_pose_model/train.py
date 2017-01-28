@@ -22,7 +22,7 @@ RMSPROP_EPSILON = 1.0
 
 NUM_JOINTS = Person.NUM_JOINTS
 
-tf.app.flags.DEFINE_string('network_name', None,
+tf.app.flags.DEFINE_string('network_name', 'vgg',
                            """Name of desired network to use for part
                            detection. Valid options: vgg, inception_v3.""")
 tf.app.flags.DEFINE_string('data_dir', './data',
@@ -252,12 +252,6 @@ def train():
                 FLAGS.num_preprocess_threads,
                 FLAGS.image_dim)
 
-            # @debug
-            # Gaussian with a standard deviation of 5 pixels
-            Tracer()()
-            normal = tf.contrib.distributions.MultivariateNormalDiag(
-                mu=[training_batch.x_joints[0, 0], training_batch.y_joints[0, 0]],
-                diag_stdev=[5, 5])
             session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)

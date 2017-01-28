@@ -144,6 +144,7 @@ def _distort_colour(distorted_image, thread_id):
     """
     colour_ordering = thread_id % 2
 
+
     distorted_image = tf.image.random_brightness(image=distorted_image, max_delta=32./255.)
     if colour_ordering == 0:
         distorted_image = tf.image.random_saturation(image=distorted_image, lower=0.5, upper=1.5)
@@ -333,9 +334,9 @@ def _setup_filename_queue(data_dir,
                           capacity):
     """Sets up a filename queue of example-containing TFRecord files.
     """
-    #data_filenames = tf.gfile.Glob(
-    #    os.path.join(data_dir, record_prefix + '*tfrecord'))
-    data_filenames = tf.gfile.Glob('*.tfrecord')
+    data_filenames = tf.gfile.Glob(
+        os.path.join(data_dir, record_prefix + '*tfrecord'))
+    #data_filenames = tf.gfile.Glob('*.tfrecord')
     assert data_filenames, ('No data files found.')
     assert len(data_filenames) >= num_readers
 

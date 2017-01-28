@@ -42,7 +42,10 @@ import scipy.io
 import numpy as np
 from PIL import Image
 from shapes import Rectangle
-import cPickle as pickle
+#PYTHON2.7
+#import cPickle as pickle
+#PYTHON3
+import pickle
 from tqdm import tqdm
 
 class Joint(object):
