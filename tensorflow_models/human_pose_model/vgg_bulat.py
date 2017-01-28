@@ -100,14 +100,14 @@ def vgg_16(inputs,
             # Use conv2d instead of fully_connected layers.
             net = slim.conv2d(net, 4096, [7, 7], scope='fc6')
             net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
-                             scope='dropout6')
+                               scope='dropout6')
             net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
             net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
-                             scope='dropout7')
+                               scope='dropout7')
             net = slim.conv2d(net, num_classes, [1, 1],
-                            activation_fn=None,
-                            normalizer_fn=None,
-                            scope='fc8')
+                              activation_fn=None,
+                              normalizer_fn=None,
+                              scope='fc8')
             net = tf.image.resize_images(images=net, size=input_img_shape)
 
             # Convert end_points_collection into a end_point dict.

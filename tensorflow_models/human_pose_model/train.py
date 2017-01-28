@@ -5,12 +5,7 @@ from tensorflow.python.platform import tf_logging
 from logging import INFO
 from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
-from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_train_input_pipeline
-
-# @debug
-from IPython.core.debugger import Tracer
-from PIL import Image, ImageDraw
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -107,7 +102,7 @@ def _inference(training_batch):
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
             logits, endpoints = part_detect_net(inputs=training_batch.images,
-                                                num_classes=2*NUM_JOINTS)
+                                                num_classes=NUM_JOINTS)
 
             x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense(
                 training_batch, NUM_JOINTS)
@@ -254,56 +249,10 @@ def train():
                 FLAGS.num_preprocess_threads,
                 FLAGS.image_dim)
 
-            """
-            # @debug
-            # Gaussian with a standard deviation of 5 pixels
-            Tracer()()
-            x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense(
-                training_batch, NUM_JOINTS)
-            diag_stdev = tf.cast(5.0/FLAGS.image_dim, tf.float64)
-            normals = []
-            for img_index in range(FLAGS.batch_size):
-                for joint_index in range(NUM_JOINTS):
-                    normal = tf.contrib.distributions.MultivariateNormalDiag(
-                        mu=[tf.cast(y_dense_joints[img_index, joint_index], tf.float64), tf.cast(x_dense_joints[img_index, joint_index], tf.float64)],
-                        diag_stdev=[diag_stdev, diag_stdev])
-                    normals.append(normal)
-            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=session, coord=coord)
-            pixel_spacing = np.linspace(-0.5, 0.5, FLAGS.image_dim)
-            coords = np.empty((FLAGS.image_dim, FLAGS.image_dim, 2), dtype=np.float64)
-            coords[..., 0] = pixel_spacing[:, None]
-            coords[..., 1] = pixel_spacing
-            probs = []
-            for normal in normals:
-                probs.append(normal.pdf(coords))
-            images0, probs0, x_joints0, y_joints0, weights0 = session.run(
-                [tf.image.convert_image_dtype(image=training_batch.images, dtype=tf.uint8),
-                 probs,
-                 x_dense_joints,
-                 y_dense_joints,
-                 weights])
-            for img_index in range(FLAGS.batch_size):
-                image0 = images0[img_index]
-                for joint_index in range(NUM_JOINTS):
-                    prob_index = NUM_JOINTS*img_index + joint_index
-                    scaled_prob = probs0[prob_index]/np.max(probs0[prob_index])
-                    for x in range(299):
-                        for y in range(299):
-                            colour_index = joint_index % 3
-                            image0[y, x][colour_index] = min(255, image0[y, x][colour_index] + 4*255*scaled_prob[y, x])
-                pil_image = Image.fromarray(image0)
-                pil_image.show()
-            """
-
             global_step, optimizer = _setup_optimizer(FLAGS.batch_size,
                                                       FLAGS.num_epochs_per_decay,
                                                       FLAGS.initial_learning_rate,
                                                       FLAGS.learning_rate_decay_factor)
-
-            # @debug
-            Tracer()()
 
             train_op = _setup_training_op(training_batch,
                                           global_step,
