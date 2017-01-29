@@ -29,7 +29,6 @@ def detection_vgg(inputs,
                           num_classes=16,
                           is_training=True,
                           dropout_keep_prob=0.5,
-                          spatial_squeeze=True,
                           scope='detection_vgg_16'):
     """Oxford Net VGG 16-Layers Fully Convolutional with Skip-Connections as in the paper 'Fully Convolutional Networks
     for Semantic Segmentation' by Long et al.
@@ -114,7 +113,6 @@ def detection_vgg(inputs,
 def regression_net(num_classes=16,
                           is_training=True,
                           dropout_keep_prob=0.5,
-                          spatial_squeeze=True,
                           scope='regression_vgg_16'):
     '''Args:
       inputs: a tensor of size [batch_size, height, width, channels].
@@ -122,8 +120,6 @@ def regression_net(num_classes=16,
       is_training: whether or not the model is being trained. This is needed to set and unset dropout
       dropout_keep_prob: the probability that activations are kept in the dropout
         layers during training.
-      spatial_squeeze: whether or not should squeeze the spatial dimensions of the
-        outputs. Useful to remove unnecessary dimensions for classification.
       scope: Optional scope for the variables.
 
     Returns:

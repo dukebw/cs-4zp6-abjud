@@ -206,21 +206,55 @@ class SimpleRunner(object):
             threads.append(t)
         return threads
 
-# Doing anything with data on the CPU is generally a good idea.
-with tf.device("/cpu:0"):
-    simple_runner = SimpleRunner()
-    X,Ydet,Yreg = simple_runner.get_inputs()
+def train():
+    # Doing anything with data on the CPU is generally a good idea.
+    with tf.device("/cpu:0"):
+        simple_runner = SimpleRunner()
+        X,Ydet,Yreg = simple_runner.get_inputs()
 
-logits = human_pose_model(X)
 
-sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=8))
-sess.run(tf.global_variables_initializer())
+    sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=8))
+    sess.run(tf.global_variables_initializer())
 
-# start the tensorflow QueueRunner's
-tf.train.start_queue_runners(sess=sess)
-# start our custom queue runner's threads
-simple_runner.start_threads(sess)
+    # start the tensorflow QueueRunner's
+    tf.train.start_queue_runners(sess=sess)
+    # start our custom queue runner's threads
+    simple_runner.start_threads(sess)
 
-for i in range(4):
-    image=sess.run(X)
-    print image
+    for i in range(4):
+        image=sess.run(X)
+        print image
+    '''
+            # This loop runs through all the data for n_epochs many times
+            for current_epoch in tqdm(xrange(n_epochs)):
+                # This loop runs through all the data once in steps given by self.batch_size
+                # Better would be to make the train_iterator a generator
+                while train_iterator.epochs < current_epoch:
+                    step += 1
+                    batch = valid_iterator.next_batch(self.batch_size)
+                    feed = {graph['X']: batch[0], graph['Y']: batch[1], graph['seqlen']: batch[2]}
+                    mean_loss_batch = sess.run([graph['mean_loss'], graph['updates']], feed_dict = feed)
+                    mean_loss += mean_loss_batch
+
+                curr_valid_epoch = valid_iterator.epochs
+                while valid_iterator.epochs == valid_epoch:
+                    step += 1
+                    batch = valid_iterator.next_batch(self.batch_size)
+                    feed = {graph['X']: batch[0], graph['Y']: batch[1], graph['seqlen']: batch[2]}
+                    mean_loss_batch = sess.run([graph['mean_loss']], feed_dict=feed)[0]
+                    mean_loss += mean_loss_batch
+                    valid_losses.append(mean_loss / step)
+                    step, mean_loss = 0,0
+
+
+                print('Accuracy after epoch', current_epoch, ' - train loss:', train_losses[-1], '- validation loss:', valid_losses[-1])
+
+                if current_epoch % 2 == 0:
+                batch = test_iterator.next_batch(10)
+                feed = {graph['X']:batch[0], graph['Y']:batch[1], graph['seqlen']:batch[2]}
+                p = sess.run([graph['Y_pred']], feed_dict = feed)
+                print('Prediction:',p)
+                print('Real Output:', batch[1])
+
+        return train_losses, valid_losses
+    '''

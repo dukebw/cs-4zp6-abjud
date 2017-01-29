@@ -6,8 +6,9 @@ import tensorflow as tf
 from mpii_read import mpii_read
 from timethis import timethis
 from shapes import Point, Rectangle
-import cPickle as pickle
-
+from tqdm import tqdm
+import pickle
+from ProgressBar import print_progress
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string(
@@ -26,7 +27,7 @@ tf.app.flags.DEFINE_boolean('is_train', True,
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             """Number of threads to use to write TF Records""")
 
-tf.app.flags.DEFINE_integer('train_shards', 16,
+tf.app.flags.DEFINE_integer('train_shards', 20,
                             """Number of output shards (TFRecord files
                             containing training examples) to create.""")
 
@@ -374,9 +375,9 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
     img_shape = coder.decode_jpeg(image_jpeg)
 
     for person in people_in_img:
-        person_rect = _find_person_bounding_box(person, img_shape)
+        person_rect = find_person_bounding_box(person, img_shape)
 
-        padded_img_dim, person_shape_xy, padding_xy = _find_padded_person_dim(
+        padded_img_dim, person_shape_xy, padding_xy = find_padded_person_dim(
             person_rect)
 
         scaled_img_jpeg = coder.scale_encode(
@@ -386,7 +387,7 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             padding_xy,
             padded_img_dim)
 
-        labels = _extract_labeled_joints(
+        labels = extract_labeled_joints(
             person.joints,
             person_shape_xy,
             padding_xy,
@@ -446,6 +447,7 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
     shard_ranges = _spacing_to_ranges(shard_spacing)
 
     for shard_index in range(len(shard_ranges)):
+        print_progress(shard_index,len(shard_ranges))
         tfrecord_index = int(thread_index*shards_per_thread + shard_index)
         tfrecord_filename = '{}{}.tfrecord'.format(base_name, tfrecord_index)
         tfrecord_filepath = os.path.join(FLAGS.train_dir, tfrecord_filename)
@@ -454,6 +456,7 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
             shard_start = shard_ranges[shard_index][0]
             shard_end = shard_ranges[shard_index][1]
             for img_index in range(shard_start, shard_end):
+                print_progress(img_index - shard_start, shard_end - shard_start)
                 with tf.gfile.FastGFile(name=mpii_dataset.img_filenames[img_index], mode='rb') as f:
                     image_jpeg = f.read()
 
@@ -512,7 +515,7 @@ def main(argv=None):
 
      Type 'python3 -m write_tf_record --help' for options.
     """
-    mpii_dataset = pickle.load(open('MPII_Dataset.p','rb'))
+    mpii_dataset = mpii_read(FLAGS.mpii_filepath, FLAGS.is_train)
     write_tf_record(mpii_dataset)
 
 
