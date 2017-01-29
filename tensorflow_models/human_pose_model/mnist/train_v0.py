@@ -3,7 +3,9 @@ import time
 import threading
 from skdata.mnist.views import OfficialVectorClassification
 import numpy as np
-import model
+import models
+from tqdm import trange
+from time import sleep
 
 # load data entirely into memory 
 data = OfficialVectorClassification()
@@ -51,7 +53,7 @@ class CustomRunner(object):
         """
         Return's tensors containing a batch of images and labels
         """
-        images_batch, labels_batch = self.queue.dequeue_many(B)
+        images_batch, labels_batch = self.queue.dequeue_many(N)
         return images_batch, labels_batch
 
     def thread_main(self, sess):
@@ -74,21 +76,26 @@ class CustomRunner(object):
 # Doing anything with data on the CPU is generally a good idea.
 with tf.device("/cpu:0"):
     custom_runner = CustomRunner()
-    images_batch, labels_batch = custom_runner.dequeue_batch()
+    images_batch, labels_batch = custom_runner.dequeue_batch(64)
 
-model = models.LogisticRegression(X, images_batch, labels_batch)
+model = models.LogisticRegression(images_batch)
+
+logits,end_points = model.network()
+loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels_batch)
+
+# for monitoring
+loss_mean = tf.reduce_mean(loss)
+train_op = tf.train.AdamOptimizer().minimize(loss)
 
 sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=8))
-init = tf.initialize_all_variables()
-sess.run(init)
+sess.run(tf.global_variables_initializer())
 
 # start the tensorflow QueueRunner's
 tf.train.start_queue_runners(sess=sess)
 # start our custom queue runner's threads
 custom_runner.start_threads(sess)
 
-t = trange(100, desc='Bar desc', leave=True)
+t = trange(100000, desc='Bar desc', leave=True)
 for i in t:
-    _, loss_val = sess.run([model.train_op, model.loss_mean])
-    t.set_description('Bar desc (batch %i)' % i)
-    sleep(0.01)
+    _, loss_val = sess.run([train_op, loss_mean])
+    t.set_description('Loss (batch %f)' % loss_val)

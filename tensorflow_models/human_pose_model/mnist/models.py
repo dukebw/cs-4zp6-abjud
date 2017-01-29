@@ -1,29 +1,22 @@
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
 class LogisticRegression(object):
 
-    def __init__(self,input_imgs, output_target, batch_size=64):
+    def __init__(self,input_imgs):
         # our input
         self.input_imgs = input_imgs
-        # our output
-        self.output_target = output_target
-        # Hyperparameters
-        self.batch_size = batch_size
-        # the resulting operator
-        self.train_op = self._build_trainop()
-    
-    def 
 
+    def network(self):
+        # Collect outputs for fully connected
+        with slim.arg_scope([slim.fully_connected],
+                            activation_fn=tf.nn.relu,
+                            weights_initializer=tf.truncated_normal_initializer(0.0, 0.1),
+                            weights_regularizer=slim.l2_regularizer(0.0005),
+                           outputs_collections='fully_connected_collection'):
 
-    def _build_trainop(self):
-        # simple model
-        w = tf.get_variable("w1", [28*28, 10])
+            logits = slim.fully_connected(self.input_imgs, 10, scope='fc1')
+            end_points = slim.utils.convert_collection_to_dict('fully_connected_collection')
 
-        y_pred = tf.matmul(self.input_imgs, w)
+        return logits, end_points
 
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(y_pred, self.output_target)
-
-        # for monitoring
-        loss_mean = tf.reduce_mean(loss)
-
-        return tf.train.AdamOptimizer().minimize(loss)

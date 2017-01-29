@@ -75,10 +75,9 @@ with tf.device("/cpu:0"):
     custom_runner = CustomRunner()
     images_batch, labels_batch = custom_runner.get_inputs()
 
-# simple model
-w = tf.get_variable("w1", [28*28, 10])
-y_pred = tf.matmul(images_batch, w)
-loss = tf.nn.sparse_softmax_cross_entropy_with_logits(y_pred, labels_batch)
+model = models.LogisticRegression(images_batch)
+logits,end_points = model.network()
+loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels_batch)
 
 # for monitoring
 loss_mean = tf.reduce_mean(loss)

@@ -1,7 +1,16 @@
 import os
+import numpy as np
 import tensorflow as tf
+from sparse_to_dense import sparse_joints_to_dense_single_example
+from mpii_read import Person
+
+# @debug
+from IPython.core.debugger import Tracer
+from PIL import Image, ImageDraw
 
 EXAMPLES_PER_SHARD = 1024
+
+NUM_JOINTS = Person.NUM_JOINTS
 
 class TrainingBatch(object):
     """Contains a training batch of images along with corresponding
@@ -314,6 +323,43 @@ def _parse_and_preprocess_images(example_serialized,
                 tensor=distorted_image,
                 shape=[image_dim, image_dim, 3])
 
+        # @debug
+        Tracer()()
+
+        x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(
+            x_joints, y_joints, joint_indices, NUM_JOINTS)
+
+        joints = tf.pack(values=[y_dense_joints, x_dense_joints], axis=1)
+
+        # Gaussian with a standard deviation of 5 pixels
+        diag_stdev = np.full((NUM_JOINTS, 2), 5.0/image_dim)
+        diag_stdev = tf.cast(diag_stdev, tf.float64)
+        normal = tf.contrib.distributions.MultivariateNormalDiag(
+            mu=joints,
+            diag_stdev=diag_stdev)
+
+        pixel_spacing = np.linspace(-0.5, 0.5, image_dim)
+        coords = np.empty((image_dim, image_dim, NUM_JOINTS, 2), dtype=np.float64)
+        for joint_index in range(NUM_JOINTS):
+            coords[..., joint_index, 0] = pixel_spacing[:, None]
+            coords[..., joint_index, 1] = pixel_spacing
+        probs = normal.pdf(coords)
+
+        # @debug
+        session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=session, coord=coord)
+        image0, probs0, joints0, weights0 = session.run(
+            [tf.image.convert_image_dtype(image=distorted_image, dtype=tf.uint8),
+             probs,
+             joints,
+             weights])
+        for joint_index in range(NUM_JOINTS):
+            scaled_prob = probs0[..., joint_index]/np.max(probs0[..., joint_index])
+            colour_index = joint_index % 3
+            image0[..., colour_index] = np.clip(image0[..., colour_index] + 4*255*scaled_prob, 0, 255)
+        pil_image = Image.fromarray(image0)
+        pil_image.show()
 
         distorted_image = tf.sub(x=distorted_image, y=0.5)
         distorted_image = tf.mul(x=distorted_image, y=2.0)

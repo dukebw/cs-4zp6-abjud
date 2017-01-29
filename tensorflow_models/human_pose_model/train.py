@@ -1,14 +1,11 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import tf_logging
 from logging import INFO
 from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
-from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_train_input_pipeline
-
-# @debug
-from IPython.core.debugger import Tracer
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -105,7 +102,7 @@ def _inference(training_batch):
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
             logits, endpoints = part_detect_net(inputs=training_batch.images,
-                                                num_classes=2*NUM_JOINTS)
+                                                num_classes=NUM_JOINTS)
 
             x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense(
                 training_batch, NUM_JOINTS)
