@@ -22,17 +22,22 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
     auxiliary_logits = endpoints['AuxLogits']
 
     slim.losses.mean_squared_error(predictions=auxiliary_logits,
-            labels=dense_joints,
-            weights=weights,
-            scope='aux_logits')
+                                   labels=dense_joints,
+                                   weights=weights,
+                                   scope='aux_logits')
 
     slim.losses.mean_squared_error(predictions=logits,
-            labels=dense_joints,
-            weights=weights)
+                                   labels=dense_joints,
+                                   weights=weights)
 
 
-def vgg_bulat_loss(logits, endpoints, dense_joints, weights):
-    pass
+def vgg_bulat_loss(logits, endpoints, heatmaps, weights):
+    """
+    """
+    slim.losses.mean_squared_error(predictions=logits,
+                                   labels=heatmaps,
+                                   weights=weights,
+                                   scope='logits')
 
 
 NETS = {'vgg': vgg.vgg_16,

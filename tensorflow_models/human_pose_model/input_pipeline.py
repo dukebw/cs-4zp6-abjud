@@ -4,10 +4,6 @@ import tensorflow as tf
 from sparse_to_dense import sparse_joints_to_dense_single_example
 from mpii_read import Person
 
-# @debug
-from IPython.core.debugger import Tracer
-from PIL import Image, ImageDraw
-
 EXAMPLES_PER_SHARD = 1024
 
 NUM_JOINTS = Person.NUM_JOINTS
@@ -19,18 +15,11 @@ class TrainingBatch(object):
     images, *_joints and joint_indices should all be lists of length
     `batch_size`.
     """
-    def __init__(self,
-                 images,
-                 joint_indices,
-                 x_joints,
-                 y_joints,
-                 head_size,
-                 batch_size):
+    def __init__(self, images, heatmaps, weights, head_size, batch_size):
         assert images.get_shape()[0] == batch_size
         self._images = images
-        self._joint_indices = joint_indices
-        self._x_joints = x_joints
-        self._y_joints = y_joints
+        self._heatmaps = heatmaps
+        self._weights = weights
         self._head_size = head_size
         self._batch_size = batch_size
 
@@ -39,16 +28,12 @@ class TrainingBatch(object):
         return self._images
 
     @property
-    def x_joints(self):
-        return self._x_joints
+    def heatmaps(self):
+        return self._heatmaps
 
     @property
-    def y_joints(self):
-        return self._y_joints
-
-    @property
-    def joint_indices(self):
-        return self._joint_indices
+    def weights(self):
+        return self._weights
 
     @property
     def head_size(self):
@@ -200,9 +185,9 @@ def _randomly_crop_image(decoded_img,
     bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
         image_size=[image_dim, image_dim, 3],
         bounding_boxes=[[[0, 0, 1.0, 1.0]]],
-        min_object_covered=0.9,
+        min_object_covered=0.7,
         aspect_ratio_range=[0.75, 1.33],
-        area_range=[0.9, 1.0],
+        area_range=[0.5, 1.0],
         max_attempts=100,
         use_image_if_no_bounding_boxes=True)
 
@@ -216,7 +201,7 @@ def _randomly_crop_image(decoded_img,
                                              align_corners=False)
 
     distorted_image = tf.reshape(
-        tensor=decoded_img,
+        tensor=distorted_image,
         shape=[image_dim, image_dim, 3])
 
     distorted_center = tf.cast(bbox_begin, tf.float64) + bbox_size/2
@@ -283,6 +268,16 @@ def _distort_image(parsed_example, image_dim, thread_id):
     return distorted_image, joint_indices, x_joints, y_joints
 
 
+def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
+    """
+    """
+    normal = tf.contrib.distributions.Normal(mu=dense_joints, sigma=std_dev)
+    probs = normal.pdf(coords)
+    probs = tf.transpose(probs)
+
+    return tf.expand_dims(input=probs, axis=expand_axis)
+
+
 def _parse_and_preprocess_images(example_serialized,
                                  num_preprocess_threads,
                                  image_dim,
@@ -308,7 +303,7 @@ def _parse_and_preprocess_images(example_serialized,
         decoded image with colours scaled to range [-1, 1], as well as the
         sparse joint ground truth vectors.
     """
-    images_and_joints = []
+    images_and_heatmaps = []
     for thread_id in range(num_preprocess_threads):
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
@@ -323,54 +318,34 @@ def _parse_and_preprocess_images(example_serialized,
                 tensor=distorted_image,
                 shape=[image_dim, image_dim, 3])
 
-        # @debug
-        Tracer()()
-
         x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(
             x_joints, y_joints, joint_indices, NUM_JOINTS)
 
-        joints = tf.pack(values=[y_dense_joints, x_dense_joints], axis=1)
-
         # Gaussian with a standard deviation of 5 pixels
-        diag_stdev = np.full((NUM_JOINTS, 2), 5.0/image_dim)
-        diag_stdev = tf.cast(diag_stdev, tf.float64)
-        normal = tf.contrib.distributions.MultivariateNormalDiag(
-            mu=joints,
-            diag_stdev=diag_stdev)
+        std_dev = np.full(NUM_JOINTS, 5.0/image_dim)
+        std_dev = tf.cast(std_dev, tf.float64)
 
         pixel_spacing = np.linspace(-0.5, 0.5, image_dim)
-        coords = np.empty((image_dim, image_dim, NUM_JOINTS, 2), dtype=np.float64)
-        for joint_index in range(NUM_JOINTS):
-            coords[..., joint_index, 0] = pixel_spacing[:, None]
-            coords[..., joint_index, 1] = pixel_spacing
-        probs = normal.pdf(coords)
+        coords = np.empty((image_dim, NUM_JOINTS), dtype=np.float64)
+        coords[...] = pixel_spacing[:, None]
 
-        # @debug
-        session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(sess=session, coord=coord)
-        image0, probs0, joints0, weights0 = session.run(
-            [tf.image.convert_image_dtype(image=distorted_image, dtype=tf.uint8),
-             probs,
-             joints,
-             weights])
-        for joint_index in range(NUM_JOINTS):
-            scaled_prob = probs0[..., joint_index]/np.max(probs0[..., joint_index])
-            colour_index = joint_index % 3
-            image0[..., colour_index] = np.clip(image0[..., colour_index] + 4*255*scaled_prob, 0, 255)
-        pil_image = Image.fromarray(image0)
-        pil_image.show()
+        x_probs = _get_joints_normal_pdf(x_dense_joints, std_dev, coords, -2)
+        y_probs = _get_joints_normal_pdf(y_dense_joints, std_dev, coords, -1)
+
+        heatmaps = tf.batch_matmul(x=y_probs, y=x_probs)
+        heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
 
         distorted_image = tf.sub(x=distorted_image, y=0.5)
         distorted_image = tf.mul(x=distorted_image, y=2.0)
 
-        images_and_joints.append([distorted_image,
-                                  joint_indices,
-                                  x_joints,
-                                  y_joints,
-                                  head_size])
+        weights /= tf.reduce_sum(input_tensor=weights)
+        weights = tf.expand_dims(weights, 0)
+        weights = tf.expand_dims(weights, 0)
+        weights = tf.tile(weights, [image_dim, image_dim, 1])
 
-    return images_and_joints
+        images_and_heatmaps.append([distorted_image, heatmaps, weights, head_size])
+
+    return images_and_heatmaps
 
 
 def _setup_filename_queue(data_dir,
@@ -394,24 +369,19 @@ def _setup_filename_queue(data_dir,
     return filename_queue
 
 
-def _setup_batch_queue(images_and_joints, batch_size, num_preprocess_threads):
+def _setup_batch_queue(images_and_heatmaps, batch_size, num_preprocess_threads):
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
     """
-    images, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
-        tensors_list=images_and_joints,
+    images, heatmaps, weights, head_size = tf.train.batch_join(
+        tensors_list=images_and_heatmaps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
     # makes setup_eval_input_pipeline non-usable without other modules
     #tf.summary.image(name='images', tensor=images)
 
-    return TrainingBatch(images,
-                         joint_indices,
-                         x_joints,
-                         y_joints,
-                         head_size,
-                         batch_size)
+    return TrainingBatch(images, heatmaps, weights, head_size, batch_size)
 
 
 def setup_eval_input_pipeline(data_dir,
@@ -429,13 +399,13 @@ def setup_eval_input_pipeline(data_dir,
     reader = tf.TFRecordReader()
     _, example_serialized = reader.read(filename_queue)
 
-    images_and_joints = _parse_and_preprocess_images(
+    images_and_heatmaps = _parse_and_preprocess_images(
         example_serialized,
         num_preprocess_threads,
         image_dim,
         False)
 
-    return _setup_batch_queue(images_and_joints,
+    return _setup_batch_queue(images_and_heatmaps,
                               batch_size,
                               num_preprocess_threads)
 

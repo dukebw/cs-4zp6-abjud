@@ -104,13 +104,10 @@ def _inference(training_batch):
             logits, endpoints = part_detect_net(inputs=training_batch.images,
                                                 num_classes=NUM_JOINTS)
 
-            x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense(
-                training_batch, NUM_JOINTS)
-
-            dense_joints = tf.concat(concat_dim=1,
-                                     values=[x_dense_joints, y_dense_joints])
-
-            net_loss(logits, endpoints, dense_joints, weights)
+            net_loss(logits,
+                     endpoints,
+                     training_batch.heatmaps,
+                     training_batch.weights)
 
             # TODO(brendan): Calculate loss averages for tensorboard
 

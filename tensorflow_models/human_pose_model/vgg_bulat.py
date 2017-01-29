@@ -108,7 +108,7 @@ def vgg_16(inputs,
                               activation_fn=None,
                               normalizer_fn=None,
                               scope='fc8')
-            net = tf.image.resize_images(images=net, size=input_img_shape)
+            net = tf.image.resize_bilinear(images=net, size=input_img_shape)
 
             # Convert end_points_collection into a end_point dict.
             end_points = slim.utils.convert_collection_to_dict(end_points_collection)
