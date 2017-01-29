@@ -182,7 +182,7 @@ def _randomly_crop_image(decoded_img,
     bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
         image_size=[image_dim, image_dim, 3],
         bounding_boxes=[[[0, 0, 1.0, 1.0]]],
-        min_object_covered=0.1,
+        min_object_covered=0.7,
         aspect_ratio_range=[0.75, 1.33],
         area_range=[0.5, 1.0],
         max_attempts=100,
