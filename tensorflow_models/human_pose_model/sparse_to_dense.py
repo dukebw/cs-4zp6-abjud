@@ -18,7 +18,9 @@ def _sparse_joints_to_dense_inner(dense_shape,
                                   y_joints,
                                   joint_indices,
                                   num_joints):
-    """
+    """Inner function for doing sparse joint conversion to dense joints.
+
+    See `sparse_joints_to_dense` for detailed explanation.
     """
     x_dense_joints, x_sparse_joints = _sparse_joints_to_dense_one_dim(
         dense_shape,
@@ -44,7 +46,8 @@ def sparse_joints_to_dense_single_example(x_joints,
                                           y_joints,
                                           joint_indices,
                                           num_joints):
-    """
+    """Converts sparse joints, given by (x_joints, y_joints, joint_indices), to
+    dense joints for a single example, as opposed to a whole batch.
     """
     return _sparse_joints_to_dense_inner([num_joints],
                                          x_joints,
@@ -53,13 +56,12 @@ def sparse_joints_to_dense_single_example(x_joints,
                                          num_joints)
 
 
-def sparse_joints_to_dense(training_batch, num_joints):
+def sparse_joints_to_dense(batch, num_joints):
     """Converts a sparse vector of joints to a dense format, and also returns a
     set of weights indicating which joints are present.
 
     Args:
-        training_batch: A batch of training images with associated joint
-            vectors.
+        batch: A batch of example images with associated joint vectors.
 
     Returns:
         (dense_joints, weights) tuple, where dense_joints is a dense vector of
@@ -68,10 +70,10 @@ def sparse_joints_to_dense(training_batch, num_joints):
         joints and 0s otherwise.
     """
     x_dense_joints, y_dense_joints, weights = _sparse_joints_to_dense_inner(
-        [training_batch.batch_size, num_joints],
-        training_batch.x_joints,
-        training_batch.y_joints,
-        training_batch.joint_indices,
+        [batch.batch_size, num_joints],
+        batch.x_joints,
+        batch.y_joints,
+        batch.joint_indices,
         num_joints)
 
     return x_dense_joints, y_dense_joints, tf.concat(concat_dim=1, values=[weights, weights])

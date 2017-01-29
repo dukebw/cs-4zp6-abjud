@@ -32,7 +32,8 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
 
 
 def vgg_bulat_loss(logits, endpoints, heatmaps, weights):
-    """
+    """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
+    Equation 2 of the paper.
     """
     slim.losses.mean_squared_error(predictions=logits,
                                    labels=heatmaps,

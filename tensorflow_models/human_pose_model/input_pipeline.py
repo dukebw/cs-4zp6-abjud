@@ -10,17 +10,15 @@ NUM_JOINTS = Person.NUM_JOINTS
 
 class TrainingBatch(object):
     """Contains a training batch of images along with corresponding
-    ground-truth joint vectors for the annotated person in that image.
+    ground-truth joint heatmap vectors for the annotated person in that image.
 
-    images, *_joints and joint_indices should all be lists of length
-    `batch_size`.
+    images, heatmaps and weights should all be lists of length `batch_size`.
     """
-    def __init__(self, images, heatmaps, weights, head_size, batch_size):
+    def __init__(self, images, heatmaps, weights, batch_size):
         assert images.get_shape()[0] == batch_size
         self._images = images
         self._heatmaps = heatmaps
         self._weights = weights
-        self._head_size = head_size
         self._batch_size = batch_size
 
     @property
@@ -34,6 +32,48 @@ class TrainingBatch(object):
     @property
     def weights(self):
         return self._weights
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+
+class EvalBatch(object):
+    """Contains an evaluation batch of images along with corresponding
+    ground-truth joint vectors for the annotated person in that image.
+
+    images, *_joints, joint_indices and head_size should all be lists of length
+    `batch_size`.
+    """
+    def __init__(self,
+                 images,
+                 x_joints,
+                 y_joints,
+                 joint_indices,
+                 head_size,
+                 batch_size):
+        assert images.get_shape()[0] == batch_size
+        self._images = images
+        self._x_joints = x_joints
+        self._y_joints = y_joints
+        self._joint_indices = joint_indices
+        self._batch_size = batch_size
+
+    @property
+    def images(self):
+        return self._images
+
+    @property
+    def x_joints(self):
+        return self._x_joints
+
+    @property
+    def y_joints(self):
+        return self._y_joints
+
+    @property
+    def joint_indices(self):
+        return self._joint_indices
 
     @property
     def head_size(self):
@@ -266,7 +306,26 @@ def _distort_image(parsed_example, image_dim, thread_id):
 
 
 def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
-    """
+    """Creates a set of 1-D Normal distributions with means equal to the
+    elements of `dense_joints`, and the standard deviations equal to the values
+    in `std_dev`.
+
+    The shapes of the input tensors `dense_joints` and `std_dev` must be the
+    same.
+
+    Args:
+        dense_joints: Dense tensor of ground truth joint locations in 1-D.
+        std_dev: Standard deviation to use for the normal distribution.
+        coords: Set of co-ordinates over which to evaluate the Normal's PDF.
+        expand_axis: Axis to expand the probabilities by using
+            `tf.expand_dims`. E.g., an `expand_axis` of -2 will turn the result
+            PDF output from a tensor with shape [16, 380] to a tensor with
+            shape [16, 380, 1]
+
+    Returns:
+        3-D tensor with first dim being the length of `dense_joints`, and two
+        more dimensions, one of which is the length of `coords` and the other
+        of which has size 1.
     """
     normal = tf.contrib.distributions.Normal(mu=dense_joints, sigma=std_dev)
     probs = normal.pdf(coords)
@@ -275,10 +334,82 @@ def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
     return tf.expand_dims(input=probs, axis=expand_axis)
 
 
-def _parse_and_preprocess_images(example_serialized,
-                                 num_preprocess_threads,
-                                 image_dim,
-                                 is_train):
+def _parse_and_preprocess_example_eval(example_serialized,
+                                       num_preprocess_threads,
+                                       image_dim,
+                                       is_train):
+    """Same as `_parse_and_preprocess_example_train`, except without image
+    distortion or heatmap creation.
+
+    Hence this function returns dense x and y joints, instead of dense
+    heatmaps.
+    """
+    images_and_joints = []
+    for thread_id in range(num_preprocess_threads):
+        parsed_example = _parse_example_proto(example_serialized, image_dim)
+
+        decoded_img, joint_indices, x_joints, y_joints, head_size = parsed_example
+
+        decoded_img = tf.reshape(
+            tensor=decoded_img,
+            shape=[image_dim, image_dim, 3])
+
+        decoded_img = tf.sub(x=decoded_img, y=0.5)
+        decoded_img = tf.mul(x=decoded_img, y=2.0)
+
+        images_and_joints.append([decoded_img,
+                                  x_joints,
+                                  y_joints,
+                                  joint_indices,
+                                  head_size])
+
+    return images_and_joints
+
+
+def _get_joint_heatmaps(heatmap_stddev_pixels,
+                        image_dim,
+                        x_dense_joints,
+                        y_dense_joints,
+                        weights):
+    """Calculates a set of confidence maps for the joints given by
+    `x_dense_joints` and `y_dense_joints`, and corresponding weights.
+
+    The convidence maps are 2-D Gaussians with means given by the joints'
+    (x, y) locations, and standard deviations given by `heatmap_stddev_pixels`.
+    So, e.g. for a set of 16 joints and an image dimension of 380, a set of
+    tensors with shape [380, 380, 16] will be returned, where each
+    [380, 380, i] tensor will be a gaussian corresponding to the i'th joint.
+
+    The weights returned will also be of shape [380, 380, 16]. The elements of
+    the returned weights tensor will either be all zeros (if the ground truth
+    joint label is not present), or all 1/N, where N is the number of ground
+    truth joint labels that were present for this example. This is based on
+    Equation 2 on page 6 of the Bulat paper.
+    """
+    std_dev = np.full(NUM_JOINTS, heatmap_stddev_pixels/image_dim)
+    std_dev = tf.cast(std_dev, tf.float64)
+
+    pixel_spacing = np.linspace(-0.5, 0.5, image_dim)
+    coords = np.empty((image_dim, NUM_JOINTS), dtype=np.float64)
+    coords[...] = pixel_spacing[:, None]
+
+    x_probs = _get_joints_normal_pdf(x_dense_joints, std_dev, coords, -2)
+    y_probs = _get_joints_normal_pdf(y_dense_joints, std_dev, coords, -1)
+
+    heatmaps = tf.batch_matmul(x=y_probs, y=x_probs)
+    heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
+
+    weights /= tf.reduce_sum(input_tensor=weights)
+    weights = tf.expand_dims(weights, 0)
+    weights = tf.expand_dims(weights, 0)
+    weights = tf.tile(weights, [image_dim, image_dim, 1])
+
+    return heatmaps, weights
+
+def _parse_and_preprocess_example_train(example_serialized,
+                                        num_preprocess_threads,
+                                        image_dim,
+                                        heatmap_stddev_pixels):
     """Parses Example protobufs containing input images and their ground truth
     vectors and preprocesses those images, returning a vector with one
     preprocessed tensor per thread.
@@ -293,7 +424,8 @@ def _parse_and_preprocess_images(example_serialized,
         num_preprocess_threads: Number of threads to use for image
             preprocessing.
         image_dim: Dimension of square input images.
-        is_train: Is the pre-processing for training, or for evaluation?
+        heatmap_stddev_pixels: Standard deviation of Gaussian joint heatmap, in
+            pixels.
 
     Returns:
         A list of lists, one for each thread, where each inner list contains a
@@ -304,43 +436,22 @@ def _parse_and_preprocess_images(example_serialized,
     for thread_id in range(num_preprocess_threads):
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
-        if is_train:
-            head_size = 0
-            distorted_image, joint_indices, x_joints, y_joints = _distort_image(
-                parsed_example, image_dim, thread_id)
-        else:
-            distorted_image, joint_indices, x_joints, y_joints, head_size = parsed_example
-
-            distorted_image = tf.reshape(
-                tensor=distorted_image,
-                shape=[image_dim, image_dim, 3])
+        distorted_image, joint_indices, x_joints, y_joints = _distort_image(
+            parsed_example, image_dim, thread_id)
 
         x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(
             x_joints, y_joints, joint_indices, NUM_JOINTS)
 
-        # Gaussian with a standard deviation of 5 pixels
-        std_dev = np.full(NUM_JOINTS, 5.0/image_dim)
-        std_dev = tf.cast(std_dev, tf.float64)
-
-        pixel_spacing = np.linspace(-0.5, 0.5, image_dim)
-        coords = np.empty((image_dim, NUM_JOINTS), dtype=np.float64)
-        coords[...] = pixel_spacing[:, None]
-
-        x_probs = _get_joints_normal_pdf(x_dense_joints, std_dev, coords, -2)
-        y_probs = _get_joints_normal_pdf(y_dense_joints, std_dev, coords, -1)
-
-        heatmaps = tf.batch_matmul(x=y_probs, y=x_probs)
-        heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
+        heatmaps, weights = _get_joint_heatmaps(heatmap_stddev_pixels,
+                                                image_dim,
+                                                x_dense_joints,
+                                                y_dense_joints,
+                                                weights)
 
         distorted_image = tf.sub(x=distorted_image, y=0.5)
         distorted_image = tf.mul(x=distorted_image, y=2.0)
 
-        weights /= tf.reduce_sum(input_tensor=weights)
-        weights = tf.expand_dims(weights, 0)
-        weights = tf.expand_dims(weights, 0)
-        weights = tf.tile(weights, [image_dim, image_dim, 1])
-
-        images_and_heatmaps.append([distorted_image, heatmaps, weights, head_size])
+        images_and_heatmaps.append([distorted_image, heatmaps, weights])
 
     return images_and_heatmaps
 
@@ -369,14 +480,14 @@ def _setup_batch_queue(images_and_heatmaps, batch_size, num_preprocess_threads):
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
     """
-    images, heatmaps, weights, head_size = tf.train.batch_join(
+    images, heatmaps, weights = tf.train.batch_join(
         tensors_list=images_and_heatmaps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
     tf.summary.image(name='images', tensor=images)
 
-    return TrainingBatch(images, heatmaps, weights, head_size, batch_size)
+    return TrainingBatch(images, heatmaps, weights, batch_size)
 
 
 def setup_eval_input_pipeline(data_dir,
@@ -394,15 +505,23 @@ def setup_eval_input_pipeline(data_dir,
     reader = tf.TFRecordReader()
     _, example_serialized = reader.read(filename_queue)
 
-    images_and_heatmaps = _parse_and_preprocess_images(
+    images_and_joints = _parse_and_preprocess_example_eval(
         example_serialized,
         num_preprocess_threads,
         image_dim,
         False)
 
-    return _setup_batch_queue(images_and_heatmaps,
-                              batch_size,
-                              num_preprocess_threads)
+    images, x_joints, y_joints, joint_indices, head_size = tf.train.batch_join(
+        tensors_list=images_and_joints,
+        batch_size=batch_size,
+        capacity=2*num_preprocess_threads*batch_size)
+
+    return EvalBatch(images,
+                     x_joints,
+                     y_joints,
+                     joint_indices,
+                     head_size,
+                     batch_size)
 
 
 def setup_train_input_pipeline(data_dir,
@@ -410,7 +529,8 @@ def setup_train_input_pipeline(data_dir,
                                input_queue_memory_factor,
                                batch_size,
                                num_preprocess_threads,
-                               image_dim):
+                               image_dim,
+                               heatmap_stddev_pixels):
     """Sets up an input pipeline that reads example protobufs from all TFRecord
     files, assumed to be named train*.tfrecord (e.g. train0.tfrecord),
     decodes and preprocesses the images.
@@ -438,6 +558,8 @@ def setup_train_input_pipeline(data_dir,
         num_preprocess_threads: Number of threads to use to preprocess image
             data.
         image_dim: Dimension of square input images.
+        heatmap_stddev_pixels: Standard deviation of Gaussian joint heatmap, in
+            pixels.
 
     Returns:
         TrainingBatch(images, joints, joint_indices, batch_size): List of image
@@ -457,9 +579,12 @@ def setup_train_input_pipeline(data_dir,
                                                   input_queue_memory_factor,
                                                   batch_size)
 
-        images_and_joints = _parse_and_preprocess_images(
-            example_serialized, num_preprocess_threads, image_dim, True)
+        images_and_heatmaps = _parse_and_preprocess_example_train(
+            example_serialized,
+            num_preprocess_threads,
+            image_dim,
+            heatmap_stddev_pixels)
 
-        return _setup_batch_queue(images_and_joints,
+        return _setup_batch_queue(images_and_heatmaps,
                                   batch_size,
                                   num_preprocess_threads)

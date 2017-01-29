@@ -54,6 +54,9 @@ tf.app.flags.DEFINE_integer('batch_size', 32,
 tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
                             """Factor by which to increase the minimum examples
                             in RandomShuffleQueue.""")
+tf.app.flags.DEFINE_integer('heatmap_stddev_pixels', 5,
+                            """Standard deviation of Gaussian joint heatmap, in
+                            pixels.""")
 
 tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
                           """Initial learning rate.""")
@@ -244,7 +247,8 @@ def train():
                 FLAGS.input_queue_memory_factor,
                 FLAGS.batch_size,
                 FLAGS.num_preprocess_threads,
-                FLAGS.image_dim)
+                FLAGS.image_dim,
+                FLAGS.heatmap_stddev_pixels)
 
             global_step, optimizer = _setup_optimizer(FLAGS.batch_size,
                                                       FLAGS.num_epochs_per_decay,
