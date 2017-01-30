@@ -8,6 +8,7 @@ from logging import INFO
 from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
+from evaluate import evaluate
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -206,6 +207,8 @@ def _setup_training_op(training_batch, global_step, optimizer):
             global_step=global_step,
             variables_to_train=_get_variables_to_train())
 
+        tf.summary.scalar(name='loss', tensor=loss)
+
     return train_op
 
 
@@ -269,7 +272,7 @@ def train():
 
             tf_logging._logger.setLevel(INFO)
 
-            saver = tf.train.Saver(tf.all_variables())
+            saver = tf.train.Saver(tf.global_variables())
 
             summary_op = tf.summary.merge_all()
 
@@ -307,6 +310,19 @@ def train():
                     if ((total_steps % 1000) == 0):
                         checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
                         saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
+
+                tf_logging.info('Epoch {} done. Evaluating metrics.'.format(epoch))
+
+                latest_checkpoint = tf.train.latest_checkpoint(
+                    checkpoint_dir=FLAGS.log_dir)
+                evaluate(FLAGS.network_name,
+                         FLAGS.data_dir,
+                         latest_checkpoint,
+                         os.path.join(FLAGS.log_dir, 'eval_log'),
+                         FLAGS.image_dim,
+                         FLAGS.num_preprocess_threads,
+                         FLAGS.batch_size,
+                         epoch)
 
 
 def main(argv=None):
