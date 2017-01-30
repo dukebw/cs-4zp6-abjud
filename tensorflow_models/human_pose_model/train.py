@@ -206,7 +206,7 @@ def _setup_training_op(training_batch, global_step, optimizer):
             global_step=global_step,
             variables_to_train=_get_variables_to_train())
 
-    return loss, train_op
+    return train_op
 
 
 def _restore_checkpoint_variables(session):
@@ -261,9 +261,9 @@ def train():
                                                       FLAGS.initial_learning_rate,
                                                       FLAGS.learning_rate_decay_factor)
 
-            total_loss, train_op = _setup_training_op(training_batch,
-                                                      global_step,
-                                                      optimizer)
+            train_op = _setup_training_op(training_batch,
+                                          global_step,
+                                          optimizer)
 
             # TODO(brendan): track moving averages of trainable variables
 
@@ -290,17 +290,14 @@ def train():
             for epoch in range(FLAGS.max_epochs):
                 for batch_step in range(num_batches_per_epoch):
                     start_time = time.time()
-                    batch_loss, _ = session.run(fetches=[total_loss, train_op])
+                    batch_loss, total_steps = session.run(fetches=[train_op, global_step])
                     duration = time.time() - start_time
 
                     assert not np.isnan(batch_loss)
 
-                    total_steps = epoch*num_batches_per_epoch + batch_step
                     if (total_steps % 10) == 0:
-                        examples_per_sec = FLAGS.batch_size / float(duration)
-
                         tf_logging.info('step {}: loss = {} ({:.2f} sec/step)'
-                                        .format(total_steps, batch_loss, examples_per_sec))
+                                        .format(total_steps, batch_loss, duration))
 
                     if (total_steps % 100) == 0:
                         summary_str = session.run(summary_op)
