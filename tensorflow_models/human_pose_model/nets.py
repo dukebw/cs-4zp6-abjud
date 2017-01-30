@@ -4,7 +4,8 @@ Slim where needed.
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.slim.nets import inception
 from tensorflow.contrib.slim.nets import vgg
-import vgg_bulat
+import bulat_vgg
+import bulat_res
 
 def vgg_loss(logits, endpoints, dense_joints, weights):
     """For VGG, currently we do a mean squared error on the joint locations
@@ -30,7 +31,7 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
                                    labels=dense_joints,
                                    weights=weights)
 
-def vgg_detector_loss(logits, endpoints, heatmaps, weights):
+def detector_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
@@ -39,7 +40,7 @@ def vgg_detector_loss(logits, endpoints, heatmaps, weights):
                                             weights=weights,
                                             scope='detector_loss')
 
-def vgg_regression_loss(logits, endpoints, heatmaps, weights):
+def regressor_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
@@ -51,10 +52,15 @@ def vgg_regression_loss(logits, endpoints, heatmaps, weights):
 
 NETS = {'vgg': vgg.vgg_16,
         'inception_v3': inception.inception_v3,
-        'vgg_bulat': vgg_bulat.vgg_16}
+        'detector_vgg': bulat_vgg.detector_vgg
+        'regressor_vgg': bulat_vgg.regressor_vgg
+        }
+
 NET_ARG_SCOPES = {'vgg': vgg.vgg_arg_scope,
                   'inception_v3': inception.inception_v3_arg_scope,
-                  'vgg_bulat': vgg_bulat.vgg_arg_scope}
+                  'bulat_vgg': bulat_vgg.vgg_arg_scope}
+
 NET_LOSS = {'vgg': vgg_loss,
             'inception_v3': inception_v3_loss,
-            'vgg_bulat': vgg_bulat_loss}
+            'detector_vgg': detector_loss,
+            'regressor_vgg': regressor}

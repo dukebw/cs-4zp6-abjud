@@ -5,10 +5,12 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import tf_logging
 from logging import INFO
-from nets import NETS, NET_ARG_SCOPES, NET_LOSS
+from human_pose_model import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from tqdm import tqdm
+from evaluate import evaluate
+
 FLAGS = tf.app.flags.FLAGS
 
 # NOTE(brendan): equal to the total number of joint-annotated people in the
@@ -38,7 +40,7 @@ tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', None,
 tf.app.flags.DEFINE_string('trainable_scopes', None,
                            """Comma-separated list of scopes to train.""")
 
-tf.app.flags.DEFINE_integer('image_dim', 299,
+tf.app.flags.DEFINE_integer('image_dim', 380,
                             """Dimension of the square input image.""")
 
 tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
@@ -256,26 +258,32 @@ def train():
                 FLAGS.heatmap_stddev_pixels)
 
             num_batches_per_epoch = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
-            global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
-                                                      FLAGS.num_epochs_per_decay,
-                                                      FLAGS.initial_learning_rate,
-                                                      FLAGS.learning_rate_decay_factor)
+
+            global_step, detector_optimizer = _setup_optimizer(num_batches_per_epoch,
+                                                               FLAGS.num_epochs_per_decay,
+                                                               FLAGS.initial_learning_rate,
+                                                               FLAGS.learning_rate_decay_factor)
+
+            global_step, regressor_optimizer = _setup_optimizer(num_batches_per_epoch,
+                                                                FLAGS.num_epochs_per_decay,
+                                                                FLAGS.initial_learning_rate,
+                                                                FLAGS.learning_rate_decay_factor)
 
             detector_train_op = _setup_training_op(training_batch,
                                                    global_step,
                                                    optimizer,
-                                                   'vgg_bulat_detector')
+                                                   'detector_vgg')
 
             regressor_train_op = _setup_training_op(training_batch,
                                                     global_step,
                                                     optimizer,
-                                                    'vgg_bulat_regressor')
+                                                    'regressor_vgg')
 
             # TODO(brendan): track moving averages of trainable variables
 
             tf_logging._logger.setLevel(INFO)
 
-            saver = tf.train.Saver(tf.all_variables())
+            saver = tf.train.Saver(tf.global_variables())
 
             summary_op = tf.summary.merge_all()
 
@@ -296,7 +304,7 @@ def train():
             for epoch in range(FLAGS.max_epochs):
                 for batch_step in tqdm(range(num_batches_per_epoch)):
                     start_time = time.time()
-                    detector_batch_loss, total_steps = session.run(fetches=[detector_train_op, global_step])
+                    detector_batch_loss, regressor_batch_loss, total_steps = session.run(fetches=[detector_train_op, regressor_train_op, global_step])
                     regressor_batch_loss, total_steps = session.run(fetches=[regressor_train_op, global_step])
                     duration = time.time() - start_time
 
@@ -315,6 +323,19 @@ def train():
                         checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
                         saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
                 # Validate
+                tf_logging.info('Epoch {} done. Evaluating metrics.'.format(epoch))
+
+                latest_checkpoint = tf.train.latest_checkpoint(
+                    checkpoint_dir=FLAGS.log_dir)
+                evaluate(FLAGS.network_name,
+                         FLAGS.data_dir,
+                         latest_checkpoint,
+                         os.path.join(FLAGS.log_dir, 'eval_log'),
+                         FLAGS.image_dim,
+                         FLAGS.num_preprocess_threads,
+                         FLAGS.batch_size,
+                         epoch)
+
 
 def main(argv=None):
     """Usage: python3 -m train

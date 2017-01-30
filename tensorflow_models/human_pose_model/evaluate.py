@@ -6,24 +6,6 @@ from mpii_read import Person
 from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
 
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_string('network_name', None,
-                           """Name of desired network to use for part
-                           detection. Valid options: vgg, inception_v3.""")
-tf.app.flags.DEFINE_string('data_dir', '.',
-                           """Path to take input TFRecord files from.""")
-tf.app.flags.DEFINE_string('restore_path', None,
-                           """Path to take checkpoint file from.""")
-tf.app.flags.DEFINE_integer('image_dim', 299,
-                            """Dimension of the square input image.""")
-tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
-                            """Number of threads to use to preprocess
-                            images.""")
-tf.app.flags.DEFINE_integer('batch_size', 32,
-                            """Size of each mini-batch (number of examples
-                            processed at once).""")
-
 JOINT_NAMES = ['0 - r ankle',
                '1 - r knee',
                '2 - r hip',
@@ -52,22 +34,29 @@ def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
     return np.array(joint_points)
 
 
-def evaluate():
+def evaluate(network_name,
+             data_dir,
+             restore_path,
+             log_file,
+             image_dim,
+             num_preprocess_threads,
+             batch_size,
+             epoch=0):
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            eval_batch = setup_eval_input_pipeline(FLAGS.data_dir,
-                                                   FLAGS.batch_size,
-                                                   FLAGS.num_preprocess_threads,
-                                                   FLAGS.image_dim)
+            eval_batch = setup_eval_input_pipeline(data_dir,
+                                                   batch_size,
+                                                   num_preprocess_threads,
+                                                   image_dim)
 
-            part_detect_net = NETS[FLAGS.network_name]
-            net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
+            part_detect_net = NETS[network_name]
+            net_arg_scope = NET_ARG_SCOPES[network_name]
 
             with tf.device(device_name_or_function='/gpu:0'):
                 with slim.arg_scope([slim.model_variable], device='/cpu:0'):
                     with slim.arg_scope(net_arg_scope()):
                         logits, _ = part_detect_net(inputs=eval_batch.images,
-                                                    num_classes=2*Person.NUM_JOINTS)
+                                                    num_classes=Person.NUM_JOINTS)
 
             next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
                 eval_batch, Person.NUM_JOINTS)
@@ -76,29 +65,38 @@ def evaluate():
 
             session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
-            restorer.restore(sess=session, save_path=FLAGS.restore_path)
+            restorer.restore(sess=session, save_path=restore_path)
 
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
 
-            sum_squared_loss = 0
             num_test_data = 1024
-            num_batches = int(num_test_data/FLAGS.batch_size)
+            num_batches = int(num_test_data/batch_size)
             matched_joints = Person.NUM_JOINTS*[0]
             predicted_joints = Person.NUM_JOINTS*[0]
             for _ in range(num_batches):
                 [predictions, x_gt_joints, y_gt_joints, weights, head_size] = session.run(
                     fetches=[logits, next_x_gt_joints, next_y_gt_joints, next_weights, eval_batch.head_size])
 
-                head_size = np.reshape(head_size, [FLAGS.batch_size, 1])
+                head_size = np.reshape(head_size, [batch_size, 1])
 
                 gt_joint_points = _get_points_from_flattened_joints(
-                    x_gt_joints, y_gt_joints, FLAGS.batch_size)
+                    x_gt_joints, y_gt_joints, batch_size)
+
+                x_predicted_joints = np.empty((batch_size, Person.NUM_JOINTS))
+                y_predicted_joints = np.empty((batch_size, Person.NUM_JOINTS))
+                for batch_index in range(batch_size):
+                    for joint_index in range(Person.NUM_JOINTS):
+                        joint_heatmap = predictions[batch_index, ..., joint_index]
+                        xy_max_confidence = np.unravel_index(
+                            joint_heatmap.argmax(), joint_heatmap.shape)
+                        y_predicted_joints[batch_index, joint_index] = xy_max_confidence[0]/image_dim - 0.5
+                        x_predicted_joints[batch_index, joint_index] = xy_max_confidence[1]/image_dim - 0.5
 
                 predicted_joint_points = _get_points_from_flattened_joints(
-                    predictions[:, 0:Person.NUM_JOINTS],
-                    predictions[:, Person.NUM_JOINTS:],
-                    FLAGS.batch_size)
+                    x_predicted_joints,
+                    y_predicted_joints,
+                    batch_size)
 
                 # NOTE(brendan): Here we are following steps to calculate the
                 # PCKh metric, which defines a joint estimate as matching the
@@ -114,25 +112,58 @@ def evaluate():
                 predicted_joints += np.sum(joint_weights, 0)
 
                 gt_joints = np.concatenate((x_gt_joints, y_gt_joints), 1)
-                sum_squared_loss += np.sum(weights*np.square(predictions - gt_joints))
 
-            print('Matched joints:', matched_joints)
-            print('Predicted joints:', predicted_joints)
+            log_file_handle = open(log_file, 'a')
+
+            if (epoch > 0):
+                log_file_handle.write('\n')
+            log_file_handle.write('************************************************\n')
+            log_file_handle.write('Epoch {} PCKh metric.\n'.format(epoch))
+            log_file_handle.write('************************************************\n\n')
+            log_file_handle.write('Matched joints: {}\n'.format(matched_joints))
+            log_file_handle.write('Predicted joints: {}\n'.format(predicted_joints))
 
             PCKh = matched_joints/predicted_joints
-            print('PCKh:')
+            log_file_handle.write('PCKh:\n')
             for joint_index in range(Person.NUM_JOINTS):
-                print(JOINT_NAMES[joint_index], ':', PCKh[joint_index])
-            print('Total PCKh:', np.sum(PCKh)/len(PCKh))
+                log_file_handle.write('{}: {}\n'.format(JOINT_NAMES[joint_index], PCKh[joint_index]))
+            log_file_handle.write('\nTotal PCKh: {}\n'.format(np.sum(PCKh)/len(PCKh)))
 
-            print('Average squared loss:', sum_squared_loss/num_test_data)
+            log_file_handle.close()
 
             coord.request_stop()
             coord.join(threads)
 
 
 def main(argv=None):
-    evaluate()
+    FLAGS = tf.app.flags.FLAGS
+
+    tf.app.flags.DEFINE_string('network_name', None,
+                               """Name of desired network to use for part
+                               detection. Valid options: vgg, inception_v3.""")
+    tf.app.flags.DEFINE_string('data_dir', '.',
+                               """Path to take input TFRecord files from.""")
+    tf.app.flags.DEFINE_string('restore_path', None,
+                               """Path to take checkpoint file from.""")
+    tf.app.flags.DEFINE_string('log_file', './log/eval_log',
+                               """Relative filepath to log evaluation metrics
+                               to.""")
+    tf.app.flags.DEFINE_integer('image_dim', 299,
+                                """Dimension of the square input image.""")
+    tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
+                                """Number of threads to use to preprocess
+                                images.""")
+    tf.app.flags.DEFINE_integer('batch_size', 32,
+                                """Size of each mini-batch (number of examples
+                                processed at once).""")
+
+    evaluate(FLAGS.network_name,
+             FLAGS.data_dir,
+             FLAGS.restore_path,
+             FLAGS.log_file,
+             FLAGS.image_dim,
+             FLAGS.num_preprocess_threads,
+             FLAGS.batch_size)
 
 
 if __name__ == "__main__":

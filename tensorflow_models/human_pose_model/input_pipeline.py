@@ -57,6 +57,7 @@ class EvalBatch(object):
         self._x_joints = x_joints
         self._y_joints = y_joints
         self._joint_indices = joint_indices
+        self._head_size = head_size
         self._batch_size = batch_size
 
     @property
