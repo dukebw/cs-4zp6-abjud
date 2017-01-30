@@ -30,15 +30,23 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
                                    labels=dense_joints,
                                    weights=weights)
 
-
-def vgg_bulat_loss(logits, endpoints, heatmaps, weights):
-    """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
+def vgg_detector_loss(logits, endpoints, heatmaps, weights):
+    """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
-    slim.losses.mean_squared_error(predictions=logits,
+    tf.losses.sparse_softmax_cross_entropy(predictions=logits,
+                                            labels=heatmaps,
+                                            weights=weights,
+                                            scope='detector_loss')
+
+def vgg_regression_loss(logits, endpoints, heatmaps, weights):
+    """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
+    Equation 2 of the paper.
+    """
+    tf.losses.mean_squared_error(predictions=logits,
                                    labels=heatmaps,
                                    weights=weights,
-                                   scope='logits')
+                                   scope='regressor_loss')
 
 
 NETS = {'vgg': vgg.vgg_16,

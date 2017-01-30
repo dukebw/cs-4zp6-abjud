@@ -8,7 +8,7 @@ from logging import INFO
 from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
-
+from tqdm import tqdm
 FLAGS = tf.app.flags.FLAGS
 
 # NOTE(brendan): equal to the total number of joint-annotated people in the
@@ -85,7 +85,7 @@ def _summarize_inception_model(endpoints):
                 tensor=tf.nn.zero_fraction(value=activation))
 
 
-def _inference(training_batch):
+def _inference(training_batch, network_name):
     """Sets up an Inception v3 model, computes predictions on input images and
     calculates loss on those predictions based on an input sparse vector of
     joints (the ground truth vector).
@@ -102,13 +102,13 @@ def _inference(training_batch):
         Tensor giving the total loss (combined loss from auxiliary and primary
         logits, added to regularization losses).
     """
-    part_detect_net = NETS[FLAGS.network_name]
-    net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
-    net_loss = NET_LOSS[FLAGS.network_name]
+    network = NETS[network_name]
+    net_arg_scope = NET_ARG_SCOPES[network_name]
+    net_loss = NET_LOSS[network_name]
 
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
-            logits, endpoints = part_detect_net(inputs=training_batch.images,
+            logits, endpoints = network(inputs=training_batch.images,
                                                 num_classes=NUM_JOINTS)
 
             net_loss(logits,
@@ -120,7 +120,7 @@ def _inference(training_batch):
 
             total_loss = slim.losses.get_total_loss()
 
-    return total_loss
+    return logits, endpoints, total_loss
 
 
 def _setup_optimizer(batches_per_epoch,
@@ -185,7 +185,7 @@ def _get_variables_to_train():
     return variables_to_train
 
 
-def _setup_training_op(training_batch, global_step, optimizer):
+def _setup_training_op(training_batch, global_step, optimizer, network_name):
     """Sets up inference (predictions), loss calculation, and minimization
     based on the input optimizer.
 
@@ -198,7 +198,7 @@ def _setup_training_op(training_batch, global_step, optimizer):
     Returns: Operation to run a training step.
     """
     with tf.device(device_name_or_function='/gpu:0'):
-        loss = _inference(training_batch)
+        logits, endpoints, loss = _inference(training_batch, network_name)
 
         train_op = slim.learning.create_train_op(
             total_loss=loss,
@@ -206,7 +206,7 @@ def _setup_training_op(training_batch, global_step, optimizer):
             global_step=global_step,
             variables_to_train=_get_variables_to_train())
 
-    return train_op
+    return logits, endpoints, train_op
 
 
 def _restore_checkpoint_variables(session):
@@ -261,9 +261,15 @@ def train():
                                                       FLAGS.initial_learning_rate,
                                                       FLAGS.learning_rate_decay_factor)
 
-            train_op = _setup_training_op(training_batch,
-                                          global_step,
-                                          optimizer)
+            detector_train_op = _setup_training_op(training_batch,
+                                                   global_step,
+                                                   optimizer,
+                                                   'vgg_bulat_detector')
+
+            regressor_train_op = _setup_training_op(training_batch,
+                                                    global_step,
+                                                    optimizer,
+                                                    'vgg_bulat_regressor')
 
             # TODO(brendan): track moving averages of trainable variables
 
@@ -288,14 +294,15 @@ def train():
                 graph=session.graph)
 
             for epoch in range(FLAGS.max_epochs):
-                for batch_step in range(num_batches_per_epoch):
+                for batch_step in tqdm(range(num_batches_per_epoch)):
                     start_time = time.time()
-                    batch_loss, total_steps = session.run(fetches=[train_op, global_step])
+                    detector_batch_loss, total_steps = session.run(fetches=[detector_train_op, global_step])
+                    regressor_batch_loss, total_steps = session.run(fetches=[regressor_train_op, global_step])
                     duration = time.time() - start_time
 
                     assert not np.isnan(batch_loss)
 
-                    if (total_steps % 10) == 0:
+                    if (total_steps % 1000) == 0:
                         tf_logging.info('step {}: loss = {} ({:.2f} sec/step)'
                                         .format(total_steps, batch_loss, duration))
 
@@ -307,7 +314,7 @@ def train():
                     if ((total_steps % 1000) == 0):
                         checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
                         saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
-
+                # Validate
 
 def main(argv=None):
     """Usage: python3 -m train
