@@ -399,7 +399,8 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
     heatmaps = tf.batch_matmul(x=y_probs, y=x_probs)
     heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
 
-    weights /= tf.reduce_sum(input_tensor=weights)
+    # TODO(brendan): Add back this 1/N factor to the weights?
+    # weights /= tf.reduce_sum(input_tensor=weights)
     weights = tf.expand_dims(weights, 0)
     weights = tf.expand_dims(weights, 0)
     weights = tf.tile(weights, [image_dim, image_dim, 1])

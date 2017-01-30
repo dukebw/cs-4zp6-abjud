@@ -1,3 +1,5 @@
+import os
+import time
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -54,10 +56,12 @@ tf.app.flags.DEFINE_integer('batch_size', 32,
 tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
                             """Factor by which to increase the minimum examples
                             in RandomShuffleQueue.""")
+tf.app.flags.DEFINE_integer('max_epochs', 100,
+                            """Maximum number of epochs in training run.""")
+
 tf.app.flags.DEFINE_integer('heatmap_stddev_pixels', 5,
                             """Standard deviation of Gaussian joint heatmap, in
                             pixels.""")
-
 tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
                           """Initial learning rate.""")
 tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.16,
@@ -119,7 +123,7 @@ def _inference(training_batch):
     return total_loss
 
 
-def _setup_optimizer(batch_size,
+def _setup_optimizer(batches_per_epoch,
                      num_epochs_per_decay,
                      initial_learning_rate,
                      learning_rate_decay_factor):
@@ -128,7 +132,7 @@ def _setup_optimizer(batch_size,
     and learning rate decay schedule.
 
     Args:
-        batch_size: Number of elements in training batch.
+        batches_per_epoch: Number of batches in an epoch.
         num_epochs_per_decay: Number of full runs through of the data set per
             learning rate decay.
         initial_learning_rate: Learning rate to start with on step 0.
@@ -147,8 +151,7 @@ def _setup_optimizer(batch_size,
         initializer=tf.constant_initializer(0),
         trainable=False)
 
-    num_batches_per_epoch = (NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / batch_size)
-    decay_steps = int(num_batches_per_epoch*num_epochs_per_decay)
+    decay_steps = batches_per_epoch*num_epochs_per_decay
     learning_rate = tf.train.exponential_decay(learning_rate=initial_learning_rate,
                                                global_step=global_step,
                                                decay_steps=decay_steps,
@@ -158,6 +161,8 @@ def _setup_optimizer(batch_size,
                                           decay=RMSPROP_DECAY,
                                           momentum=RMSPROP_MOMENTUM,
                                           epsilon=RMSPROP_EPSILON)
+
+    tf.summary.scalar(name='learning_rate', tensor=learning_rate)
 
     return global_step, optimizer
 
@@ -201,16 +206,16 @@ def _setup_training_op(training_batch, global_step, optimizer):
             global_step=global_step,
             variables_to_train=_get_variables_to_train())
 
-    return train_op
+    return loss, train_op
 
 
-def _get_init_pretrained_fn():
-    """Returns a function that initializes the model in the graph of a passed
-    session with the variables in the file found in `FLAGS.checkpoint_path`,
-    except those excluded by `FLAGS.checkpoint_exclude_scopes`.
+def _restore_checkpoint_variables(session):
+    """Initializes the model in the graph of a passed session with the
+    variables in the file found in `FLAGS.checkpoint_path`, except those
+    excluded by `FLAGS.checkpoint_exclude_scopes`.
     """
     if FLAGS.checkpoint_path is None:
-        return None
+        return
 
     if FLAGS.checkpoint_exclude_scopes is None:
         variables_to_restore = slim.get_model_variables()
@@ -228,8 +233,8 @@ def _get_init_pretrained_fn():
             if not excluded:
                 variables_to_restore.append(var)
 
-    return slim.assign_from_checkpoint_fn(model_path=FLAGS.checkpoint_path,
-                                          var_list=variables_to_restore)
+    restorer = tf.train.Saver(var_list=variables_to_restore)
+    restorer.restore(sess=session, save_path=FLAGS.checkpoint_path)
 
 
 def train():
@@ -250,26 +255,61 @@ def train():
                 FLAGS.image_dim,
                 FLAGS.heatmap_stddev_pixels)
 
-            global_step, optimizer = _setup_optimizer(FLAGS.batch_size,
+            num_batches_per_epoch = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
+            global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
                                                       FLAGS.num_epochs_per_decay,
                                                       FLAGS.initial_learning_rate,
                                                       FLAGS.learning_rate_decay_factor)
 
-            train_op = _setup_training_op(training_batch,
-                                          global_step,
-                                          optimizer)
+            total_loss, train_op = _setup_training_op(training_batch,
+                                                      global_step,
+                                                      optimizer)
 
             # TODO(brendan): track moving averages of trainable variables
 
             tf_logging._logger.setLevel(INFO)
 
-            slim.learning.train(
-                train_op=train_op,
+            saver = tf.train.Saver(tf.all_variables())
+
+            summary_op = tf.summary.merge_all()
+
+            init = tf.global_variables_initializer()
+
+            session = tf.Session(
+                config=tf.ConfigProto(allow_soft_placement=True))
+            session.run(init)
+
+            _restore_checkpoint_variables(session)
+
+            tf.train.start_queue_runners(sess=session)
+
+            summary_writer = tf.summary.FileWriter(
                 logdir=FLAGS.log_dir,
-                log_every_n_steps=10,
-                global_step=global_step,
-                init_fn=_get_init_pretrained_fn(),
-                session_config=tf.ConfigProto(allow_soft_placement=True))
+                graph=session.graph)
+
+            for epoch in range(FLAGS.max_epochs):
+                for batch_step in range(num_batches_per_epoch):
+                    start_time = time.time()
+                    batch_loss, _ = session.run(fetches=[total_loss, train_op])
+                    duration = time.time() - start_time
+
+                    assert not np.isnan(batch_loss)
+
+                    total_steps = epoch*num_batches_per_epoch + batch_step
+                    if (total_steps % 10) == 0:
+                        examples_per_sec = FLAGS.batch_size / float(duration)
+
+                        tf_logging.info('step {}: loss = {} ({:.2f} sec/step)'
+                                        .format(total_steps, batch_loss, examples_per_sec))
+
+                    if (total_steps % 100) == 0:
+                        summary_str = session.run(summary_op)
+                        summary_writer.add_summary(summary=summary_str,
+                                                   global_step=total_steps)
+
+                    if ((total_steps % 1000) == 0):
+                        checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
+                        saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
 
 
 def main(argv=None):
