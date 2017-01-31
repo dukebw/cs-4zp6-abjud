@@ -3,7 +3,6 @@ import time
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from tensorflow.python.platform import tf_logging
 from logging import INFO
 from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
@@ -12,9 +11,9 @@ from evaluate import evaluate
 
 FLAGS = tf.app.flags.FLAGS
 
-# NOTE(brendan): equal to the total number of joint-annotated people in the
-# MPII Human Pose Dataset training images.
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 28883
+# NOTE(brendan): equal to the number of joint-annotated people per file
+# containing MPII Human Pose Dataset training examples.
+NUM_EXAMPLES_PER_SHARD = 953
 
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
@@ -30,6 +29,9 @@ tf.app.flags.DEFINE_string('data_dir', './train',
 tf.app.flags.DEFINE_string('log_dir', './log',
                            """Path to take summaries and checkpoints from, and
                            write them to.""")
+tf.app.flags.DEFINE_string('log_filename', 'train_log',
+                           """Name of file to log training steps and loss
+                           to.""")
 tf.app.flags.DEFINE_string('checkpoint_path', None,
                            """Path to take checkpoint file (e.g.
                            inception_v3.ckpt) from.""")
@@ -249,16 +251,22 @@ def train():
             # TODO(brendan): Support multiple GPUs?
             assert FLAGS.num_gpus == 1
 
+            data_filenames = tf.gfile.Glob(
+                os.path.join(FLAGS.data_dir, 'train*tfrecord'))
+            assert data_filenames, ('No data files found.')
+            assert len(data_filenames) >= FLAGS.num_readers
+
             training_batch = setup_train_input_pipeline(
-                FLAGS.data_dir,
                 FLAGS.num_readers,
                 FLAGS.input_queue_memory_factor,
                 FLAGS.batch_size,
                 FLAGS.num_preprocess_threads,
                 FLAGS.image_dim,
-                FLAGS.heatmap_stddev_pixels)
+                FLAGS.heatmap_stddev_pixels,
+                data_filenames)
 
-            num_batches_per_epoch = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size)
+            examples_per_epoch = (NUM_EXAMPLES_PER_SHARD * len(data_filenames))
+            num_batches_per_epoch = int(examples_per_epoch / FLAGS.batch_size)
             global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
                                                       FLAGS.num_epochs_per_decay,
                                                       FLAGS.initial_learning_rate,
@@ -270,7 +278,8 @@ def train():
 
             # TODO(brendan): track moving averages of trainable variables
 
-            tf_logging._logger.setLevel(INFO)
+            log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename),
+                              'a')
 
             saver = tf.train.Saver(tf.global_variables())
 
@@ -298,11 +307,11 @@ def train():
 
                     assert not np.isnan(batch_loss)
 
-                    if (total_steps % 10) == 0:
-                        tf_logging.info('step {}: loss = {} ({:.2f} sec/step)'
-                                        .format(total_steps, batch_loss, duration))
-
                     if (total_steps % 100) == 0:
+                        log_handle.write('step {}: loss = {} ({:.2f} sec/step)\n'
+                                         .format(total_steps, batch_loss, duration))
+                        log_handle.flush()
+
                         summary_str = session.run(summary_op)
                         summary_writer.add_summary(summary=summary_str,
                                                    global_step=total_steps)
@@ -311,7 +320,8 @@ def train():
                         checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
                         saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
 
-                tf_logging.info('Epoch {} done. Evaluating metrics.'.format(epoch))
+                log_handle.write('Epoch {} done. Evaluating metrics.\n'.format(epoch))
+                log_handle.flush()
 
                 latest_checkpoint = tf.train.latest_checkpoint(
                     checkpoint_dir=FLAGS.log_dir)
@@ -322,7 +332,10 @@ def train():
                          FLAGS.image_dim,
                          FLAGS.num_preprocess_threads,
                          FLAGS.batch_size,
-                         epoch)
+                         epoch,
+                         NUM_EXAMPLES_PER_SHARD)
+
+            log_handle.close()
 
 
 def main(argv=None):
