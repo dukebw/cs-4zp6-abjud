@@ -458,26 +458,6 @@ def _parse_and_preprocess_example_train(example_serialized,
     return images_and_heatmaps
 
 
-def _setup_filename_queue(data_dir,
-                          record_prefix,
-                          num_readers,
-                          should_shuffle,
-                          capacity):
-    """Sets up a filename queue of example-containing TFRecord files.
-    """
-    data_filenames = tf.gfile.Glob(
-        os.path.join(data_dir, record_prefix + '*tfrecord'))
-    assert data_filenames, ('No data files found.')
-    assert len(data_filenames) >= num_readers
-
-    filename_queue = tf.train.string_input_producer(
-        string_tensor=data_filenames,
-        shuffle=should_shuffle,
-        capacity=capacity)
-
-    return filename_queue
-
-
 def _setup_batch_queue(images_and_heatmaps, batch_size, num_preprocess_threads):
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
@@ -492,17 +472,20 @@ def _setup_batch_queue(images_and_heatmaps, batch_size, num_preprocess_threads):
     return TrainingBatch(images, heatmaps, weights, batch_size)
 
 
-def setup_eval_input_pipeline(data_dir,
-                              batch_size,
+def setup_eval_input_pipeline(batch_size,
                               num_preprocess_threads,
-                              image_dim):
+                              image_dim,
+                              data_filenames):
     """Sets up an input pipeline for model evaluation.
 
     This function is similar to `setup_train_input_pipeline`, except that
     images are not distorted, and the filename queue will process only one
     TFRecord at a time. Therefore no Example queue is needed.
     """
-    filename_queue = _setup_filename_queue(data_dir, 'test', 1, False, 1)
+    filename_queue = tf.train.string_input_producer(
+        string_tensor=data_filenames,
+        shuffle=False,
+        capacity=1)
 
     reader = tf.TFRecordReader()
     _, example_serialized = reader.read(filename_queue)
@@ -526,13 +509,13 @@ def setup_eval_input_pipeline(data_dir,
                      batch_size)
 
 
-def setup_train_input_pipeline(data_dir,
-                               num_readers,
+def setup_train_input_pipeline(num_readers,
                                input_queue_memory_factor,
                                batch_size,
                                num_preprocess_threads,
                                image_dim,
-                               heatmap_stddev_pixels):
+                               heatmap_stddev_pixels,
+                               data_filenames):
     """Sets up an input pipeline that reads example protobufs from all TFRecord
     files, assumed to be named train*.tfrecord (e.g. train0.tfrecord),
     decodes and preprocesses the images.
@@ -551,7 +534,6 @@ def setup_train_input_pipeline(data_dir,
     Also adds a summary for the images.
 
     Args:
-        data_dir: Path to take input TFRecord files from.
         num_readers: Number of file readers to use.
         input_queue_memory_factor: Input to `_setup_example_queue`. See
             `_setup_example_queue` for details.
@@ -562,6 +544,7 @@ def setup_train_input_pipeline(data_dir,
         image_dim: Dimension of square input images.
         heatmap_stddev_pixels: Standard deviation of Gaussian joint heatmap, in
             pixels.
+        data_filenames: Set of filenames to get examples from.
 
     Returns:
         TrainingBatch(images, joints, joint_indices, batch_size): List of image
@@ -573,8 +556,10 @@ def setup_train_input_pipeline(data_dir,
     assert num_readers > 1
 
     with tf.name_scope('batch_processing'):
-        filename_queue = _setup_filename_queue(
-            data_dir, 'train', num_readers, True, 16)
+        filename_queue = tf.train.string_input_producer(
+            string_tensor=data_filenames,
+            shuffle=True,
+            capacity=16)
 
         example_serialized = _setup_example_queue(filename_queue,
                                                   num_readers,

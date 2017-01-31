@@ -66,7 +66,9 @@ def vgg_16(inputs,
     """Oxford Net VGG 16-Layers version D Example.
 
     Note: All the fully_connected layers have been transformed to conv2d layers.
-          To use in classification mode, resize input to 224x224.
+
+    The network has been transformed to match the VGG FCN-8 from Fully
+    Convolutional Networks for Semantic Segmentation, Long and Shelhamer.
 
     Args:
       inputs: a tensor of size [batch_size, height, width, channels].
@@ -84,34 +86,49 @@ def vgg_16(inputs,
       # Collect outputs for conv2d, fully_connected and max_pool2d.
         with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
                             outputs_collections=end_points_collection):
-            input_img_shape = inputs.get_shape()[1:3]
-
-            net = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
-            net = slim.max_pool2d(net, [2, 2], scope='pool1')
-            net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
-            net = slim.max_pool2d(net, [2, 2], scope='pool2')
-            net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
-            net = slim.max_pool2d(net, [2, 2], scope='pool3')
-            net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
-            net = slim.max_pool2d(net, [2, 2], scope='pool4')
-            net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
-            net = slim.max_pool2d(net, [2, 2], scope='pool5')
+            a1 = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+            a1 = slim.max_pool2d(a1, [2, 2], scope='pool1')
+            a2 = slim.repeat(a1, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+            a2 = slim.max_pool2d(a2, [2, 2], scope='pool2')
+            a3 = slim.repeat(a2, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+            a3 = slim.max_pool2d(a3, [2, 2], scope='pool3')
+            a4 = slim.repeat(a3, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+            a4 = slim.max_pool2d(a4, [2, 2], scope='pool4')
+            a5 = slim.repeat(a4, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+            a5 = slim.max_pool2d(a5, [2, 2], scope='pool5')
 
             # Use conv2d instead of fully_connected layers.
-            net = slim.conv2d(net, 4096, [7, 7], scope='fc6')
-            net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
-                               scope='dropout6')
-            net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
-            net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
-                               scope='dropout7')
-            net = slim.conv2d(net, num_classes, [1, 1],
-                              activation_fn=None,
-                              normalizer_fn=None,
-                              scope='fc8')
-            net = tf.image.resize_bilinear(images=net, size=input_img_shape)
+            a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
+            a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training,
+                              scope='dropout6')
+            a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
+            a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training,
+                              scope='dropout7')
+            a8 = slim.conv2d(a7, num_classes, [1, 1],
+                             activation_fn=None,
+                             normalizer_fn=None,
+                             scope='fc8')
+
+            a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
+            # TODO(brendan): Try zero-initializing the skip layers, and compare
+            # with default Xavier initializer.
+            skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
+                                  activation_fn=None,
+                                  normalizer_fn=None,
+                                  scope='skip_a4')
+            a9 = a9 + skip_a4
+
+            a9 = tf.image.resize_bilinear(images=a9, size=a3.get_shape()[1:3])
+            skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
+                                  activation_fn=None,
+                                  normalizer_fn=None,
+                                  scope='skip_a3')
+            a9 = a9 + skip_a3
+
+            a9 = tf.image.resize_bilinear(images=a9, size=inputs.get_shape()[1:3])
 
             # Convert end_points_collection into a end_point dict.
             end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
-            return net, end_points
+            return a9, end_points
 vgg_16.default_image_size = 380

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -41,13 +42,18 @@ def evaluate(network_name,
              image_dim,
              num_preprocess_threads,
              batch_size,
-             epoch=0):
+             epoch=0,
+             examples_per_shard=953):
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            eval_batch = setup_eval_input_pipeline(data_dir,
-                                                   batch_size,
+            data_filenames = tf.gfile.Glob(
+                os.path.join(data_dir, 'test*tfrecord'))
+            assert data_filenames, ('No data files found.')
+
+            eval_batch = setup_eval_input_pipeline(batch_size,
                                                    num_preprocess_threads,
-                                                   image_dim)
+                                                   image_dim,
+                                                   data_filenames)
 
             part_detect_net = NETS[network_name]
             net_arg_scope = NET_ARG_SCOPES[network_name]
@@ -70,8 +76,8 @@ def evaluate(network_name,
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
 
-            num_test_data = 1024
-            num_batches = int(num_test_data/batch_size)
+            num_test_examples = len(data_filenames)*examples_per_shard
+            num_batches = int(num_test_examples/batch_size)
             matched_joints = Person.NUM_JOINTS*[0]
             predicted_joints = Person.NUM_JOINTS*[0]
             for _ in range(num_batches):
@@ -145,7 +151,7 @@ def main(argv=None):
                                """Path to take input TFRecord files from.""")
     tf.app.flags.DEFINE_string('restore_path', None,
                                """Path to take checkpoint file from.""")
-    tf.app.flags.DEFINE_string('log_file', './log/eval_log',
+    tf.app.flags.DEFINE_string('log_filepath', './log/temp/eval_log',
                                """Relative filepath to log evaluation metrics
                                to.""")
     tf.app.flags.DEFINE_integer('image_dim', 299,
@@ -160,7 +166,7 @@ def main(argv=None):
     evaluate(FLAGS.network_name,
              FLAGS.data_dir,
              FLAGS.restore_path,
-             FLAGS.log_file,
+             FLAGS.log_filepath,
              FLAGS.image_dim,
              FLAGS.num_preprocess_threads,
              FLAGS.batch_size)
