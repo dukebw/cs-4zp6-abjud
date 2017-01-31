@@ -54,11 +54,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from nets import resnet_utils
+import resnet_utils
 
 slim = tf.contrib.slim
-resnet_arg_scope = resnet_utils.resnet_arg_scope
-
+bulat_resnet_arg_scope = resnet_utils.resnet_arg_scope
 
 @slim.add_arg_scope
 def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1,
@@ -219,7 +218,7 @@ def bulat_resnet_v2(inputs,
         # Convert end_points_collection into a dictionary of end_points.
         end_points = slim.utils.convert_collection_to_dict(end_points_collection)
         return net, end_points
-resnet_v2.default_image_size = 256
+bulat_resnet_v2.default_image_size = 256
 
 
 def bulat_resnet_detector(inputs,
@@ -236,17 +235,17 @@ def bulat_resnet_detector(inputs,
       # 3x3 64     x 3
       # 1x1 256
       resnet_utils.Block(
-          'block1', bottleneck, [(256, 64, 1)] * 2 + [(256, 64, 2)]),
+          'block1', bottleneck, [(256, 64, 1)] * 3),
       # 1x1 128
       # 3x3 128    x 8
       # 1x1 512
       resnet_utils.Block(
-          'block2', bottleneck, [(512, 128, 1)] * 7 + [(512, 128, 2)]),
+          'block2', bottleneck, [(512, 128, 1)] * 8),
       # 1x1 256
       # 3x3 256    x 36
       # 1x1 1024
       resnet_utils.Block(
-          'block3', bottleneck, [(1024, 256, 1)] * 37 + [(1024, 256, 2)]),
+          'block3', bottleneck, [(1024, 256, 1)] * 38),
       # 1x1 512
       # 3x3 512    x 3
       # 1x1 2048

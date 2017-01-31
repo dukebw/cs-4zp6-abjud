@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_integer('train_shards', 16,
                             """Number of output shards (TFRecord files
                             containing training examples) to create.""")
 
-tf.app.flags.DEFINE_integer('image_dim', 299,
+tf.app.flags.DEFINE_integer('image_dim', 256,
                             """Dimension of the square image to output.""")
 
 class ImageCoder(object):

@@ -175,4 +175,4 @@ def regressor_vgg(num_classes=16,
             end_points = slim.utils.convert_collection_to_dict(end_points_collection)
             return end_points
 
-bulat_vgg.default_image_size = 380
+detector_vgg.default_image_size = 380

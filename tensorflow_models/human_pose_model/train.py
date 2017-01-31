@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from logging import INFO
-from human_pose_model import NETS, NET_ARG_SCOPES, NET_LOSS
+from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from tqdm import tqdm
@@ -274,7 +274,7 @@ def train():
             logits, end_points, detector_train_op = _setup_training_op(training_batch,
                                                    global_step,
                                                    optimizer,
-                                                   'detector_vgg')
+                                                   'bulat_resnet')
             '''
             regressor_train_op = _setup_training_op(training_batch,
                                                     global_step,
