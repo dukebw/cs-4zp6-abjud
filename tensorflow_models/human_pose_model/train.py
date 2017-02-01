@@ -73,7 +73,9 @@ tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.16,
 tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
                           """Number of epochs before decay factor is applied
                           once.""")
-
+tf.app.flags.DEFINE_boolean('restore_global_step', False,
+                            """Set to True if restoring a training run that is
+                            part-way complete.""")
 def _summarize_bulat_model(endpoints):
     """Summarizes the activation values that are marked for summaries in the
     Inception v3 network.
@@ -90,9 +92,10 @@ def _summarize_bulat_model(endpoints):
 
 
 def _inference(training_batch):
-    """Sets up an Inception v3 model, computes predictions on input images and
-    calculates loss on those predictions based on an input sparse vector of
-    joints (the ground truth vector).
+    """Sets up a human pose inference model, computes predictions on input
+    images and calculates loss on those predictions based on an input dense
+    vector of joint location confidence maps and binary maps (the ground truth
+    vector).
 
     TF-slim's `arg_scope` is used to keep variables (`slim.model_variable`) in
     CPU memory. See the training procedure block diagram in the TF Inception
@@ -219,7 +222,7 @@ def _setup_training_op(training_batch, global_step, optimizer):
     return train_op
 
 
-def _restore_checkpoint_variables(session):
+def _restore_checkpoint_variables(session, global_step):
     """Initializes the model in the graph of a passed session with the
     variables in the file found in `FLAGS.checkpoint_path`, except those
     excluded by `FLAGS.checkpoint_exclude_scopes`.
@@ -242,6 +245,9 @@ def _restore_checkpoint_variables(session):
                     break
             if not excluded:
                 variables_to_restore.append(var)
+
+    if FLAGS.restore_global_step:
+        variables_to_restore.append(global_step)
 
     restorer = tf.train.Saver(var_list=variables_to_restore)
     restorer.restore(sess=session, save_path=FLAGS.checkpoint_path)
@@ -296,7 +302,7 @@ def train():
                 config=tf.ConfigProto(allow_soft_placement=True))
             session.run(init)
 
-            _restore_checkpoint_variables(session)
+            _restore_checkpoint_variables(session, global_step)
 
             tf.train.start_queue_runners(sess=session)
 
@@ -329,6 +335,7 @@ def train():
                         checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
                         saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
 
+                epoch = int(total_steps/num_batches_per_epoch)
                 log_handle.write('Epoch {} done. Evaluating metrics.\n'.format(epoch))
                 log_handle.flush()
 
