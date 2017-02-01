@@ -408,6 +408,23 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
 
     return heatmaps, weights
 
+
+def _get_binary_maps(image_dim, x_dense_joints, y_dense_joints):
+    """Creates binary maps of shape [image_dim, image_dim, NUM_JOINTS],
+    that are 10 pixels in radius.
+    """
+    dim_j = complex(0, image_dim)
+    y, x = np.mgrid[-0.5:0.5:dim_j, -0.5:0.5:dim_j]
+    y = tf.expand_dims(input=y, axis=-1)
+    y = tf.tile(input=y, multiples=[1, 1, NUM_JOINTS])
+    x = tf.expand_dims(input=x, axis=-1)
+    x = tf.tile(input=x, multiples=[1, 1, NUM_JOINTS])
+
+    binary_maps = ((y - y_dense_joints)**2 + (x - x_dense_joints)**2 < (10/image_dim)**2)
+
+    return tf.cast(binary_maps, tf.float64)
+
+
 def _parse_and_preprocess_example_train(example_serialized,
                                         num_preprocess_threads,
                                         image_dim,
@@ -434,7 +451,7 @@ def _parse_and_preprocess_example_train(example_serialized,
         decoded image with colours scaled to range [-1, 1], as well as the
         sparse joint ground truth vectors.
     """
-    images_and_heatmaps = []
+    images_and_joint_maps = []
     for thread_id in range(num_preprocess_threads):
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
@@ -450,20 +467,24 @@ def _parse_and_preprocess_example_train(example_serialized,
                                                 y_dense_joints,
                                                 weights)
 
+        binary_maps = _get_binary_maps(image_dim,
+                                       x_dense_joints,
+                                       y_dense_joints)
+
         distorted_image = tf.sub(x=distorted_image, y=0.5)
         distorted_image = tf.mul(x=distorted_image, y=2.0)
 
-        images_and_heatmaps.append([distorted_image, heatmaps, weights])
+        images_and_joint_maps.append([distorted_image, heatmaps, binary_maps, weights])
 
-    return images_and_heatmaps
+    return images_and_joint_maps
 
 
-def _setup_batch_queue(images_and_heatmaps, batch_size, num_preprocess_threads):
+def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads):
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
     """
-    images, heatmaps, weights = tf.train.batch_join(
-        tensors_list=images_and_heatmaps,
+    images, heatmaps, binary_maps, weights = tf.train.batch_join(
+        tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
@@ -566,12 +587,12 @@ def setup_train_input_pipeline(num_readers,
                                                   input_queue_memory_factor,
                                                   batch_size)
 
-        images_and_heatmaps = _parse_and_preprocess_example_train(
+        images_and_joint_maps = _parse_and_preprocess_example_train(
             example_serialized,
             num_preprocess_threads,
             image_dim,
             heatmap_stddev_pixels)
 
-        return _setup_batch_queue(images_and_heatmaps,
+        return _setup_batch_queue(images_and_joint_maps,
                                   batch_size,
                                   num_preprocess_threads)
