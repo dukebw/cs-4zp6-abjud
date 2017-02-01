@@ -58,6 +58,64 @@ def vgg_arg_scope(weight_decay=0.0005):
       return arg_sc
 
 
+def vgg_16_base(inputs, num_classes, dropout_keep_prob, is_training):
+    """Base of the VGG-16 network (fully convolutional).
+
+    Note that this function only constructs the network, and needs to be called
+    with the correct variable scopes and tf.slim arg scopes.
+    """
+    a1 = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+    a1 = slim.max_pool2d(a1, [2, 2], scope='pool1')
+    a2 = slim.repeat(a1, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+    a2 = slim.max_pool2d(a2, [2, 2], scope='pool2')
+    a3 = slim.repeat(a2, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+    a3 = slim.max_pool2d(a3, [2, 2], scope='pool3')
+    a4 = slim.repeat(a3, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+    a4 = slim.max_pool2d(a4, [2, 2], scope='pool4')
+    a5 = slim.repeat(a4, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+    a5 = slim.max_pool2d(a5, [2, 2], scope='pool5')
+
+    # Use conv2d instead of fully_connected layers.
+    a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
+    a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training,
+                      scope='dropout6')
+    a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
+    a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training,
+                      scope='dropout7')
+
+    return slim.conv2d(a7,
+                       num_classes,
+                       [1, 1],
+                       activation_fn=None,
+                       normalizer_fn=None,
+                       scope='fc8')
+
+
+def vgg_16_fcn32(inputs,
+                 num_classes=16,
+                 is_training=True,
+                 dropout_keep_prob=0.5,
+                 scope='vgg_16'):
+    """This network doesn't use any skip layers, and directly does a bilinear
+    upsample from the vgg_16/fc8 activations.
+    """
+    with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
+        end_points_collection = sc.original_name_scope + '_end_points'
+        # Collect outputs for conv2d, fully_connected and max_pool2d.
+        with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
+                            outputs_collections=end_points_collection):
+            a8 = vgg_16_base(inputs,
+                             num_classes,
+                             dropout_keep_prob,
+                             is_training)
+            a9 = tf.image.resize_bilinear(images=a8,
+                                          size=inputs.get_shape()[1:3])
+
+            end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+
+            return a9, end_points
+
+
 def vgg_16(inputs,
            num_classes=16,
            is_training=True,
@@ -83,31 +141,13 @@ def vgg_16(inputs,
     """
     with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
         end_points_collection = sc.original_name_scope + '_end_points'
-      # Collect outputs for conv2d, fully_connected and max_pool2d.
+        # Collect outputs for conv2d, fully_connected and max_pool2d.
         with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
                             outputs_collections=end_points_collection):
-            a1 = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
-            a1 = slim.max_pool2d(a1, [2, 2], scope='pool1')
-            a2 = slim.repeat(a1, 2, slim.conv2d, 128, [3, 3], scope='conv2')
-            a2 = slim.max_pool2d(a2, [2, 2], scope='pool2')
-            a3 = slim.repeat(a2, 3, slim.conv2d, 256, [3, 3], scope='conv3')
-            a3 = slim.max_pool2d(a3, [2, 2], scope='pool3')
-            a4 = slim.repeat(a3, 3, slim.conv2d, 512, [3, 3], scope='conv4')
-            a4 = slim.max_pool2d(a4, [2, 2], scope='pool4')
-            a5 = slim.repeat(a4, 3, slim.conv2d, 512, [3, 3], scope='conv5')
-            a5 = slim.max_pool2d(a5, [2, 2], scope='pool5')
-
-            # Use conv2d instead of fully_connected layers.
-            a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
-            a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training,
-                              scope='dropout6')
-            a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
-            a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training,
-                              scope='dropout7')
-            a8 = slim.conv2d(a7, num_classes, [1, 1],
-                             activation_fn=None,
-                             normalizer_fn=None,
-                             scope='fc8')
+            a8 = vgg_16_base(inputs,
+                             num_classes,
+                             dropout_keep_prob,
+                             is_training)
 
             a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
             # TODO(brendan): Try zero-initializing the skip layers, and compare
