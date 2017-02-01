@@ -329,7 +329,7 @@ def train():
                         checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
                         saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
 
-                epoch = int(total_steps/examples_per_epoch)
+                epoch = int(total_steps/num_batches_per_epoch)
                 log_handle.write('Epoch {} done. Evaluating metrics.\n'.format(epoch))
                 log_handle.flush()
 
