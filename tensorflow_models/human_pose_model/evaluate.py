@@ -47,7 +47,7 @@ def evaluate(network_name,
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             data_filenames = tf.gfile.Glob(
-                os.path.join(data_dir, 'test*tfrecord'))
+                os.path.join(data_dir, 'valid*tfrecord'))
             assert data_filenames, ('No data files found.')
 
             eval_batch = setup_eval_input_pipeline(batch_size,

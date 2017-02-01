@@ -8,6 +8,7 @@ from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from evaluate import evaluate
+from tqdm import trange
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -24,7 +25,7 @@ NUM_JOINTS = Person.NUM_JOINTS
 tf.app.flags.DEFINE_string('network_name', None,
                            """Name of desired network to use for part
                            detection. Valid options: vgg, inception_v3.""")
-tf.app.flags.DEFINE_string('data_dir', './train',
+tf.app.flags.DEFINE_string('data_dir', './train_vgg_fcn',
                            """Path to take input TFRecord files from.""")
 tf.app.flags.DEFINE_string('log_dir', './log',
                            """Path to take summaries and checkpoints from, and
@@ -41,7 +42,7 @@ tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', None,
 tf.app.flags.DEFINE_string('trainable_scopes', None,
                            """Comma-separated list of scopes to train.""")
 
-tf.app.flags.DEFINE_integer('image_dim', 299,
+tf.app.flags.DEFINE_integer('image_dim', 380,
                             """Dimension of the square input image.""")
 
 tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
@@ -73,7 +74,7 @@ tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
                           """Number of epochs before decay factor is applied
                           once.""")
 
-def _summarize_inception_model(endpoints):
+def _summarize_bulat_model(endpoints):
     """Summarizes the activation values that are marked for summaries in the
     Inception v3 network.
     """
@@ -114,6 +115,9 @@ def _inference(training_batch):
             logits, endpoints = part_detect_net(inputs=training_batch.images,
                                                 num_classes=NUM_JOINTS)
 
+            # For tensorboard
+            _summarize_bulat_model(endpoints)
+
             net_loss(logits,
                      endpoints,
                      training_batch.heatmaps,
@@ -122,6 +126,7 @@ def _inference(training_batch):
             # TODO(brendan): Calculate loss averages for tensorboard
 
             total_loss = slim.losses.get_total_loss()
+
 
     return total_loss
 
@@ -250,7 +255,8 @@ def train():
         with tf.device('/cpu:0'):
             # TODO(brendan): Support multiple GPUs?
             assert FLAGS.num_gpus == 1
-
+            # Here we only take files 0-15
+            # For now I've manually renamed the files into train[0-15].tfrecord and valid[16-19].tfrecord
             data_filenames = tf.gfile.Glob(
                 os.path.join(FLAGS.data_dir, 'train*tfrecord'))
             assert data_filenames, ('No data files found.')
@@ -278,8 +284,7 @@ def train():
 
             # TODO(brendan): track moving averages of trainable variables
 
-            log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename),
-                              'a')
+            log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename),'a')
 
             saver = tf.train.Saver(tf.global_variables())
 
@@ -295,16 +300,20 @@ def train():
 
             tf.train.start_queue_runners(sess=session)
 
-            summary_writer = tf.summary.FileWriter(
+            train_writer = tf.summary.FileWriter(
                 logdir=FLAGS.log_dir,
                 graph=session.graph)
-
+            # Camel because it's a generator
+            Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
             for epoch in range(FLAGS.max_epochs):
-                for batch_step in range(num_batches_per_epoch):
+                for batch_step in Epoch:
                     start_time = time.time()
                     batch_loss, total_steps = session.run(fetches=[train_op, global_step])
                     duration = time.time() - start_time
-
+                    #print(desc)
+                    desc ='step {}: loss = {} ({:.2f} sec/step)'.format(total_steps, batch_loss, duration)
+                    Epoch.set_description(desc)
+                    Epoch.refresh()
                     assert not np.isnan(batch_loss)
 
                     if (total_steps % 100) == 0:
@@ -313,7 +322,7 @@ def train():
                         log_handle.flush()
 
                         summary_str = session.run(summary_op)
-                        summary_writer.add_summary(summary=summary_str,
+                        train_writer.add_summary(summary=summary_str,
                                                    global_step=total_steps)
 
                     if ((total_steps % 1000) == 0):
@@ -323,8 +332,8 @@ def train():
                 log_handle.write('Epoch {} done. Evaluating metrics.\n'.format(epoch))
                 log_handle.flush()
 
-                latest_checkpoint = tf.train.latest_checkpoint(
-                    checkpoint_dir=FLAGS.log_dir)
+                latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=FLAGS.log_dir)
+
                 evaluate(FLAGS.network_name,
                          FLAGS.data_dir,
                          latest_checkpoint,
@@ -336,7 +345,7 @@ def train():
                          NUM_EXAMPLES_PER_SHARD)
 
             log_handle.close()
-
+            train_writer.close()
 
 def main(argv=None):
     """Usage: python3 -m train
