@@ -39,7 +39,7 @@ tf.app.flags.DEFINE_string('checkpoint_path', None,
 tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', None,
                            """Comma-separated list of scopes to exclude when
                            restoring from a checkpoint.""")
-tf.app.flags.DEFINE_string('trainable_scopes', 'vgg_16/fc6, vgg_16/fc7, vgg_16/skip',
+tf.app.flags.DEFINE_string('trainable_scopes', 'vgg_16/fc6, vgg_16/fc7, vgg_16/fc8, vgg_16/skip',
                            """Comma-separated list of scopes to train.""")
 
 tf.app.flags.DEFINE_integer('image_dim', 380,
@@ -114,13 +114,14 @@ def _inference(training_batch):
     part_detect_net = NETS[FLAGS.network_name]
     net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
     net_loss = NET_LOSS[FLAGS.network_name]
-
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
             logits, endpoints = part_detect_net(inputs=training_batch.images,
                                                 num_classes=NUM_JOINTS)
 
-            heatmap_prediction = _merge_logits(logits)
+            merged_logits = tf.reshape(tf.reduce_max(logits,3),[FLAGS.batch_size,FLAGS.image_dim, FLAGS.image_dim, 1])
+            merged_logits = tf.cast(merged_logits,tf.float32)
+            tf.summary.image(name='logits',tensor=merged_logits)
             # For tensorboard
             _summarize_bulat_model(endpoints)
 
@@ -129,10 +130,8 @@ def _inference(training_batch):
                      training_batch.heatmaps,
                      training_batch.weights)
 
-            # TODO(brendan): Calculate loss averages for tensorboard
-
             total_loss = slim.losses.get_total_loss()
-
+            tf.summary.histogram(name='slim_total_loss_hist', values=total_loss)
 
     return total_loss
 
@@ -177,7 +176,7 @@ def _setup_optimizer(batches_per_epoch,
                                           epsilon=RMSPROP_EPSILON)
 
     tf.summary.scalar(name='learning_rate', tensor=learning_rate)
-
+    tf.summary.histogram(name='learning_rate_hist', values=learning_rate)
     return global_step, optimizer
 
 
@@ -221,7 +220,7 @@ def _setup_training_op(training_batch, global_step, optimizer):
             variables_to_train=_get_variables_to_train())
 
         tf.summary.scalar(name='loss', tensor=loss)
-
+        tf.summary.histogram(name='losshist', values=loss)
     return train_op
 
 
@@ -271,14 +270,9 @@ def train():
             assert data_filenames, ('No data files found.')
             assert len(data_filenames) >= FLAGS.num_readers
 
-            training_batch = setup_train_input_pipeline(
-                FLAGS.num_readers,
-                FLAGS.input_queue_memory_factor,
-                FLAGS.batch_size,
-                FLAGS.num_preprocess_threads,
-                FLAGS.image_dim,
-                FLAGS.heatmap_stddev_pixels,
-                data_filenames)
+            # Merged with FLAGS
+            # TODO add ability to summarize heatmaps
+            training_batch = setup_train_input_pipeline(FLAGS, data_filenames)
 
             examples_per_epoch = (NUM_EXAMPLES_PER_SHARD * len(data_filenames))
             num_batches_per_epoch = int(examples_per_epoch / FLAGS.batch_size)

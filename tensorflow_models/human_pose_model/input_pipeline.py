@@ -487,9 +487,14 @@ def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads
         tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
-
+    image_dim =  heatmaps.get_shape().as_list()[1]
+    merged_heatmaps = tf.reshape(tf.reduce_max(heatmaps,3),[batch_size,image_dim, image_dim, 1])
+    merged_heatmaps = tf.cast(merged_heatmaps, tf.float32)
+    merged_binary_maps = tf.reshape(tf.reduce_max(binary_maps,3),[batch_size,image_dim, image_dim, 1])
+    merged_binary_maps = tf.cast(merged_binary_maps, tf.float32)
     tf.summary.image(name='images', tensor=images)
-
+    tf.summary.image(name='heatmaps', tensor=merged_heatmaps)
+    tf.summary.image(name='binary_maps', tensor=merged_binary_maps)
     return TrainingBatch(images, heatmaps, weights, batch_size)
 
 
@@ -530,13 +535,7 @@ def setup_eval_input_pipeline(batch_size,
                      batch_size)
 
 
-def setup_train_input_pipeline(num_readers,
-                               input_queue_memory_factor,
-                               batch_size,
-                               num_preprocess_threads,
-                               image_dim,
-                               heatmap_stddev_pixels,
-                               data_filenames):
+def setup_train_input_pipeline(FLAGS, data_filenames):
     """Sets up an input pipeline that reads example protobufs from all TFRecord
     files, assumed to be named train*.tfrecord (e.g. train0.tfrecord),
     decodes and preprocesses the images.
@@ -573,6 +572,14 @@ def setup_train_input_pipeline(num_readers,
         sparse vectors of joints (ground truth vectors), and sparse joint
         indices.
     """
+
+    num_readers = FLAGS.num_readers
+    input_queue_memory_factor = FLAGS.input_queue_memory_factor
+    batch_size = FLAGS.batch_size
+    num_preprocess_threads = FLAGS.num_preprocess_threads
+    image_dim = FLAGS.image_dim
+    heatmap_stddev_pixels = FLAGS.heatmap_stddev_pixels
+
     # TODO(brendan): num_readers == 1 case
     assert num_readers > 1
 
