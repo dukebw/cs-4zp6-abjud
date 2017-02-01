@@ -43,10 +43,13 @@ def vgg_bulat_loss(logits, endpoints, heatmaps, weights):
 
 NETS = {'vgg': vgg.vgg_16,
         'inception_v3': inception.inception_v3,
-        'vgg_bulat': vgg_bulat.vgg_16}
+        'vgg_bulat': vgg_bulat.vgg_16,
+        'vgg_fcn32': vgg_bulat.vgg_16_fcn32}
 NET_ARG_SCOPES = {'vgg': vgg.vgg_arg_scope,
                   'inception_v3': inception.inception_v3_arg_scope,
-                  'vgg_bulat': vgg_bulat.vgg_arg_scope}
+                  'vgg_bulat': vgg_bulat.vgg_arg_scope,
+                  'vgg_fcn32': vgg_bulat.vgg_arg_scope}
 NET_LOSS = {'vgg': vgg_loss,
             'inception_v3': inception_v3_loss,
-            'vgg_bulat': vgg_bulat_loss}
+            'vgg_bulat': vgg_bulat_loss,
+            'vgg_fcn32': vgg_bulat_loss}

@@ -313,15 +313,13 @@ def train():
                     start_time = time.time()
                     batch_loss, total_steps = session.run(fetches=[train_op, global_step])
                     duration = time.time() - start_time
-                    #print(desc)
                     desc ='step {}: loss = {} ({:.2f} sec/step)'.format(total_steps, batch_loss, duration)
                     Epoch.set_description(desc)
                     Epoch.refresh()
                     assert not np.isnan(batch_loss)
 
                     if (total_steps % 100) == 0:
-                        log_handle.write('step {}: loss = {} ({:.2f} sec/step)\n'
-                                         .format(total_steps, batch_loss, duration))
+                        log_handle.write(desc + '\n')
                         log_handle.flush()
 
                         summary_str = session.run(summary_op)
