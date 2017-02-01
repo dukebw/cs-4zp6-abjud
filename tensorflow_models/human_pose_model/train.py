@@ -39,7 +39,7 @@ tf.app.flags.DEFINE_string('checkpoint_path', None,
 tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', None,
                            """Comma-separated list of scopes to exclude when
                            restoring from a checkpoint.""")
-tf.app.flags.DEFINE_string('trainable_scopes', None,
+tf.app.flags.DEFINE_string('trainable_scopes', 'vgg_16/fc6, vgg_16/fc7, vgg_16/skip',
                            """Comma-separated list of scopes to train.""")
 
 tf.app.flags.DEFINE_integer('image_dim', 380,
@@ -90,6 +90,8 @@ def _summarize_bulat_model(endpoints):
                 name=tensor_name + '/sparsity',
                 tensor=tf.nn.zero_fraction(value=activation))
 
+def _merge_logits(logits):
+    pass
 
 def _inference(training_batch):
     """Sets up a human pose inference model, computes predictions on input
@@ -118,6 +120,7 @@ def _inference(training_batch):
             logits, endpoints = part_detect_net(inputs=training_batch.images,
                                                 num_classes=NUM_JOINTS)
 
+            heatmap_prediction = _merge_logits(logits)
             # For tensorboard
             _summarize_bulat_model(endpoints)
 
