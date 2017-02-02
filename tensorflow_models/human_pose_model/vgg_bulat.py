@@ -84,13 +84,9 @@ def vgg_16_base(inputs, num_classes, dropout_keep_prob, is_training):
     a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training,
                       scope='dropout7')
 
-    return slim.conv2d(a7,
-                       num_classes,
-                       [1, 1],
-                       activation_fn=None,
-                       normalizer_fn=None,
-                       scope='fc8')
+    a8  = slim.conv2d(a7, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
 
+    return a3, a4, a8
 
 def vgg_16_fcn32(inputs,
                  num_classes=16,
@@ -105,7 +101,7 @@ def vgg_16_fcn32(inputs,
         # Collect outputs for conv2d, fully_connected and max_pool2d.
         with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
                             outputs_collections=end_points_collection):
-            a8 = vgg_16_base(inputs,
+            _, _, a8 = vgg_16_base(inputs,
                              num_classes,
                              dropout_keep_prob,
                              is_training)
@@ -145,7 +141,7 @@ def vgg_16(inputs,
         # Collect outputs for conv2d, fully_connected and max_pool2d.
         with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
                             outputs_collections=end_points_collection):
-            a8 = vgg_16_base(inputs,
+            a3, a4, a8 = vgg_16_base(inputs,
                              num_classes,
                              dropout_keep_prob,
                              is_training)
