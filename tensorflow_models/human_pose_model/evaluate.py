@@ -121,7 +121,7 @@ def evaluate(network_name,
 
             log_file_handle = open(log_file, 'a')
 
-            if (epoch > 0):
+            if (epoch > 1):
                 log_file_handle.write('\n')
             log_file_handle.write('************************************************\n')
             log_file_handle.write('Epoch {} PCKh metric.\n'.format(epoch))

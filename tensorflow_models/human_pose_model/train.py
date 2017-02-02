@@ -41,11 +41,11 @@ tf.app.flags.DEFINE_string('checkpoint_path', 'checkpoints/vgg_16.ckpt',
                            """Path to take checkpoint file (e.g.
                            inception_v3.ckpt) from.""")
 
-tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', 'vgg_16/skip',
+tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', None,
                            """Comma-separated list of scopes to exclude when
                            restoring from a checkpoint.""")
 
-tf.app.flags.DEFINE_string('trainable_scopes', 'vgg_16/fc6, vgg_16/fc7, vgg_16/fc8, vgg_16/skip',
+tf.app.flags.DEFINE_string('trainable_scopes', None,
                            """Comma-separated list of scopes to train.""")
 
 tf.app.flags.DEFINE_integer('image_dim', 380,
@@ -105,8 +105,6 @@ def _summarize_bulat_model(endpoints):
                 name=tensor_name + '/sparsity',
                 tensor=tf.nn.zero_fraction(value=activation))
 
-def _merge_logits(logits):
-    pass
 
 def _inference(training_batch):
     """Sets up a human pose inference model, computes predictions on input
@@ -321,16 +319,19 @@ def train():
             train_writer = tf.summary.FileWriter(
                 logdir=FLAGS.log_dir,
                 graph=session.graph)
-            # Camel because it's a generator
-            Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
-            for epoch in range(FLAGS.max_epochs):
+
+            epoch = 0
+            while epoch < FLAGS.max_epochs:
+                Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
                 for batch_step in Epoch:
                     start_time = time.time()
                     batch_loss, total_steps = session.run(fetches=[train_op, global_step])
                     duration = time.time() - start_time
+
                     desc ='step {}: loss = {} ({:.2f} sec/step)'.format(total_steps, batch_loss, duration)
                     Epoch.set_description(desc)
                     Epoch.refresh()
+
                     assert not np.isnan(batch_loss)
 
                     if (total_steps % 100) == 0:
@@ -364,6 +365,7 @@ def train():
 
             log_handle.close()
             train_writer.close()
+
 
 def main(argv=None):
     """Usage: python3 -m train
