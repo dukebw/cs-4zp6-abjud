@@ -1,6 +1,7 @@
 {
   "network_name": "vgg_bulat",
-  "data_dir": "./train_vgg_fcn",
+  "train_data_dir": "./train_vgg_fcn",
+  "validation_data_dir": "./train_vgg_fcn",
   "log_dir": "/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/lr1e-4_bs16",
   "log_filename": "train_log",
   "checkpoint_path": "checkpoints/vgg_16.ckpt",

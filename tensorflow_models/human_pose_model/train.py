@@ -14,7 +14,7 @@ FLAGS = tf.app.flags.FLAGS
 
 # NOTE(brendan): equal to the number of joint-annotated people per file
 # containing MPII Human Pose Dataset training examples.
-NUM_EXAMPLES_PER_SHARD = 953
+TOTAL_EXAMPLES = 15247
 
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
@@ -26,8 +26,13 @@ tf.app.flags.DEFINE_string('network_name', 'vgg_bulat',
                            """Name of desired network to use for part
                            detection. Valid options: vgg, inception_v3.""")
 
-tf.app.flags.DEFINE_string('data_dir', './train_vgg_fcn',
-                           """Path to take input TFRecord files from.""")
+tf.app.flags.DEFINE_string('train_data_dir', './train_vgg_fcn',
+                           """Path to take input training TFRecord files
+                           from.""")
+
+tf.app.flags.DEFINE_string('validation_data_dir', './valid_vgg_fcn',
+                           """Path to take input validation TFRecord files
+                           from.""")
 
 tf.app.flags.DEFINE_string('log_dir', '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/lr1e-4_bs16',
                            """Path to take summaries and checkpoints from, and
@@ -278,17 +283,21 @@ def train():
             assert FLAGS.num_gpus == 1
             # Here we only take files 0-15
             # For now I've manually renamed the files into train[0-15].tfrecord and valid[16-19].tfrecord
-            data_filenames = tf.gfile.Glob(
-                os.path.join(FLAGS.data_dir, 'train*tfrecord'))
-            assert data_filenames, ('No data files found.')
-            assert len(data_filenames) >= FLAGS.num_readers
+            train_data_filenames = tf.gfile.Glob(
+                os.path.join(FLAGS.train_data_dir, 'train*tfrecord'))
+            assert train_data_filenames, ('No data files found.')
+            assert len(train_data_filenames) >= FLAGS.num_readers
+
+            validation_filenames = tf.gfile.Glob(
+                os.path.join(FLAGS.validation_data_dir, 'valid*tfrecord'))
+            num_shards = (len(train_data_filenames) + len(validation_filenames))
+            num_examples_per_shard = TOTAL_EXAMPLES / num_shards
 
             # Merged with FLAGS
             # TODO add ability to summarize heatmaps
-            training_batch = setup_train_input_pipeline(FLAGS, data_filenames)
+            training_batch = setup_train_input_pipeline(FLAGS, train_data_filenames)
 
-            examples_per_epoch = (NUM_EXAMPLES_PER_SHARD * len(data_filenames))
-            num_batches_per_epoch = int(examples_per_epoch / FLAGS.batch_size)
+            num_batches_per_epoch = int(TOTAL_EXAMPLES / FLAGS.batch_size)
             global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
                                                       FLAGS.num_epochs_per_decay,
                                                       FLAGS.initial_learning_rate,
@@ -354,14 +363,14 @@ def train():
                 assert latest_checkpoint is not None
 
                 evaluate(FLAGS.network_name,
-                         FLAGS.data_dir,
+                         FLAGS.validation_data_dir,
                          latest_checkpoint,
                          os.path.join(FLAGS.log_dir, 'eval_log'),
                          FLAGS.image_dim,
                          FLAGS.num_preprocess_threads,
                          FLAGS.batch_size,
                          epoch,
-                         NUM_EXAMPLES_PER_SHARD)
+                         num_examples_per_shard)
 
             log_handle.close()
             train_writer.close()
