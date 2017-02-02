@@ -341,6 +341,7 @@ def train():
                 log_handle.flush()
 
                 latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=FLAGS.log_dir)
+                assert latest_checkpoint is not None
 
                 evaluate(FLAGS.network_name,
                          FLAGS.data_dir,

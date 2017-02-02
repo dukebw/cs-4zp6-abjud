@@ -37,6 +37,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.python.ops import init_ops
 
 slim = tf.contrib.slim
 
@@ -150,11 +151,10 @@ def vgg_16(inputs,
                              is_training)
 
             a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
-            # TODO(brendan): Try zero-initializing the skip layers, and compare
-            # with default Xavier initializer.
             skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
                                   activation_fn=None,
                                   normalizer_fn=None,
+                                  weights_initializer=init_ops.zeros_initializer,
                                   scope='skip_a4')
             a9 = a9 + skip_a4
 
@@ -162,6 +162,7 @@ def vgg_16(inputs,
             skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
                                   activation_fn=None,
                                   normalizer_fn=None,
+                                  weights_initializer=init_ops.zeros_initializer,
                                   scope='skip_a3')
             a9 = a9 + skip_a3
 
