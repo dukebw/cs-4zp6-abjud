@@ -9,7 +9,7 @@ from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from evaluate import evaluate
 from tqdm import trange
-
+import pdb
 FLAGS = tf.app.flags.FLAGS
 
 # NOTE(brendan): equal to the number of joint-annotated people per file
@@ -331,9 +331,7 @@ def train():
                     desc ='step {}: loss = {} ({:.2f} sec/step)'.format(total_steps, batch_loss, duration)
                     Epoch.set_description(desc)
                     Epoch.refresh()
-
                     assert not np.isnan(batch_loss)
-
                     if (total_steps % 100) == 0:
                         log_handle.write(desc + '\n')
                         log_handle.flush()
