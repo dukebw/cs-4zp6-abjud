@@ -12,10 +12,6 @@ from tqdm import trange
 import pdb
 FLAGS = tf.app.flags.FLAGS
 
-# NOTE(brendan): equal to the number of joint-annotated people per file
-# containing MPII Human Pose Dataset training examples.
-TOTAL_EXAMPLES = 15247
-
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
 RMSPROP_EPSILON = 1.0
@@ -291,13 +287,16 @@ def train():
             validation_filenames = tf.gfile.Glob(
                 os.path.join(FLAGS.validation_data_dir, 'valid*tfrecord'))
             num_shards = (len(train_data_filenames) + len(validation_filenames))
-            num_examples_per_shard = TOTAL_EXAMPLES / num_shards
+
+            num_examples_per_shard = 0
+            for _ in tf.python_io.tf_record_iterator(path=train_data_filenames[0]):
+                num_examples_per_shard += 1
 
             # Merged with FLAGS
             # TODO add ability to summarize heatmaps
             training_batch = setup_train_input_pipeline(FLAGS, train_data_filenames)
 
-            num_batches_per_epoch = int(TOTAL_EXAMPLES / FLAGS.batch_size)
+            num_batches_per_epoch = int(num_shards * num_examples_per_shard / FLAGS.batch_size)
             global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
                                                       FLAGS.num_epochs_per_decay,
                                                       FLAGS.initial_learning_rate,
@@ -367,8 +366,7 @@ def train():
                          FLAGS.image_dim,
                          FLAGS.num_preprocess_threads,
                          FLAGS.batch_size,
-                         epoch,
-                         num_examples_per_shard)
+                         epoch)
 
             log_handle.close()
             train_writer.close()

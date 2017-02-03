@@ -1,3 +1,4 @@
+import math
 import os
 import numpy as np
 import tensorflow as tf
@@ -42,13 +43,20 @@ def evaluate(network_name,
              image_dim,
              num_preprocess_threads,
              batch_size,
-             epoch=0,
-             examples_per_shard=953):
+             epoch=0):
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             data_filenames = tf.gfile.Glob(
                 os.path.join(data_dir, 'valid*tfrecord'))
             assert data_filenames, ('No data files found.')
+
+            min_examples_per_shard = math.inf
+            for data_file in data_filenames:
+                examples_in_shard = 0
+                for _ in tf.python_io.tf_record_iterator(path=data_file):
+                    examples_in_shard += 1
+
+                min_examples_per_shard = min(min_examples_per_shard, examples_in_shard)
 
             eval_batch = setup_eval_input_pipeline(batch_size,
                                                    num_preprocess_threads,
@@ -76,7 +84,7 @@ def evaluate(network_name,
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
 
-            num_test_examples = len(data_filenames)*examples_per_shard
+            num_test_examples = len(data_filenames)*min_examples_per_shard
             num_batches = int(num_test_examples/batch_size)
             matched_joints = Person.NUM_JOINTS*[0]
             predicted_joints = Person.NUM_JOINTS*[0]

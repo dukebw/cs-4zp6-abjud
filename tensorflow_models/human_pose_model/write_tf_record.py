@@ -11,7 +11,7 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string(
     'mpii_filepath',
-    '/mnt/data/datasets/MPII_HumanPose/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat',
+    '/mnt/data/datasets/MPII_HumanPose/raw_data/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat',
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
 
