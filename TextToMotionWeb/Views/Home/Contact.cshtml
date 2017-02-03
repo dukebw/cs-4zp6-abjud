@@ -1,75 +1,137 @@
 @{
     ViewData["Title"] = "Contact Information";
-    ViewData["Message"] = "Group Members and Supervisors";
 }
-
+<br />
 <div class="row">
-    <div class="col-lg-12">
-        <h2 class="text-center">@ViewData["Title"]</h2>
-        <hr />
-        <h3>@ViewData["Message"]</h3>
-        <hr />
+    <div class="card page-heading col-lg-10 col-md-10 col-sm-10 col-xs-10 col-lg-offset-1 col-md-offset-1 col-sm-offset-1 col-xs-offset-1">
+        <h2 class="text-center"><b>@ViewData["Title"]</b></h2>
     </div>
-
 </div>
 <div class="row">
-    <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
-        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-            <address class="bordered">
-                <b>Brendan Duke</b><br />
-                Computer Science, McMaster<br />
-                <abbr title="Email">E-mail:</abbr>
-                dukebw@mcmaster.ca
-            </address>
-        </div>
-        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-            <address class="bordered">
-                <b>Udip Patel</b><br />
-                Computer Science, McMaster<br />
-                <abbr title="Email">E-mail:</abbr>
-                patel.udip@gmail.com
-            </address>
-        </div>
-        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-            <address class="bordered">
-                <b>Jordan Viveiros</b><br />
-                Computer Science, McMaster<br />
-                <abbr title="Email">E-mail:</abbr>
-                dukebw@mcmaster.ca
-            </address>
-        </div>
-        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-            <address class="bordered">
-                <b>David Pitkanen</b><br />
-                Computer Science, McMaster<br />
-                <abbr title="Email">E-mail:</abbr>
-                d.t.pitkanen@gmail.com
-            </address>
-        </div>
-        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-            <address class="bordered">
-                <b>Andrew Kohnen</b><br />
-                Computer Science, McMaster<br />
-                <abbr title="Email">E-mail:</abbr>
-                kohnena@mcmaster.ca
-            </address>
-        </div>
-        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-            <address class="bordered">
-                <strong><u>Internal Supervisor</u></strong><br />
-                <i>Dr. Wenbo He</i><br />
-                wenbohe@mcmaster.ca
-            </address>
-        </div>
-    </div>
-    <div class="col-lg-4 col-md-4 col-sm-10 col-xs-10 col-lg-offset-0 col-md-offset-0 col-sm-offset-1 col-xs-offset-1">
-        <div class="bordered addedBorder">
-            <b><u>External Supervisor</u></b><br />
-            <i>Dr. Graham Taylor</i><br />
-            Assistant Professor<br>
-            School of Engineering, University of Guelph<br />
-            E-mail: ...
+    <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
+        <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <div class="row">
+                    <div class="label label-primary md-font">Group Members</div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b>Brendan Duke</b><br />
+                                Computer Science, McMaster<br />
+                                <abbr title="Email">E-mail:</abbr>
+                                dukebw@mcmaster.ca
+                            </address>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b>David Pitkanen</b><br />
+                                Computer Science, McMaster<br />
+                                <abbr title="Email">E-mail:</abbr>
+                                d.t.pitkanen@gmail.com
+                            </address>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b>Udip Patel</b><br />
+                                Computer Science, McMaster<br />
+                                <abbr title="Email">E-mail:</abbr>
+                                patel.udip@gmail.com
+                            </address>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b>Jordan Viveiros</b><br />
+                                Computer Science, McMaster<br />
+                                <abbr title="Email">E-mail:</abbr>
+                                dukebw@mcmaster.ca
+                            </address>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b>Andrew Kohnen</b><br />
+                                Computer Science, McMaster<br />
+                                <abbr title="Email">E-mail:</abbr>
+                                kohnena@mcmaster.ca
+                            </address>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <div class="row">
+                    <div class="label label-success md-font">Internal Supervisors</div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b><i>Dr. Wenbo He</i></b><br />
+                                Associate Professor, McMaster University<br />
+                                wenbohe@mcmaster.ca
+                            </address>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b><i>Daniel Szymczak</i></b><br />
+                                McMaster University<br />
+                                szymczdm@mcmaster.ca
+                            </address>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <div class="row">
+                    <div class="label label-danger md-font">External Supervisors</div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b><i>Dr. Graham Taylor</i></b><br />
+                                Assistant Professor<br>
+                                School of Engineering, University of Guelph
+                            </address>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="card extended-card">
+                        <div class="card-content">
+                            <address>
+                                <b><i>Thor Jonsson</i></b><br />
+                                University of Guelph,<br />
+                                tjonsson@uoguelph.ca
+                            </address>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-    
