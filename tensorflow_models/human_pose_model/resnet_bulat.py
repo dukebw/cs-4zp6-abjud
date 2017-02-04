@@ -220,7 +220,6 @@ def bulat_resnet_v1(inputs,
         # Convert end_points_collection into a dictionary of end_points.
         end_points = slim.utils.convert_collection_to_dict(end_points_collection)
         return net, end_points
-bulat_resnet_v1.default_image_size = 256
 
 def resnet_v1_152(inputs,
                   num_classes=None,
@@ -253,27 +252,32 @@ def resnet_detector(inputs,
   """ResNet-152 model of [1]. See resnet_v2() for arg and return description."""
 
   blocks = [
+      # B2
       # 1x1 64
       # 3x3 64     x 3
       # 1x1 256
       resnet_utils.Block(
           'block1', bottleneck, [(256, 64, 1)] * 3),
+      # B3
       # 1x1 128
       # 3x3 128    x 8
       # 1x1 512
       resnet_utils.Block(
           'block2', bottleneck, [(512, 128, 1)] * 8),
+      # B4
       # 1x1 256
       # 3x3 256    x 36
       # 1x1 1024
       resnet_utils.Block(
           'block3', bottleneck, [(1024, 256, 1)] * 36),
-      # ADDED TO EXCLUDE PROPERLY
+      # B4
+      # ADDED TO EXCLUDE PROPERLY with namescope
       # 1x1 256
       # 3x3 256    x 1
       # 1x1 1024
       resnet_utils.Block(
           'block3b', bottleneck, [(1024, 256, 1)] * 2),
+      # B5
       # 1x1 512
       # 3x3 512    x 3
       # 1x1 2048

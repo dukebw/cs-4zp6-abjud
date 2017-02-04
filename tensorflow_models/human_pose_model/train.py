@@ -137,7 +137,7 @@ def _inference(training_batch):
             merged_logits = tf.cast(merged_logits,tf.float32)
             tf.summary.image(name='logits',tensor=merged_logits)
             # For tensorboard
-            _summarize_bulat_model(endpoints)
+            #_summarize_bulat_model(endpoints)
 
             net_loss(logits,
                      endpoints,

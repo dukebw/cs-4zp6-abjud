@@ -168,4 +168,3 @@ def vgg_16(inputs,
             end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
             return a9, end_points
-vgg_16.default_image_size = 380

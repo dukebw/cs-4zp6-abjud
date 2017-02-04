@@ -223,7 +223,7 @@ def _randomly_crop_image(decoded_img,
     bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
         image_size=[image_dim, image_dim, 3],
         bounding_boxes=[[[0, 0, 1.0, 1.0]]],
-        min_object_covered=0.7,
+        min_object_covered=1.0,
         aspect_ratio_range=[0.75, 1.33],
         area_range=[0.5, 1.0],
         max_attempts=100,
@@ -280,9 +280,10 @@ def _distort_image(parsed_example, image_dim, thread_id):
         distorted and the joints have been renormalized to account for those
         distortions.
     """
-    decoded_img, joint_indices, x_joints, y_joints, _ = parsed_example
+    decoded_image, joint_indices, x_joints, y_joints, _ = parsed_example
 
-    distorted_image, x_joints, y_joints = _randomly_crop_image(decoded_img,
+    # Removed 03Feb
+    distorted_image, x_joints, y_joints = _randomly_crop_image(decoded_image,
                                                                x_joints,
                                                                y_joints,
                                                                image_dim,
@@ -296,6 +297,7 @@ def _distort_image(parsed_example, image_dim, thread_id):
         pred=should_flip,
         fn1=lambda: tf.image.flip_left_right(image=distorted_image),
         fn2=lambda: distorted_image)
+
     x_joints = tf.cond(
         pred=should_flip,
         fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.shape),
