@@ -256,6 +256,8 @@ def _average_gradients(tower_grads):
 
         avg_grad_and_vars.append((grad, grad_and_vars[0][1]))
 
+    return avg_grad_and_vars
+
 
 def _setup_training_op(images,
                        heatmaps,
