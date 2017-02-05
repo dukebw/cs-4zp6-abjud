@@ -96,21 +96,22 @@ def vgg_16_fcn32(inputs,
     """This network doesn't use any skip layers, and directly does a bilinear
     upsample from the vgg_16/fc8 activations.
     """
-    with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
-        end_points_collection = sc.original_name_scope + '_end_points'
-        # Collect outputs for conv2d, fully_connected and max_pool2d.
-        with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
-                            outputs_collections=end_points_collection):
-            _, _, a8 = vgg_16_base(inputs,
-                             num_classes,
-                             dropout_keep_prob,
-                             is_training)
-            a9 = tf.image.resize_bilinear(images=a8,
-                                          size=inputs.get_shape()[1:3])
+    with tf.variable_scope(None, 'vgg_16', [inputs]) as sc:
+        with tf.name_scope(scope):
+            end_points_collection = sc.original_name_scope + '_end_points'
+            # Collect outputs for conv2d, fully_connected and max_pool2d.
+            with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
+                                outputs_collections=end_points_collection):
+                _, _, a8 = vgg_16_base(inputs,
+                                 num_classes,
+                                 dropout_keep_prob,
+                                 is_training)
+                a9 = tf.image.resize_bilinear(images=a8,
+                                              size=inputs.get_shape()[1:3])
 
-            end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+                end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
-            return a9, end_points
+                return a9, end_points
 
 
 def vgg_16(inputs,
@@ -136,36 +137,36 @@ def vgg_16(inputs,
     Returns:
       the last op containing the log predictions and end_points dict.
     """
-    with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
-        end_points_collection = sc.original_name_scope + '_end_points'
-        # Collect outputs for conv2d, fully_connected and max_pool2d.
-        with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
-                            outputs_collections=end_points_collection):
-            a3, a4, a8 = vgg_16_base(inputs,
-                             num_classes,
-                             dropout_keep_prob,
-                             is_training)
+    with tf.variable_scope(None, 'vgg_16', [inputs]) as sc:
+        with tf.name_scope(scope):
+            end_points_collection = sc.original_name_scope + '_end_points'
+            # Collect outputs for conv2d, fully_connected and max_pool2d.
+            with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
+                                outputs_collections=end_points_collection):
+                a3, a4, a8 = vgg_16_base(inputs,
+                                         num_classes,
+                                         dropout_keep_prob,
+                                         is_training)
 
-            a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
-            skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
-                                  activation_fn=None,
-                                  normalizer_fn=None,
-                                  weights_initializer=init_ops.zeros_initializer,
-                                  scope='skip_a4')
-            a9 = a9 + skip_a4
+                a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
+                skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
+                                      activation_fn=None,
+                                      normalizer_fn=None,
+                                      weights_initializer=init_ops.zeros_initializer,
+                                      scope='skip_a4')
+                a9 = a9 + skip_a4
 
-            a9 = tf.image.resize_bilinear(images=a9, size=a3.get_shape()[1:3])
-            skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
-                                  activation_fn=None,
-                                  normalizer_fn=None,
-                                  weights_initializer=init_ops.zeros_initializer,
-                                  scope='skip_a3')
-            a9 = a9 + skip_a3
+                a9 = tf.image.resize_bilinear(images=a9, size=a3.get_shape()[1:3])
+                skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
+                                      activation_fn=None,
+                                      normalizer_fn=None,
+                                      weights_initializer=init_ops.zeros_initializer,
+                                      scope='skip_a3')
+                a9 = a9 + skip_a3
 
-            a9 = tf.image.resize_bilinear(images=a9, size=inputs.get_shape()[1:3])
+                a9 = tf.image.resize_bilinear(images=a9, size=inputs.get_shape()[1:3])
 
-            # Convert end_points_collection into a end_point dict.
-            end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+                # Convert end_points_collection into a end_point dict.
+                end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
-            return a9, end_points
-vgg_16.default_image_size = 380
+                return a9, end_points
