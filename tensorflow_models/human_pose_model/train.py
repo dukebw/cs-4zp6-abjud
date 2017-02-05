@@ -339,6 +339,10 @@ def _restore_checkpoint_variables(session, global_step):
                 if var.op.name.startswith(exclusion):
                     excluded = True
                     break
+                # For some reason there are no biases in the resnet checkpoint 0_o
+                if FLAGS.network_name == 'resnet_bulat' and var.op.name.endswith('biases'):
+                    excluded = True
+                    break
             if not excluded:
                 variables_to_restore.append(var)
 
