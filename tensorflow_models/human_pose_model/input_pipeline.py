@@ -8,36 +8,6 @@ EXAMPLES_PER_SHARD = 1024
 
 NUM_JOINTS = Person.NUM_JOINTS
 
-class TrainingBatch(object):
-    """Contains a training batch of images along with corresponding
-    ground-truth joint heatmap vectors for the annotated person in that image.
-
-    images, heatmaps and weights should all be lists of length `batch_size`.
-    """
-    def __init__(self, images, heatmaps, weights, batch_size):
-        assert images.get_shape()[0] == batch_size
-        self._images = images
-        self._heatmaps = heatmaps
-        self._weights = weights
-        self._batch_size = batch_size
-
-    @property
-    def images(self):
-        return self._images
-
-    @property
-    def heatmaps(self):
-        return self._heatmaps
-
-    @property
-    def weights(self):
-        return self._weights
-
-    @property
-    def batch_size(self):
-        return self._batch_size
-
-
 class EvalBatch(object):
     """Contains an evaluation batch of images along with corresponding
     ground-truth joint vectors for the annotated person in that image.
@@ -489,15 +459,20 @@ def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads
         tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
+
     image_dim =  heatmaps.get_shape().as_list()[1]
+
     merged_heatmaps = tf.reshape(tf.reduce_max(heatmaps,3),[batch_size,image_dim, image_dim, 1])
     merged_heatmaps = tf.cast(merged_heatmaps, tf.float32)
+
     merged_binary_maps = tf.reshape(tf.reduce_max(binary_maps,3),[batch_size,image_dim, image_dim, 1])
     merged_binary_maps = tf.cast(merged_binary_maps, tf.float32)
+
     tf.summary.image(name='images', tensor=images)
     tf.summary.image(name='heatmaps', tensor=merged_heatmaps)
     tf.summary.image(name='binary_maps', tensor=merged_binary_maps)
-    return TrainingBatch(images, heatmaps, weights, batch_size)
+
+    return images, heatmaps, weights
 
 
 def setup_eval_input_pipeline(batch_size,
@@ -569,10 +544,10 @@ def setup_train_input_pipeline(FLAGS, data_filenames):
         data_filenames: Set of filenames to get examples from.
 
     Returns:
-        TrainingBatch(images, joints, joint_indices, batch_size): List of image
+        (images, heatmaps, weights, batch_size): List of image
         tensors with first dimension (shape[0]) equal to batch_size, along with
-        sparse vectors of joints (ground truth vectors), and sparse joint
-        indices.
+        lists of dense vectors of heatmaps of ground truth vectors (joints),
+        dense vectors of weights and the batch size.
     """
 
     num_readers = FLAGS.num_readers

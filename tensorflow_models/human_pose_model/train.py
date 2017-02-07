@@ -3,13 +3,14 @@ import time
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from tensorflow.python.ops import control_flow_ops
 from logging import INFO
 from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from evaluate import evaluate
 from tqdm import trange
-import pdb
+
 FLAGS = tf.app.flags.FLAGS
 
 RMSPROP_DECAY = 0.9
@@ -107,7 +108,26 @@ def _summarize_bulat_model(endpoints):
                 tensor=tf.nn.zero_fraction(value=activation))
 
 
-def _inference(training_batch):
+def _summarize_loss(total_loss, gpu_index):
+    """Summarizes the loss and average loss for this tower, and ensures that
+    loss averages are computed every time the loss is computed.
+    """
+    loss_averages = tf.train.ExponentialMovingAverage(
+        decay=0.9, name='avg')
+    loss_averages_op = loss_averages.apply(var_list=[total_loss])
+
+    tf.summary.scalar(name='tower_{}_loss'.format(gpu_index),
+                      tensor=total_loss)
+    tf.summary.scalar(name='tower_{}_loss_avg'.format(gpu_index),
+                      tensor=loss_averages.average(total_loss))
+
+    with tf.control_dependencies(control_inputs=[loss_averages_op]):
+        total_loss = tf.identity(total_loss)
+
+    return total_loss
+
+
+def _inference(images, heatmaps, weights, gpu_index, scope):
     """Sets up a human pose inference model, computes predictions on input
     images and calculates loss on those predictions based on an input dense
     vector of joint location confidence maps and binary maps (the ground truth
@@ -118,8 +138,13 @@ def _inference(training_batch):
     [README](https://github.com/tensorflow/models/tree/master/inception).
 
     Args:
-        training_batch: A batch of training images with associated joint
-            vectors.
+        images: Mini-batch of preprocessed examples dequeued from the input
+            pipeline.
+        heatmaps: Confidence maps of ground truth joints.
+        weights: Weights of heatmaps (tensors of all 1s if joint present, all
+            0s if not present).
+        gpu_index: Index of GPU calculating the current loss.
+        scope: Name scope for ops, which is different for each tower (tower_N).
 
     Returns:
         Tensor giving the total loss (combined loss from auxiliary and primary
@@ -130,22 +155,26 @@ def _inference(training_batch):
     net_loss = NET_LOSS[FLAGS.network_name]
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
-            logits, endpoints = part_detect_net(inputs=training_batch.images,
-                                                num_classes=NUM_JOINTS)
+            with tf.variable_scope(name_or_scope=tf.get_variable_scope(),
+                                   reuse=(gpu_index > 0)):
+                logits, endpoints = part_detect_net(inputs=images,
+                                                    num_classes=NUM_JOINTS,
+                                                    scope=scope)
 
-            merged_logits = tf.reshape(tf.reduce_max(logits,3),[FLAGS.batch_size,FLAGS.image_dim, FLAGS.image_dim, 1])
-            merged_logits = tf.cast(merged_logits,tf.float32)
-            tf.summary.image(name='logits',tensor=merged_logits)
-            # For tensorboard
-            #_summarize_bulat_model(endpoints)
+            net_loss(logits, endpoints, heatmaps, weights)
 
-            net_loss(logits,
-                     endpoints,
-                     training_batch.heatmaps,
-                     training_batch.weights)
+            losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
+            regularization_losses = tf.get_collection(
+                key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
+            total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
 
-            total_loss = slim.losses.get_total_loss()
-            tf.summary.histogram(name='slim_total_loss_hist', values=total_loss)
+            merged_logits = tf.reshape(
+                tf.reduce_max(logits, 3),
+                [int(images.get_shape()[0]), FLAGS.image_dim, FLAGS.image_dim, 1])
+            merged_logits = tf.cast(merged_logits, tf.float32)
+            tf.summary.image(name='logits', tensor=merged_logits)
+
+            total_loss = _summarize_loss(total_loss, gpu_index)
 
     return total_loss
 
@@ -190,7 +219,7 @@ def _setup_optimizer(batches_per_epoch,
                                           epsilon=RMSPROP_EPSILON)
 
     tf.summary.scalar(name='learning_rate', tensor=learning_rate)
-    tf.summary.histogram(name='learning_rate_hist', values=learning_rate)
+
     return global_step, optimizer
 
 
@@ -212,30 +241,83 @@ def _get_variables_to_train():
     return variables_to_train
 
 
-def _setup_training_op(training_batch, global_step, optimizer):
+def _average_gradients(tower_grads):
+    """Averages the gradients for all gradients in `tower_grads`, and returns a
+    list of `(avg_grad, var)` tuples.
+    """
+    avg_grad_and_vars = []
+    for grad_and_vars in zip(*tower_grads):
+        grads = []
+        for grad, _ in grad_and_vars:
+            grads.append(tf.expand_dims(input=grad, axis=0))
+
+        grad = tf.concat(concat_dim=0, values=grads)
+        grad = tf.reduce_mean(input_tensor=grad, axis=0)
+
+        avg_grad_and_vars.append((grad, grad_and_vars[0][1]))
+
+    return avg_grad_and_vars
+
+
+def _setup_training_op(images,
+                       heatmaps,
+                       weights,
+                       global_step,
+                       optimizer,
+                       num_gpus):
     """Sets up inference (predictions), loss calculation, and minimization
     based on the input optimizer.
 
     Args:
-        training_batch: Batch of preprocessed examples dequeued from the input
+        images: Batch of preprocessed examples dequeued from the input
             pipeline.
+        heatmaps: Confidence maps of ground truth joints.
+        weights: Weights of heatmaps (tensors of all 1s if joint present, all
+            0s if not present).
         global_step: Training step counter.
         optimizer: Optimizer to minimize the loss function.
+        num_gpus: Number of GPUs to split each mini-batch across.
 
     Returns: Operation to run a training step.
     """
-    with tf.device(device_name_or_function='/gpu:0'):
-        loss = _inference(training_batch)
+    images_split = tf.split(split_dim=0, num_split=num_gpus, value=images)
+    heatmaps_split = tf.split(split_dim=0, num_split=num_gpus, value=heatmaps)
+    weights_split = tf.split(split_dim=0, num_split=num_gpus, value=weights)
 
-        train_op = slim.learning.create_train_op(
-            total_loss=loss,
-            optimizer=optimizer,
-            global_step=global_step,
-            variables_to_train=_get_variables_to_train())
+    tower_grads = []
+    for gpu_index in range(num_gpus):
+        with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
+            with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
+                total_loss = _inference(images_split[gpu_index],
+                                        heatmaps_split[gpu_index],
+                                        weights_split[gpu_index],
+                                        gpu_index,
+                                        scope)
 
-        tf.summary.scalar(name='loss', tensor=loss)
-        tf.summary.histogram(name='losshist', values=loss)
-    return train_op
+                batchnorm_updates = tf.get_collection(
+                    key=tf.GraphKeys.UPDATE_OPS, scope=scope)
+                barrier = control_flow_ops.no_op(name='update_barrier')
+                total_loss = control_flow_ops.with_dependencies(
+                    [barrier], total_loss)
+
+                grads = optimizer.compute_gradients(
+                    loss=total_loss, var_list=_get_variables_to_train())
+
+                tower_grads.append(grads)
+
+    avg_grad_and_vars = _average_gradients(tower_grads)
+
+    apply_gradient_op = optimizer.apply_gradients(
+        grads_and_vars=avg_grad_and_vars,
+        global_step=global_step)
+
+    # TODO(brendan): It is possible to keep track of moving averages of
+    # variables ("shadow variables"), and these shadow variables can be used
+    # for evaluation.
+    #
+    # See TF models ImageNet Inception training code.
+
+    return apply_gradient_op, total_loss
 
 
 def _restore_checkpoint_variables(session, global_step):
@@ -276,13 +358,14 @@ def _restore_checkpoint_variables(session, global_step):
 def train():
     """Trains an Inception v3 network to regress joint co-ordinates (NUM_JOINTS
     sets of (x, y) co-ordinates) directly.
+
+    Here we only take files 0-N.
+    For now files are manually renamed as train[0-N].tfrecord and
+    valid[N-M].tfrecord, where there are N + 1 train records, (M - N)
+    validation records and M + 1 records in total.
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            # TODO(brendan): Support multiple GPUs?
-            assert FLAGS.num_gpus == 1
-            # Here we only take files 0-15
-            # For now I've manually renamed the files into train[0-15].tfrecord and valid[16-19].tfrecord
             train_data_filenames = tf.gfile.Glob(
                 os.path.join(FLAGS.train_data_dir, 'train*tfrecord'))
             assert train_data_filenames, ('No data files found.')
@@ -295,7 +378,8 @@ def train():
 
             # Merged with FLAGS
             # TODO add ability to summarize heatmaps
-            training_batch = setup_train_input_pipeline(FLAGS, train_data_filenames)
+            images, heatmaps, weights = setup_train_input_pipeline(
+                FLAGS, train_data_filenames)
 
             num_batches_per_epoch = int(num_training_examples / FLAGS.batch_size)
             global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
@@ -303,11 +387,12 @@ def train():
                                                       FLAGS.initial_learning_rate,
                                                       FLAGS.learning_rate_decay_factor)
 
-            train_op = _setup_training_op(training_batch,
-                                          global_step,
-                                          optimizer)
-
-            # TODO(brendan): track moving averages of trainable variables
+            train_op, loss = _setup_training_op(images,
+                                                heatmaps,
+                                                weights,
+                                                global_step,
+                                                optimizer,
+                                                FLAGS.num_gpus)
 
             log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename),'a')
 
@@ -334,10 +419,12 @@ def train():
                 Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
                 for batch_step in Epoch:
                     start_time = time.time()
-                    batch_loss, total_steps = session.run(fetches=[train_op, global_step])
+                    _, batch_loss, total_steps = session.run(
+                        fetches=[train_op, loss, global_step])
                     duration = time.time() - start_time
 
-                    desc ='step {}: loss = {} ({:.2f} sec/step)'.format(total_steps, batch_loss, duration)
+                    desc = ('step {}: loss = {} ({:.2f} sec/step)'
+                            .format(total_steps, batch_loss, duration))
                     Epoch.set_description(desc)
                     Epoch.refresh()
                     assert not np.isnan(batch_loss)
@@ -347,7 +434,7 @@ def train():
 
                         summary_str = session.run(summary_op)
                         train_writer.add_summary(summary=summary_str,
-                                                   global_step=total_steps)
+                                                 global_step=total_steps)
 
                 checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
                 saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
