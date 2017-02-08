@@ -61,7 +61,7 @@ tf.app.flags.DEFINE_integer('num_readers', 4,
                             """Number of threads to use to read example
                             protobufs from TFRecords.""")
 
-tf.app.flags.DEFINE_integer('num_gpus', 1,
+tf.app.flags.DEFINE_integer('num_gpus', 3,
                             """Number of GPUs in system.""")
 
 tf.app.flags.DEFINE_integer('batch_size', 16,
@@ -161,11 +161,11 @@ def _inference(images, heatmaps, weights, gpu_index, scope):
                                                     num_classes=NUM_JOINTS,
                                                     scope=scope)
 
+
             net_loss(logits, endpoints, heatmaps, weights)
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
-            regularization_losses = tf.get_collection(
-                key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
+            regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
             total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
 
             merged_logits = tf.reshape(

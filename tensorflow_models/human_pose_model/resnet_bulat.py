@@ -149,7 +149,7 @@ def bulat_resnet_v1(inputs,
         # B2 - B5
         net = resnet_utils.stack_blocks_dense(net, blocks, output_stride)
         net = slim.conv2d(net, num_classes, [1, 1], scope='logits')
-        net = slim.conv2d_transpose(net, num_outputs=num_classes, [4, 4], stride=4, scope='b7_deconv')
+        net = slim.conv2d_transpose(net, num_classes, [4, 4], stride=4, scope='b7_deconv')
         # Convert end_points_collection into a dictionary of end_points.
         end_points = slim.utils.convert_collection_to_dict(end_points_collection)
         return net, end_points
@@ -183,61 +183,62 @@ def resnet_regressor(inputs, num_classes=16, is_training=True, scope='resnet_reg
      Descr: Compiles the bottleneck blocks and calls the hourglass function
   """
   # Add blocks pertain to the skiplayer blocks
-  Blocks = [
-      resnet_utils.Block('block0', bottleneck, [(128, 64, 1)]*2 + [(256, 128, 1)])
-      resnet_utils.Block('block1', bottleneck, [(256, 128, 1)]*2 + [(512, 256, 1)])
-      resnet_utils.Block('block2', bottleneck, [(256, 128, 1)]*3)
-      resnet_utils.Block('block3', bottleneck, [(256, 128, 1)]*2 + [(512, 256, 1)])
-      resnet_utils.Block('block4', bottleneck, [(256, 128, 1)]*3)
-      resnet_utils.Block('block5', bottleneck, [(256, 128, 1)]*2 + [(512, 256, 1)])
-      resnet_utils.Block('block6', bottleneck, [(256, 128, 1)]*3)
+  blocks = [
+      resnet_utils.Block('block0', bottleneck, [(128, 64, 1)]*2 + [(256, 128, 1)]),
+      resnet_utils.Block('block1', bottleneck, [(256, 128, 1)]*2 + [(512, 256, 1)]),
+      resnet_utils.Block('block2', bottleneck, [(256, 128, 1)]*3),
+      resnet_utils.Block('block3', bottleneck, [(256, 128, 1)]*2 + [(512, 256, 1)]),
+      resnet_utils.Block('block4', bottleneck, [(256, 128, 1)]*3),
+      resnet_utils.Block('block5', bottleneck, [(256, 128, 1)]*2 + [(512, 256, 1)]),
+      resnet_utils.Block('block6', bottleneck, [(256, 128, 1)]*3),
       resnet_utils.Block('block7', bottleneck, [(256, 128, 1)]*2 + [(512, 256, 1)])
-  ]
+      ]
+  return hourglass_bulat(inputs, blocks, scope=scope)
 
-def hourglass_bulat(inputs, Blocks, num_classes = 16, scope=None):
+def hourglass_bulat(inputs, blocks, num_classes = 16, scope=None):
 
   with tf.variable_scope(scope, 'resnet_v1', [inputs], reuse=reuse) as sc:
-      end_points_collection = sc.name + '_end_points'
-    with slim.arg_scope(resnet_utils.resnet_arg_scope(), outputs_collection=end_points_collection)
+    end_points_collection = sc.name + '_end_points'
+    with slim.arg_scope(resnet_utils.resnet_arg_scope(), outputs_collection=end_points_collection):
       D0 = resnet_utils.conv2d_same(inputs, 64, 7, stride=2, scope='conv0')
       D0 = bottleneck(net, 128, 64, 3)
       D0 = slim.max_pool2d(net, [2, 2], stride=2, scope='pool0')
-      D0 = resnet_utils.stack_blocks_dense(D0, [Blocks[0]])
-      skip0 = resnet_utils.stack_blocks_dense(D0, [Blocks[1]])
+      D0 = resnet_utils.stack_blocks_dense(D0, [blocks[0]])
+      skip0 = resnet_utils.stack_blocks_dense(D0, [blocks[1]])
 
       D1 = slim.max_pool2d(D0, [2, 2], stride=2, scope='pool1')
-      D1 = resnet_utils.stack_blocks_dense(D1, [Blocks[2]])
-      skip1 = resnet_utils.stack_blocks_dense(D1, [Blocks[3]])
+      D1 = resnet_utils.stack_blocks_dense(D1, [blocks[2]])
+      skip1 = resnet_utils.stack_blocks_dense(D1, [blocks[3]])
 
       D2 = slim.max_pool2d(D1, [2, 2], stride=2, scope='pool2')
-      D2 = resnet_utils.stack_blocks_dense(D2, [Blocks[4]])
-      skip2 = resnet_utils.stack_blocks_dense(D2, [Blocks[5]])
+      D2 = resnet_utils.stack_blocks_dense(D2, [blocks[4]])
+      skip2 = resnet_utils.stack_blocks_dense(D2, [blocks[5]])
 
       D3 = slim.max_pool2d(D2, [2, 2], stride=2, scope='pool3')
-      D3 = resnet_utils.stack_blocks_dense(D3, [Blocks[6]])
-      skip3 = resnet_utils.stack_blocks_dense(D3, [Blocks[7]])
+      D3 = resnet_utils.stack_blocks_dense(D3, [blocks[6]])
+      skip3 = resnet_utils.stack_blocks_dense(D3, [blocks[7]])
 
       D4 = slim.max_pool2d(D3, [2, 2], stride=2, scope='pool4')
       D4 = bottleneck(D4, 512, 256, 3)
-      D4 = slim.conv2d_transpose(D4, num_outputs=512, [2,2], stride=2, scope='D4')
+      D4 = slim.conv2d_transpose(D4, 512, [2,2], stride=2, scope='D4')
       D4 = D4 + skip3
 
       D5 = bottleneck(D4, 512, 256, 3)
-      D5 = slim.conv2d_transpose(D5, num_outputs=512, [2,2], stride=2, scope='D5')
+      D5 = slim.conv2d_transpose(D5, 512, [2,2], stride=2, scope='D5')
       D5 = D5 + skip2
 
       D6 = bottleneck(D5, 512, 256, 3)
-      D6 = slim.conv2d_transpose(D6, num_outputs=512, [2,2], stride=2, scope='D6')
+      D6 = slim.conv2d_transpose(D6, 512, [2,2], stride=2, scope='D6')
       D6 = D6 + skip1
 
       D7 = bottleneck(D6, 512, 256, 3)
-      D7 = slim.conv2d_transpose(D7, num_outputs=512, [2,2], stride=2, scope='D7')
+      D7 = slim.conv2d_transpose(D7, 512, [2,2], stride=2, scope='D7')
       D7 = D7 + skip0
 
-      D8 = slim.conv2d(D7, num_outputs=512, [1,1], stride=1, scope='D8')
-      D9 = slim.conv2d(D8, num_outputs=256, [1,1], stride=1, scope='D9')
+      D8 = slim.conv2d(D7, 512, [1,1], stride=1, scope='D8')
+      D9 = slim.conv2d(D8, 256, [1,1], stride=1, scope='D9')
       D10 = slim.conv2d(D9, num_classes, [1,1], stride=1, scope='logits')
-      D11 = slim.conv2d_transpose(D10, num_outputs=16, [4, 4], stride=4, scope='logits_deconv')
+      D11 = slim.conv2d_transpose(D10, num_classes, [4, 4], stride=4, scope='logits_deconv')
       # Convert end_points_collection into a dictionary of end_points.
       end_points = slim.utils.convert_collection_to_dict(end_points_collection)
       return D11, end_points
