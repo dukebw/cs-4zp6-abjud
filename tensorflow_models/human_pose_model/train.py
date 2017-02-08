@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.framework import ops
 from logging import INFO
 from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
@@ -296,7 +297,9 @@ def _setup_training_op(images,
 
                 batchnorm_updates = tf.get_collection(
                     key=tf.GraphKeys.UPDATE_OPS, scope=scope)
-                barrier = control_flow_ops.no_op(name='update_barrier')
+
+                with ops.control_dependencies(batchnorm_updates):
+                    barrier = control_flow_ops.no_op(name='update_barrier')
                 total_loss = control_flow_ops.with_dependencies(
                     [barrier], total_loss)
 
