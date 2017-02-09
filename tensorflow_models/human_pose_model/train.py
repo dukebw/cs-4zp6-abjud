@@ -75,10 +75,6 @@ tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
 tf.app.flags.DEFINE_integer('max_epochs', 30,
                             """Maximum number of epochs in training run.""")
 
-tf.app.flags.DEFINE_integer('heatmap_stddev_pixels', 5,
-                            """Standard deviation of Gaussian joint heatmap, in
-                            pixels.""")
-
 tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
                           """Initial learning rate.""")
 

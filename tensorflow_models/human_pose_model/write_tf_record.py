@@ -6,6 +6,7 @@ import tensorflow as tf
 from mpii_read import mpii_read
 from timethis import timethis
 from shapes import Point, Rectangle
+from sparse_to_dense import sparse_joints_to_dense_single_example
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -15,7 +16,7 @@ tf.app.flags.DEFINE_string(
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
 
-tf.app.flags.DEFINE_string('train_dir', './train',
+tf.app.flags.DEFINE_string('train_dir', './train_80',
                             """Path in which to write the TFRecord files.""")
 
 tf.app.flags.DEFINE_boolean('is_train', True,
@@ -25,12 +26,16 @@ tf.app.flags.DEFINE_boolean('is_train', True,
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             """Number of threads to use to write TF Records""")
 
-tf.app.flags.DEFINE_integer('train_shards', 16,
+tf.app.flags.DEFINE_integer('train_shards', 80,
                             """Number of output shards (TFRecord files
                             containing training examples) to create.""")
 
-tf.app.flags.DEFINE_integer('image_dim', 299,
+tf.app.flags.DEFINE_integer('image_dim', 256,
                             """Dimension of the square image to output.""")
+
+tf.app.flags.DEFINE_integer('heatmap_stddev_pixels',5,
+                            """Standard deviation of Gaussian joint heatmap, in pixels.""")
+
 
 class ImageCoder(object):
     """A class that holds a session, passed using dependency injection during
@@ -127,8 +132,7 @@ class ImageCoder(object):
             self._padded_img_dim: padded_dim
         }
 
-        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg,
-                                         feed_dict=feed_dict)
+        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg, feed_dict=feed_dict)
 
         return scaled_img_jpeg
 
@@ -328,6 +332,63 @@ def _find_padded_person_dim(person_rect):
 
     return padded_img_dim, person_shape_xy, padding_xy
 
+def _get_joint_heatmaps(heatmap_stddev_pixels,
+                        image_dim,
+                        x_dense_joints,
+                        y_dense_joints,
+                        weights):
+    """Calculates a set of confidence maps for the joints given by
+    `x_dense_joints` and `y_dense_joints`, and corresponding weights.
+
+    The convidence maps are 2-D Gaussians with means given by the joints'
+    (x, y) locations, and standard deviations given by `heatmap_stddev_pixels`.
+    So, e.g. for a set of 16 joints and an image dimension of 380, a set of
+    tensors with shape [380, 380, 16] will be returned, where each
+    [380, 380, i] tensor will be a gaussian corresponding to the i'th joint.
+
+    The weights returned will also be of shape [380, 380, 16]. The elements of
+    the returned weights tensor will either be all zeros (if the ground truth
+    joint label is not present), or all 1/N, where N is the number of ground
+    truth joint labels that were present for this example. This is based on
+    Equation 2 on page 6 of the Bulat paper.
+    """
+    std_dev = np.full(NUM_JOINTS, heatmap_stddev_pixels/image_dim)
+    std_dev = tf.cast(std_dev, tf.float64)
+
+    pixel_spacing = np.linspace(-0.5, 0.5, image_dim)
+    coords = np.empty((image_dim, NUM_JOINTS), dtype=np.float64)
+    coords[...] = pixel_spacing[:, None]
+
+    x_probs = _get_joints_normal_pdf(x_dense_joints, std_dev, coords, -2)
+    y_probs = _get_joints_normal_pdf(y_dense_joints, std_dev, coords, -1)
+
+    heatmaps = tf.batch_matmul(x=y_probs, y=x_probs)
+    heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
+
+    # TODO(brendan): Add back this 1/N factor to the weights?
+    # weights /= tf.reduce_sum(input_tensor=weights)
+    weights = tf.expand_dims(weights, 0)
+    weights = tf.expand_dims(weights, 0)
+    weights = tf.tile(weights, [image_dim, image_dim, 1])
+
+    return heatmaps, weights
+
+
+def _get_binary_maps(image_dim, x_dense_joints, y_dense_joints):
+    """
+    Creates binary maps of shape [image_dim, image_dim, NUM_JOINTS],
+    that are 10 pixels in radius.
+    """
+    dim_j = complex(0, image_dim)
+    y, x = np.mgrid[-0.5:0.5:dim_j, -0.5:0.5:dim_j]
+    y = tf.expand_dims(input=y, axis=-1)
+    y = tf.tile(input=y, multiples=[1, 1, NUM_JOINTS])
+    x = tf.expand_dims(input=x, axis=-1)
+    x = tf.tile(input=x, multiples=[1, 1, NUM_JOINTS])
+
+    binary_maps = ((y - y_dense_joints)**2 + (x - x_dense_joints)**2 < (10/image_dim)**2)
+
+    return tf.cast(binary_maps, tf.float64)
 
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
@@ -355,7 +416,25 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             person_shape_xy,
             padding_xy,
             person_rect.top_left)
-        x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list = labels
+
+        x_joints, y_joints, joint_indices, is_visible_list = labels
+        NUM_JOINTS = 16
+        x_sparse_joints = tf.SparseTensor(joint_indices, x_joints, [1,NUM_JOINTS])
+        y_sparse_joints = tf.SparseTensor(joint_indices, y_joints, [1,NUM_JOINTS])
+        x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(x_sparse_joints,
+                                                                                        y_sparse_joints,
+                                                                                        joint_indices,
+                                                                                        NUM_JOINTS)
+
+        heatmaps, weights = _get_joint_heatmaps(FLAGS.heatmap_stddev_pixels,
+                                                padded_img_dim,
+                                                x_dense_joints,
+                                                y_dense_joints,
+                                                weights)
+
+        binary_maps = _get_binary_maps(padded_img_dim,
+                                       x_dense_joints,
+                                       y_dense_joints)
 
         head_rect_width = person.head_rect.get_width()/padded_img_dim
         head_rect_height = person.head_rect.get_height()/padded_img_dim
@@ -365,6 +444,8 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             features=tf.train.Features(
                 feature={
                     'image_jpeg': _bytes_feature(scaled_img_jpeg),
+                    'binary_maps': _float_feature(binary_maps),
+                    'heatmaps': _float_feature(heatmaps),
                     'joint_indices': _int64_feature(sparse_joint_indices),
                     'x_joints': _float_feature(x_sparse_joints),
                     'y_joints': _float_feature(y_sparse_joints),
