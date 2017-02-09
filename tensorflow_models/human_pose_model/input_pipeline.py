@@ -116,9 +116,7 @@ def _parse_example_proto(example_serialized, image_dim):
         'image_jpeg': tf.FixedLenFeature(shape=[], dtype=tf.string),
         'binary_maps': tf.FixedLenFeature(shape=[], dtype=tf.string),
         'heatmaps': tf.FixedLenFeature(shape=[], dtype=tf.string),
-        'joint_indices': tf.VarLenFeature(dtype=tf.int64),
-        'x_joints': tf.VarLenFeature(dtype=tf.float32),
-        'y_joints': tf.VarLenFeature(dtype=tf.float32),
+        'weights': tf.FixedLenFeature(shape=[], dtype=tf.string),
         'head_size': tf.FixedLenFeature(shape=[], dtype=tf.float32)
     }
     features = tf.parse_single_example(
@@ -134,9 +132,7 @@ def _parse_example_proto(example_serialized, image_dim):
     parsed_example = (decoded_img,
                       features['binary_maps']
                       features['heatmaps']
-                      features['joint_indices'],
-                      features['x_joints'],
-                      features['y_joints'],
+                      features['weights'],
                       features['head_size'])
 
     return parsed_example
@@ -254,23 +250,6 @@ def _randomly_crop_image(decoded_img,
         tensor=distorted_heatmaps,
         shape=[image_dim, image_dim, 16])
 
-    """ DEPRECATED 08FEB17
-    distorted_center = tf.cast(bbox_begin, tf.float64) + bbox_size/2
-
-    distorted_center_y = distorted_center[0]
-    distorted_center_x = distorted_center[1]
-    distorted_height = bbox_size[0]
-    distorted_width = bbox_size[1]
-
-    x_joints = _get_renormalized_joints(x_joints,
-                                        image_dim,
-                                        distorted_center_x,
-                                        distorted_width)
-    y_joints = _get_renormalized_joints(y_joints,
-                                        image_dim,
-                                        distorted_center_y,
-                                        distorted_height)
-    """
     return distorted_image, x_joints, y_joints
 
 
@@ -325,35 +304,6 @@ def _distort_image(parsed_example, image_dim, thread_id):
     distorted_image = _distort_colour(distorted_image, thread_id)
 
     return distorted_image, distorted_binary_maps, distorted_heatmaps, joint_indices, x_joints, y_joints
-
-
-def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
-    """Creates a set of 1-D Normal distributions with means equal to the
-    elements of `dense_joints`, and the standard deviations equal to the values
-    in `std_dev`.
-
-    The shapes of the input tensors `dense_joints` and `std_dev` must be the
-    same.
-
-    Args:
-        dense_joints: Dense tensor of ground truth joint locations in 1-D.
-        std_dev: Standard deviation to use for the normal distribution.
-        coords: Set of co-ordinates over which to evaluate the Normal's PDF.
-        expand_axis: Axis to expand the probabilities by using
-            `tf.expand_dims`. E.g., an `expand_axis` of -2 will turn the result
-            PDF output from a tensor with shape [16, 380] to a tensor with
-            shape [16, 380, 1]
-
-    Returns:
-        3-D tensor with first dim being the length of `dense_joints`, and two
-        more dimensions, one of which is the length of `coords` and the other
-        of which has size 1.
-    """
-    normal = tf.contrib.distributions.Normal(mu=dense_joints, sigma=std_dev)
-    probs = normal.pdf(coords)
-    probs = tf.transpose(probs)
-
-    return tf.expand_dims(input=probs, axis=expand_axis)
 
 
 def _parse_and_preprocess_example_eval(example_serialized,
