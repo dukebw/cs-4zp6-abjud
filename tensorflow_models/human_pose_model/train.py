@@ -371,13 +371,15 @@ def train():
             assert len(train_data_filenames) >= FLAGS.num_readers
 
             num_training_examples = 0
+            options = tf.python_io.TFRecordOptions(
+                compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
             for data_file in train_data_filenames:
-                for _ in tf.python_io.tf_record_iterator(path=data_file):
+                for _ in tf.python_io.tf_record_iterator(path=data_file, options=options):
                     num_training_examples += 1
 
             # Merged with FLAGS
             # TODO add ability to summarize heatmaps
-            images, heatmaps, weights = setup_train_input_pipeline(
+            images, binary_maps, heatmaps, weights = setup_train_input_pipeline(
                 FLAGS, train_data_filenames)
 
             num_batches_per_epoch = int(num_training_examples / FLAGS.batch_size)

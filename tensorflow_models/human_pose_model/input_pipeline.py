@@ -4,7 +4,7 @@ import tensorflow as tf
 from sparse_to_dense import sparse_joints_to_dense_single_example
 from mpii_read import Person
 
-EXAMPLES_PER_SHARD = 1024
+EXAMPLES_PER_SHARD = 256
 
 NUM_JOINTS = Person.NUM_JOINTS
 
@@ -84,7 +84,9 @@ def _setup_example_queue(filename_queue,
 
     enqueue_ops = []
     for _ in range(num_readers):
-        reader = tf.TFRecordReader()
+        options = tf.python_io.TFRecordOptions(
+            compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+        reader = tf.TFRecordReader(options=options)
         _, per_thread_example = reader.read(queue=filename_queue)
         enqueue_ops.append(examples_queue.enqueue(vals=[per_thread_example]))
 
@@ -119,7 +121,7 @@ def _parse_example_proto(example_serialized, image_dim):
             image=img_tensor, dtype=tf.float32)
 
     parsed_example = (decoded_img,
-                      features['binary_maps']
+                      features['binary_maps'],
                       features['joint_indices'],
                       features['x_joints'],
                       features['y_joints'],
@@ -184,10 +186,12 @@ def _distort_image(parsed_example, image_dim, thread_id):
     decoded_image, binary_maps, joint_indices, x_joints, y_joints, _ = parsed_example
 
     # TODO(brendan): Are these reshapes necessary, without the random cropping?
-    distorted_image = tf.reshape(tensor=distorted_image,
+    distorted_image = tf.reshape(tensor=decoded_image,
                                  shape=[image_dim, image_dim, 3])
+    binary_maps = tf.decode_raw(bytes=binary_maps, out_type=tf.uint8)
     binary_maps = tf.reshape(tensor=binary_maps,
                              shape=[image_dim, image_dim, NUM_JOINTS])
+    binary_maps = tf.cast(binary_maps, tf.float32)
 
     rand_uniform = tf.random_uniform(shape=[],
                                      minval=0,
@@ -201,7 +205,7 @@ def _distort_image(parsed_example, image_dim, thread_id):
     distorted_binary_maps = tf.cond(
         pred=should_flip,
         fn1=lambda: tf.image.flip_left_right(image=binary_maps),
-        fn2=lambda: distorted_image)
+        fn2=lambda: binary_maps)
 
     x_joints = tf.cond(
         pred=should_flip,
@@ -215,8 +219,7 @@ def _distort_image(parsed_example, image_dim, thread_id):
 
 def _parse_and_preprocess_example_eval(example_serialized,
                                        num_preprocess_threads,
-                                       image_dim,
-                                       is_train):
+                                       image_dim):
     """Same as `_parse_and_preprocess_example_train`, except without image
     distortion or heatmap creation.
 
@@ -404,14 +407,15 @@ def setup_eval_input_pipeline(batch_size,
         shuffle=False,
         capacity=1)
 
-    reader = tf.TFRecordReader()
+    options = tf.python_io.TFRecordOptions(
+        compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+    reader = tf.TFRecordReader(options=options)
     _, example_serialized = reader.read(filename_queue)
 
     images_and_joint_maps = _parse_and_preprocess_example_eval(
         example_serialized,
         num_preprocess_threads,
-        image_dim,
-        False)
+        image_dim)
 
     images, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
         tensors_list=images_and_joint_maps,
