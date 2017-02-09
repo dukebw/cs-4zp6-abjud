@@ -89,6 +89,9 @@ tf.app.flags.DEFINE_boolean('restore_global_step', False,
                             """Set to True if restoring a training run that is
                             part-way complete.""")
 
+tf.app.flags.DEFINE_integer('heatmap_stddev_pixels',5,
+                            """Standard deviation of Gaussian joint heatmap, in pixels.""")
+
 def _summarize_bulat_model(endpoints):
     """Summarizes the activation values that are marked for summaries in the
     Inception v3 network.
