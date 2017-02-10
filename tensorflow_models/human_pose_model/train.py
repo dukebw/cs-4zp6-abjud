@@ -76,10 +76,6 @@ tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
 tf.app.flags.DEFINE_integer('max_epochs', 30,
                             """Maximum number of epochs in training run.""")
 
-tf.app.flags.DEFINE_integer('heatmap_stddev_pixels', 5,
-                            """Standard deviation of Gaussian joint heatmap, in
-                            pixels.""")
-
 tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
                           """Initial learning rate.""")
 
@@ -93,6 +89,9 @@ tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
 tf.app.flags.DEFINE_boolean('restore_global_step', False,
                             """Set to True if restoring a training run that is
                             part-way complete.""")
+
+tf.app.flags.DEFINE_integer('heatmap_stddev_pixels',5,
+                            """Standard deviation of Gaussian joint heatmap, in pixels.""")
 
 def _summarize_bulat_model(endpoints):
     """Summarizes the activation values that are marked for summaries in the
@@ -375,13 +374,15 @@ def train():
             assert len(train_data_filenames) >= FLAGS.num_readers
 
             num_training_examples = 0
+            options = tf.python_io.TFRecordOptions(
+                compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
             for data_file in train_data_filenames:
-                for _ in tf.python_io.tf_record_iterator(path=data_file):
+                for _ in tf.python_io.tf_record_iterator(path=data_file, options=options):
                     num_training_examples += 1
 
             # Merged with FLAGS
             # TODO add ability to summarize heatmaps
-            images, heatmaps, weights = setup_train_input_pipeline(
+            images, binary_maps, heatmaps, weights = setup_train_input_pipeline(
                 FLAGS, train_data_filenames)
 
             num_batches_per_epoch = int(num_training_examples / FLAGS.batch_size)

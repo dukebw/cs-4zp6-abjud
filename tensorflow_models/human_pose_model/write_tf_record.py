@@ -3,11 +3,13 @@ import threading
 import math
 import numpy as np
 import tensorflow as tf
-from mpii_read import mpii_read
+from mpii_read import mpii_read, Person
 from timethis import timethis
 from shapes import Point, Rectangle
+from sparse_to_dense import sparse_joints_to_dense_single_example
 
 FLAGS = tf.app.flags.FLAGS
+NUM_JOINTS = Person.NUM_JOINTS
 
 tf.app.flags.DEFINE_string(
     'mpii_filepath',
@@ -15,7 +17,7 @@ tf.app.flags.DEFINE_string(
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
 
-tf.app.flags.DEFINE_string('train_dir', './train',
+tf.app.flags.DEFINE_string('train_dir', './train_80',
                             """Path in which to write the TFRecord files.""")
 
 tf.app.flags.DEFINE_boolean('is_train', True,
@@ -25,11 +27,11 @@ tf.app.flags.DEFINE_boolean('is_train', True,
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             """Number of threads to use to write TF Records""")
 
-tf.app.flags.DEFINE_integer('train_shards', 16,
+tf.app.flags.DEFINE_integer('train_shards', 80,
                             """Number of output shards (TFRecord files
                             containing training examples) to create.""")
 
-tf.app.flags.DEFINE_integer('image_dim', 299,
+tf.app.flags.DEFINE_integer('image_dim', 256,
                             """Dimension of the square image to output.""")
 
 class ImageCoder(object):
@@ -77,6 +79,24 @@ class ImageCoder(object):
             tf.uint8)
 
         self._scaled_image_jpeg = tf.image.encode_jpeg(image=self._scaled_image_tensor)
+
+        self._x_joints = tf.placeholder(dtype=tf.float32)
+        self._y_joints = tf.placeholder(dtype=tf.float32)
+        self._joint_indices = tf.placeholder(dtype=tf.int64)
+        self._joints_shape = tf.placeholder(dtype=tf.int64)
+        sparse_x_joints = tf.SparseTensor(indices=self._joint_indices,
+                                          values=self._x_joints,
+                                          shape=self._joints_shape)
+        sparse_y_joints = tf.SparseTensor(indices=self._joint_indices,
+                                          values=self._y_joints,
+                                          shape=self._joints_shape)
+        sparse_joint_indices = tf.SparseTensor(indices=self._joint_indices,
+                                               values=self._joint_indices,
+                                               shape=self._joints_shape)
+        x_dense_joints, y_dense_joints, _ = sparse_joints_to_dense_single_example(
+            sparse_x_joints, sparse_y_joints, sparse_joint_indices, NUM_JOINTS)
+
+        self._binary_maps = _get_binary_maps(FLAGS.image_dim, x_dense_joints, y_dense_joints)
 
     def decode_jpeg(self, image_data):
         """Returns the shape of an input JPEG image.
@@ -127,10 +147,22 @@ class ImageCoder(object):
             self._padded_img_dim: padded_dim
         }
 
-        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg,
-                                         feed_dict=feed_dict)
+        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg, feed_dict=feed_dict)
 
         return scaled_img_jpeg
+
+    def get_binary_maps(self, x_joints, y_joints, joint_indices, joints_shape):
+        """Runs the binary-map generation part of the graph stored in this
+        ImageCoder instance.
+        """
+        feed_dict = {
+            self._x_joints: x_joints,
+            self._y_joints: y_joints,
+            self._joint_indices: joint_indices,
+            self._joints_shape: joints_shape
+        }
+
+        return self._sess.run(fetches=self._binary_maps, feed_dict=feed_dict)
 
 
 def _clamp_range(value, min_val, max_val):
@@ -329,6 +361,25 @@ def _find_padded_person_dim(person_rect):
     return padded_img_dim, person_shape_xy, padding_xy
 
 
+def _get_binary_maps(image_dim, x_dense_joints, y_dense_joints):
+    """
+    Creates binary maps of shape [image_dim, image_dim, NUM_JOINTS],
+    that are 10 pixels in radius.
+    """
+    dim_j = complex(0, image_dim)
+    y, x = np.mgrid[-0.5:0.5:dim_j, -0.5:0.5:dim_j]
+    y = y.astype(np.float32)
+    x = x.astype(np.float32)
+    y = tf.expand_dims(input=y, axis=-1)
+    y = tf.tile(input=y, multiples=[1, 1, NUM_JOINTS])
+    x = tf.expand_dims(input=x, axis=-1)
+    x = tf.tile(input=x, multiples=[1, 1, NUM_JOINTS])
+
+    binary_maps = ((y - y_dense_joints)**2 + (x - x_dense_joints)**2 < (10/image_dim)**2)
+
+    return tf.cast(binary_maps, tf.uint8)
+
+
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
 
@@ -355,7 +406,14 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             person_shape_xy,
             padding_xy,
             person_rect.top_left)
-        x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list = labels
+
+        x_joints, y_joints, joint_indices, is_visible_list = labels
+
+        joints_shape = len(joint_indices)
+        binary_maps = coder.get_binary_maps(x_joints,
+                                            y_joints,
+                                            np.reshape(joint_indices, [joints_shape, 1]),
+                                            [joints_shape])
 
         head_rect_width = person.head_rect.get_width()/padded_img_dim
         head_rect_height = person.head_rect.get_height()/padded_img_dim
@@ -365,13 +423,14 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             features=tf.train.Features(
                 feature={
                     'image_jpeg': _bytes_feature(scaled_img_jpeg),
-                    'joint_indices': _int64_feature(sparse_joint_indices),
-                    'x_joints': _float_feature(x_sparse_joints),
-                    'y_joints': _float_feature(y_sparse_joints),
+                    'binary_maps': _bytes_feature(np.ndarray.tobytes(binary_maps)),
+                    'joint_indices': _int64_feature(joint_indices),
+                    'x_joints': _float_feature(x_joints),
+                    'y_joints': _float_feature(y_joints),
                     'is_visible_list': _int64_feature(is_visible_list),
                     'head_size': _float_feature(head_size)
                 }))
-        writer.write(example.SerializeToString())
+        writer.write(tf.compat.as_bytes(example.SerializeToString()))
 
 
 def _spacing_to_ranges(spacing):
@@ -414,7 +473,9 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
         tfrecord_filename = '{}{}.tfrecord'.format(base_name, tfrecord_index)
         tfrecord_filepath = os.path.join(FLAGS.train_dir, tfrecord_filename)
 
-        with tf.python_io.TFRecordWriter(path=tfrecord_filepath) as writer:
+        options = tf.python_io.TFRecordOptions(
+            compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+        with tf.python_io.TFRecordWriter(path=tfrecord_filepath, options=options) as writer:
             shard_start = shard_ranges[shard_index][0]
             shard_end = shard_ranges[shard_index][1]
             for img_index in range(shard_start, shard_end):

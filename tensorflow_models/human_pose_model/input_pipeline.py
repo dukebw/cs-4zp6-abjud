@@ -4,7 +4,7 @@ import tensorflow as tf
 from sparse_to_dense import sparse_joints_to_dense_single_example
 from mpii_read import Person
 
-EXAMPLES_PER_SHARD = 1024
+EXAMPLES_PER_SHARD = 256
 
 NUM_JOINTS = Person.NUM_JOINTS
 
@@ -17,16 +17,17 @@ class EvalBatch(object):
     """
     def __init__(self,
                  images,
+                 joint_indices,
                  x_joints,
                  y_joints,
-                 joint_indices,
                  head_size,
                  batch_size):
+
         assert images.get_shape()[0] == batch_size
         self._images = images
+        self._joint_indices = joint_indices
         self._x_joints = x_joints
         self._y_joints = y_joints
-        self._joint_indices = joint_indices
         self._head_size = head_size
         self._batch_size = batch_size
 
@@ -35,16 +36,16 @@ class EvalBatch(object):
         return self._images
 
     @property
+    def joint_indices(self):
+        return self._joint_indices
+
+    @property
     def x_joints(self):
         return self._x_joints
 
     @property
     def y_joints(self):
         return self._y_joints
-
-    @property
-    def joint_indices(self):
-        return self._joint_indices
 
     @property
     def head_size(self):
@@ -83,7 +84,9 @@ def _setup_example_queue(filename_queue,
 
     enqueue_ops = []
     for _ in range(num_readers):
-        reader = tf.TFRecordReader()
+        options = tf.python_io.TFRecordOptions(
+            compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+        reader = tf.TFRecordReader(options=options)
         _, per_thread_example = reader.read(queue=filename_queue)
         enqueue_ops.append(examples_queue.enqueue(vals=[per_thread_example]))
 
@@ -101,6 +104,7 @@ def _parse_example_proto(example_serialized, image_dim):
     """
     feature_map = {
         'image_jpeg': tf.FixedLenFeature(shape=[], dtype=tf.string),
+        'binary_maps': tf.FixedLenFeature(shape=[], dtype=tf.string),
         'joint_indices': tf.VarLenFeature(dtype=tf.int64),
         'x_joints': tf.VarLenFeature(dtype=tf.float32),
         'y_joints': tf.VarLenFeature(dtype=tf.float32),
@@ -117,6 +121,7 @@ def _parse_example_proto(example_serialized, image_dim):
             image=img_tensor, dtype=tf.float32)
 
     parsed_example = (decoded_img,
+                      features['binary_maps'],
                       features['joint_indices'],
                       features['x_joints'],
                       features['y_joints'],
@@ -124,7 +129,7 @@ def _parse_example_proto(example_serialized, image_dim):
 
     return parsed_example
 
-
+# DEPRECATED 08FEB17
 def _get_renormalized_joints(joints, old_img_dim, new_center, new_img_dim):
     """Renormalizes a 1-D vector of joints to a new co-ordinate system given by
     `new_center`, and returns the `SparseTensor` of joints, renormalized.
@@ -133,10 +138,9 @@ def _get_renormalized_joints(joints, old_img_dim, new_center, new_img_dim):
              = 1/w'*(w*N(x; b) + (x_c - x_c'))
     """
     new_joint_vals = (1/new_img_dim*
-                      (old_img_dim*tf.cast(joints.values, tf.float64) + (old_img_dim/2 - new_center)))
+                      (old_img_dim*tf.cast(joints.values, tf.float32) + (old_img_dim/2 - new_center)))
 
     return tf.SparseTensor(joints.indices, new_joint_vals, joints.shape)
-
 
 def _distort_colour(distorted_image, thread_id):
     """Distorts the brightness, saturation, hue and contrast of an image
@@ -160,77 +164,6 @@ def _distort_colour(distorted_image, thread_id):
     return tf.clip_by_value(t=distorted_image, clip_value_min=0.0, clip_value_max=1.0)
 
 
-def _randomly_crop_image(decoded_img,
-                         x_joints,
-                         y_joints,
-                         image_dim,
-                         thread_id):
-    """Randomly crops `deocded_img` to a bounding box covering at least 0.9 of
-    the image, and maintaining an aspect ratio between 0.75 and 1.33.
-
-    Joints have to be re-normalized such that their values have been translated
-    into the new cropped image space. The normalized joint co-ordinates are the
-    distance from the image center as a proportion of the dimension of the
-    image. The renormalization equation can be found in the
-    `_get_renormalized_joints` docstring.
-
-    Args:
-        decoded_img: Decoded image produced by parsing a serialized example and
-            decoding its JPEG image.
-        x_joints: `SparseTensor` of x coordinates of joints returned by
-            de-serializing an example.
-        y_joints: `SparseTensor` of y coordinates of joints returned by
-            de-serializing an example.
-        image_dim: Dimension of the image as required when input to the
-            network.
-        thread_id: Number of the image preprocessing thread responsible for
-            these image distortions.
-
-    Returns:
-        Tuple (distorted_image, x_joints, y_joints) resulting from randomly
-        cropping the image and renormalizing the joints.
-    """
-    bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(
-        image_size=[image_dim, image_dim, 3],
-        bounding_boxes=[[[0, 0, 1.0, 1.0]]],
-        min_object_covered=1.0,
-        aspect_ratio_range=[0.75, 1.33],
-        area_range=[0.5, 1.0],
-        max_attempts=100,
-        use_image_if_no_bounding_boxes=True)
-
-    distorted_image = tf.slice(input_=decoded_img,
-                               begin=bbox_begin,
-                               size=bbox_size)
-
-    distorted_image = tf.image.resize_images(images=[distorted_image],
-                                             size=[image_dim, image_dim],
-                                             method=thread_id % 4,
-                                             align_corners=False)
-
-    distorted_image = tf.reshape(
-        tensor=distorted_image,
-        shape=[image_dim, image_dim, 3])
-
-    distorted_center = tf.cast(bbox_begin, tf.float64) + bbox_size/2
-
-    distorted_center_y = distorted_center[0]
-    distorted_center_x = distorted_center[1]
-    distorted_height = bbox_size[0]
-    distorted_width = bbox_size[1]
-
-    x_joints = _get_renormalized_joints(x_joints,
-                                        image_dim,
-                                        distorted_center_x,
-                                        distorted_width)
-    y_joints = _get_renormalized_joints(y_joints,
-                                        image_dim,
-                                        distorted_center_y,
-                                        distorted_height)
-
-    return distorted_image, x_joints, y_joints
-
-
 def _distort_image(parsed_example, image_dim, thread_id):
     """Randomly distorts the image from `parsed_example` by randomly cropping,
     randomly flipping left and right, and randomly distorting the colour of
@@ -250,14 +183,15 @@ def _distort_image(parsed_example, image_dim, thread_id):
         distorted and the joints have been renormalized to account for those
         distortions.
     """
-    decoded_image, joint_indices, x_joints, y_joints, _ = parsed_example
+    decoded_image, binary_maps, joint_indices, x_joints, y_joints, _ = parsed_example
 
-    # Removed 03Feb
-    distorted_image, x_joints, y_joints = _randomly_crop_image(decoded_image,
-                                                               x_joints,
-                                                               y_joints,
-                                                               image_dim,
-                                                               thread_id)
+    # TODO(brendan): Are these reshapes necessary, without the random cropping?
+    distorted_image = tf.reshape(tensor=decoded_image,
+                                 shape=[image_dim, image_dim, 3])
+    binary_maps = tf.decode_raw(bytes=binary_maps, out_type=tf.uint8)
+    binary_maps = tf.reshape(tensor=binary_maps,
+                             shape=[image_dim, image_dim, NUM_JOINTS])
+    binary_maps = tf.cast(binary_maps, tf.float32)
 
     rand_uniform = tf.random_uniform(shape=[],
                                      minval=0,
@@ -268,6 +202,11 @@ def _distort_image(parsed_example, image_dim, thread_id):
         fn1=lambda: tf.image.flip_left_right(image=distorted_image),
         fn2=lambda: distorted_image)
 
+    distorted_binary_maps = tf.cond(
+        pred=should_flip,
+        fn1=lambda: tf.image.flip_left_right(image=binary_maps),
+        fn2=lambda: binary_maps)
+
     x_joints = tf.cond(
         pred=should_flip,
         fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.shape),
@@ -275,7 +214,37 @@ def _distort_image(parsed_example, image_dim, thread_id):
 
     distorted_image = _distort_colour(distorted_image, thread_id)
 
-    return distorted_image, joint_indices, x_joints, y_joints
+    return distorted_image, distorted_binary_maps, joint_indices, x_joints, y_joints
+
+
+def _parse_and_preprocess_example_eval(example_serialized,
+                                       num_preprocess_threads,
+                                       image_dim):
+    """Same as `_parse_and_preprocess_example_train`, except without image
+    distortion or heatmap creation.
+
+    Hence this function returns dense x and y joints, instead of dense
+    heatmaps.
+    """
+    images_and_joints = []
+    for thread_id in range(num_preprocess_threads):
+        parsed_example = _parse_example_proto(example_serialized, image_dim)
+
+        decoded_img, _, joint_indices, x_joints, y_joints, head_size = parsed_example
+
+        decoded_img = tf.reshape(tensor=decoded_img,
+                                 shape=[image_dim, image_dim, 3])
+
+        decoded_img = tf.sub(x=decoded_img, y=0.5)
+        decoded_img = tf.mul(x=decoded_img, y=2.0)
+
+        images_and_joints.append([decoded_img,
+                                  joint_indices,
+                                  x_joints,
+                                  y_joints,
+                                  head_size])
+
+    return images_and_joints
 
 
 def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
@@ -307,38 +276,6 @@ def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
     return tf.expand_dims(input=probs, axis=expand_axis)
 
 
-def _parse_and_preprocess_example_eval(example_serialized,
-                                       num_preprocess_threads,
-                                       image_dim,
-                                       is_train):
-    """Same as `_parse_and_preprocess_example_train`, except without image
-    distortion or heatmap creation.
-
-    Hence this function returns dense x and y joints, instead of dense
-    heatmaps.
-    """
-    images_and_joints = []
-    for thread_id in range(num_preprocess_threads):
-        parsed_example = _parse_example_proto(example_serialized, image_dim)
-
-        decoded_img, joint_indices, x_joints, y_joints, head_size = parsed_example
-
-        decoded_img = tf.reshape(
-            tensor=decoded_img,
-            shape=[image_dim, image_dim, 3])
-
-        decoded_img = tf.sub(x=decoded_img, y=0.5)
-        decoded_img = tf.mul(x=decoded_img, y=2.0)
-
-        images_and_joints.append([decoded_img,
-                                  x_joints,
-                                  y_joints,
-                                  joint_indices,
-                                  head_size])
-
-    return images_and_joints
-
-
 def _get_joint_heatmaps(heatmap_stddev_pixels,
                         image_dim,
                         x_dense_joints,
@@ -360,10 +297,10 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
     Equation 2 on page 6 of the Bulat paper.
     """
     std_dev = np.full(NUM_JOINTS, heatmap_stddev_pixels/image_dim)
-    std_dev = tf.cast(std_dev, tf.float64)
+    std_dev = tf.cast(std_dev, tf.float32)
 
     pixel_spacing = np.linspace(-0.5, 0.5, image_dim)
-    coords = np.empty((image_dim, NUM_JOINTS), dtype=np.float64)
+    coords = np.empty((image_dim, NUM_JOINTS), dtype=np.float32)
     coords[...] = pixel_spacing[:, None]
 
     x_probs = _get_joints_normal_pdf(x_dense_joints, std_dev, coords, -2)
@@ -379,22 +316,6 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
     weights = tf.tile(weights, [image_dim, image_dim, 1])
 
     return heatmaps, weights
-
-
-def _get_binary_maps(image_dim, x_dense_joints, y_dense_joints):
-    """Creates binary maps of shape [image_dim, image_dim, NUM_JOINTS],
-    that are 10 pixels in radius.
-    """
-    dim_j = complex(0, image_dim)
-    y, x = np.mgrid[-0.5:0.5:dim_j, -0.5:0.5:dim_j]
-    y = tf.expand_dims(input=y, axis=-1)
-    y = tf.tile(input=y, multiples=[1, 1, NUM_JOINTS])
-    x = tf.expand_dims(input=x, axis=-1)
-    x = tf.tile(input=x, multiples=[1, 1, NUM_JOINTS])
-
-    binary_maps = ((y - y_dense_joints)**2 + (x - x_dense_joints)**2 < (10/image_dim)**2)
-
-    return tf.cast(binary_maps, tf.float64)
 
 
 def _parse_and_preprocess_example_train(example_serialized,
@@ -427,7 +348,7 @@ def _parse_and_preprocess_example_train(example_serialized,
     for thread_id in range(num_preprocess_threads):
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
-        distorted_image, joint_indices, x_joints, y_joints = _distort_image(
+        distorted_image, binary_maps, joint_indices, x_joints, y_joints = _distort_image(
             parsed_example, image_dim, thread_id)
 
         x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(
@@ -439,14 +360,10 @@ def _parse_and_preprocess_example_train(example_serialized,
                                                 y_dense_joints,
                                                 weights)
 
-        binary_maps = _get_binary_maps(image_dim,
-                                       x_dense_joints,
-                                       y_dense_joints)
-
         distorted_image = tf.sub(x=distorted_image, y=0.5)
         distorted_image = tf.mul(x=distorted_image, y=2.0)
 
-        images_and_joint_maps.append([distorted_image, heatmaps, binary_maps, weights])
+        images_and_joint_maps.append([distorted_image, binary_maps, heatmaps, weights])
 
     return images_and_joint_maps
 
@@ -455,7 +372,7 @@ def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
     """
-    images, heatmaps, binary_maps, weights = tf.train.batch_join(
+    images, binary_maps, heatmaps, weights = tf.train.batch_join(
         tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
@@ -472,7 +389,7 @@ def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads
     tf.summary.image(name='heatmaps', tensor=merged_heatmaps)
     tf.summary.image(name='binary_maps', tensor=merged_binary_maps)
 
-    return images, heatmaps, weights
+    return images, binary_maps, heatmaps, weights
 
 
 def setup_eval_input_pipeline(batch_size,
@@ -490,24 +407,25 @@ def setup_eval_input_pipeline(batch_size,
         shuffle=False,
         capacity=1)
 
-    reader = tf.TFRecordReader()
+    options = tf.python_io.TFRecordOptions(
+        compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+    reader = tf.TFRecordReader(options=options)
     _, example_serialized = reader.read(filename_queue)
 
-    images_and_joints = _parse_and_preprocess_example_eval(
+    images_and_joint_maps = _parse_and_preprocess_example_eval(
         example_serialized,
         num_preprocess_threads,
-        image_dim,
-        False)
+        image_dim)
 
-    images, x_joints, y_joints, joint_indices, head_size = tf.train.batch_join(
-        tensors_list=images_and_joints,
+    images, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
+        tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
     return EvalBatch(images,
+                     joint_indices,
                      x_joints,
                      y_joints,
-                     joint_indices,
                      head_size,
                      batch_size)
 
@@ -539,8 +457,6 @@ def setup_train_input_pipeline(FLAGS, data_filenames):
         num_preprocess_threads: Number of threads to use to preprocess image
             data.
         image_dim: Dimension of square input images.
-        heatmap_stddev_pixels: Standard deviation of Gaussian joint heatmap, in
-            pixels.
         data_filenames: Set of filenames to get examples from.
 
     Returns:

@@ -51,9 +51,11 @@ def evaluate(network_name,
             assert data_filenames, ('No data files found.')
 
             min_examples_per_shard = math.inf
+            options = tf.python_io.TFRecordOptions(
+                compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
             for data_file in data_filenames:
                 examples_in_shard = 0
-                for _ in tf.python_io.tf_record_iterator(path=data_file):
+                for _ in tf.python_io.tf_record_iterator(path=data_file, options=options):
                     examples_in_shard += 1
 
                 min_examples_per_shard = min(min_examples_per_shard, examples_in_shard)
