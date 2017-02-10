@@ -22,7 +22,6 @@ class EvalBatch(object):
                  y_joints,
                  head_size,
                  batch_size):
-
         assert images.get_shape()[0] == batch_size
         self._images = images
         self._joint_indices = joint_indices
@@ -140,7 +139,7 @@ def _get_renormalized_joints(joints, old_img_dim, new_center, new_img_dim):
     new_joint_vals = (1/new_img_dim*
                       (old_img_dim*tf.cast(joints.values, tf.float32) + (old_img_dim/2 - new_center)))
 
-    return tf.SparseTensor(joints.indices, new_joint_vals, joints.shape)
+    return tf.SparseTensor(joints.indices, new_joint_vals, joints.dense_shape)
 
 def _distort_colour(distorted_image, thread_id):
     """Distorts the brightness, saturation, hue and contrast of an image
@@ -209,7 +208,7 @@ def _distort_image(parsed_example, image_dim, thread_id):
 
     x_joints = tf.cond(
         pred=should_flip,
-        fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.shape),
+        fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.dense_shape),
         fn2=lambda: x_joints)
 
     distorted_image = _distort_colour(distorted_image, thread_id)
@@ -235,8 +234,8 @@ def _parse_and_preprocess_example_eval(example_serialized,
         decoded_img = tf.reshape(tensor=decoded_img,
                                  shape=[image_dim, image_dim, 3])
 
-        decoded_img = tf.sub(x=decoded_img, y=0.5)
-        decoded_img = tf.mul(x=decoded_img, y=2.0)
+        decoded_img = tf.subtract(x=decoded_img, y=0.5)
+        decoded_img = tf.multiply(x=decoded_img, y=2.0)
 
         images_and_joints.append([decoded_img,
                                   joint_indices,
@@ -306,7 +305,7 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
     x_probs = _get_joints_normal_pdf(x_dense_joints, std_dev, coords, -2)
     y_probs = _get_joints_normal_pdf(y_dense_joints, std_dev, coords, -1)
 
-    heatmaps = tf.batch_matmul(x=y_probs, y=x_probs)
+    heatmaps = tf.matmul(a=y_probs, b=x_probs)
     heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
 
     # TODO(brendan): Add back this 1/N factor to the weights?
@@ -360,8 +359,8 @@ def _parse_and_preprocess_example_train(example_serialized,
                                                 y_dense_joints,
                                                 weights)
 
-        distorted_image = tf.sub(x=distorted_image, y=0.5)
-        distorted_image = tf.mul(x=distorted_image, y=2.0)
+        distorted_image = tf.subtract(x=distorted_image, y=0.5)
+        distorted_image = tf.multiply(x=distorted_image, y=2.0)
 
         images_and_joint_maps.append([distorted_image, binary_maps, heatmaps, weights])
 
