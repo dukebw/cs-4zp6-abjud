@@ -11,6 +11,7 @@ from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from evaluate import evaluate
 from tqdm import trange
+import pdb
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -326,6 +327,7 @@ def _restore_checkpoint_variables(session, global_step):
     variables in the file found in `FLAGS.checkpoint_path`, except those
     excluded by `FLAGS.checkpoint_exclude_scopes`.
     """
+    pdb.set_trace()
     if FLAGS.checkpoint_path is None:
         return
 
@@ -344,6 +346,19 @@ def _restore_checkpoint_variables(session, global_step):
                     break
                 # For some reason there are no biases in the resnet checkpoint 0_o
                 if FLAGS.network_name == 'resnet_bulat' and var.op.name.endswith('biases'):
+                    excluded = True
+                    break
+                # There are no batch norm layers in the original vgg - Not having regexp is so annoying
+                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_mean'):
+                    print('i am here')
+                    excluded = True
+                    break
+                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_variance'):
+                    print('i am here')
+                    excluded = True
+                    break
+                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/beta'):
+                    print('i am here')
                     excluded = True
                     break
             if not excluded:

@@ -8,6 +8,7 @@ from mpii_read import Person
 from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
 import pdb
+from tqdm import tqdm
 
 NUM_JOINTS = 16
 JOINT_NAMES = ['0 - r ankle',
@@ -187,7 +188,7 @@ def evaluate(network_name,
             matched_joints = Person.NUM_JOINTS*[0]
             predicted_joints = Person.NUM_JOINTS*[0]
             valid_epoch_mean_loss = 0
-            for _ in range(num_batches):
+            for _ in tqdm(range(num_batches)):
                 [batch_loss, predictions, x_gt_joints, y_gt_joints, weights, head_size] = session.run(
                     fetches=[loss, tower_logits, next_x_gt_joints, next_y_gt_joints, next_weights, eval_batch.head_size])
 
@@ -199,7 +200,6 @@ def evaluate(network_name,
 
                 x_predicted_joints = np.empty((batch_size, Person.NUM_JOINTS))
                 y_predicted_joints = np.empty((batch_size, Person.NUM_JOINTS))
-                print(predictions.shape, batch_size)
                 for batch_index in range(batch_size):
                     for joint_index in range(Person.NUM_JOINTS):
                         joint_heatmap = predictions[batch_index, ..., joint_index]

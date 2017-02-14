@@ -455,7 +455,7 @@ def setup_eval_input_pipeline(batch_size,
     images, binary_maps, heatmaps, weights, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
         tensors_list=images_and_joint_maps,
         batch_size=batch_size,
-        capacity=2*num_gpus*num_preprocess_threads*batch_size)
+        capacity=2*num_preprocess_threads*batch_size)
 
     return EvalBatch(images,
                      binary_maps,
