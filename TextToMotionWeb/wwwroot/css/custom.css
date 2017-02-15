@@ -3,8 +3,14 @@
 }
 
 
+body{
+    background-color: #F0F0F0;
+}
+
+
+
 .page-heading{
-    background-color: crimson; /*#8aa2b8;*/
+    background-color: crimson !important; /*#8aa2b8;*/
     color: #FFF;
 }
 
@@ -28,6 +34,8 @@
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
     transition: 0.3s;
     margin-bottom: 2em;
+    background-color: #FFF;
+
 }
 
 .card-inverse{
