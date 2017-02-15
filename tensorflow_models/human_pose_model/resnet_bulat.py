@@ -175,7 +175,7 @@ def resnet_detector(inputs,
       # B5
       resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)]
   return bulat_resnet_v1(inputs, blocks, num_classes, is_training=is_training,
-                         include_root_block=True, reuse=reuse, scope=scope)
+                         include_root_block=True, reuse=reuse, scope='resnet_v1_152')
 
 
 def resnet_regressor(inputs, num_classes=16, is_training=True, scope='resnet_regressor'):

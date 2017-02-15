@@ -350,15 +350,12 @@ def _restore_checkpoint_variables(session, global_step):
                     break
                 # There are no batch norm layers in the original vgg - Not having regexp is so annoying
                 if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_mean'):
-                    print('i am here')
                     excluded = True
                     break
                 if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_variance'):
-                    print('i am here')
                     excluded = True
                     break
                 if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/beta'):
-                    print('i am here')
                     excluded = True
                     break
             if not excluded:

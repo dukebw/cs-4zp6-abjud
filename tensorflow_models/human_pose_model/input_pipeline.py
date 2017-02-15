@@ -295,13 +295,13 @@ def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
             PDF output from a tensor with shape [16, 380] to a tensor with
             shape [16, 380, 1]
 
-    
+
         3-D tensor with first dim being the length of `dense_joints`, and two
         more dimensions, one of which is the length of `coords` and the other
         of which has size 1.
     """
-    normal = tf.contrib.distributions.Normal(mu=dense_joints, sigma=std_dev)
-    probs = normal.pdf(coords)
+    normal = tf.contrib.distributions.Normal(dense_joints, std_dev)
+    probs = normal.prob(coords)
     probs = tf.transpose(probs)
 
     return tf.expand_dims(input=probs, axis=expand_axis)
