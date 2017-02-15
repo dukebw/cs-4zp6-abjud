@@ -76,4 +76,4 @@ def sparse_joints_to_dense(batch, num_joints):
         batch.joint_indices,
         num_joints)
 
-    return x_dense_joints, y_dense_joints, tf.concat(concat_dim=1, values=[weights, weights])
+    return x_dense_joints, y_dense_joints, tf.concat(axis=1, values=[weights, weights])

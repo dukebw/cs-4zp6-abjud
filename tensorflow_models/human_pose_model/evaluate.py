@@ -143,9 +143,9 @@ def evaluate(network_name,
                                                    num_gpus,
                                                    data_filenames)
             # sets up the evaluation op
-            images_split = tf.split(split_dim=0, num_split=num_gpus, value=eval_batch.images)
-            heatmaps_split = tf.split(split_dim=0, num_split=num_gpus, value=eval_batch.heatmaps)
-            weights_split = tf.split(split_dim=0, num_split=num_gpus, value=eval_batch.weights)
+            images_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.images)
+            heatmaps_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.heatmaps)
+            weights_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.weights)
 
             tower_logits_list = []
             for gpu_index in range(num_gpus):
@@ -160,7 +160,7 @@ def evaluate(network_name,
 
                         tower_logits_list.append(logits)
             # Concatenate the outputs of the gpus along batch dim
-            tower_logits = tf.concat(0, tower_logits_list)
+            tower_logits = tf.concat(axis=0, values=tower_logits_list)
             '''
             part_detect_net = NETS[network_name]
             net_arg_scope = NET_ARG_SCOPES[network_name]

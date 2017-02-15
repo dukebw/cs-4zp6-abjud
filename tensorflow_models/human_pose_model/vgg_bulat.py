@@ -153,7 +153,6 @@ def vgg_16(inputs,
                 skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
                                       activation_fn=None,
                                       normalizer_fn=None,
-                                      weights_initializer=init_ops.zeros_initializer,
                                       scope='skip_a4')
                 a9 = a9 + skip_a4
 
@@ -161,7 +160,6 @@ def vgg_16(inputs,
                 skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
                                       activation_fn=None,
                                       normalizer_fn=None,
-                                      weights_initializer=init_ops.zeros_initializer,
                                       scope='skip_a3')
                 a9 = a9 + skip_a3
 
@@ -232,13 +230,11 @@ def vgg_16_bn_relu(inputs,
 
                     a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
                     skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
-                                          weights_initializer=init_ops.zeros_initializer,
                                           scope='skip_a4')
                     a9 = a9 + skip_a4
 
                     a9 = tf.image.resize_bilinear(images=a9, size=a3.get_shape()[1:3])
                     skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
-                                          weights_initializer=init_ops.zeros_initializer,
                                           scope='skip_a3')
                     a9 = a9 + skip_a3
 

@@ -251,7 +251,7 @@ def _average_gradients(tower_grads):
         for grad, _ in grad_and_vars:
             grads.append(tf.expand_dims(input=grad, axis=0))
 
-        grad = tf.concat(concat_dim=0, values=grads)
+        grad = tf.concat(axis=0, values=grads)
         grad = tf.reduce_mean(input_tensor=grad, axis=0)
 
         avg_grad_and_vars.append((grad, grad_and_vars[0][1]))
@@ -327,7 +327,7 @@ def _restore_checkpoint_variables(session, global_step):
     variables in the file found in `FLAGS.checkpoint_path`, except those
     excluded by `FLAGS.checkpoint_exclude_scopes`.
     """
-    pdb.set_trace()
+    #pdb.set_trace()
     if FLAGS.checkpoint_path is None:
         return
 
