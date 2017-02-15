@@ -4,9 +4,22 @@
 
 
 .page-heading{
-    background-color: #8aa2b8;
+    background-color: crimson; /*#8aa2b8;*/
     color: #FFF;
 }
+
+
+.custom-banner{
+    height:250px !important;
+    width:100% !important;
+    background-color: crimson !important;
+}
+
+.banner-transition{
+    background-color:dimgrey;
+    height: 20px !important;
+}
+
 
 
 
@@ -18,7 +31,7 @@
 }
 
 .card-inverse{
-    background-color: #4cb6ea;
+    background-color: #546e7a !important;
     color: #FFF;
 }
 
@@ -66,8 +79,10 @@
 
 .fullWidth{
     max-width: 100%;
-    width: 100%;
+    width: 100% !important;
  }
+
+
 
  .geoFont {
     font-family: Geometric415;
