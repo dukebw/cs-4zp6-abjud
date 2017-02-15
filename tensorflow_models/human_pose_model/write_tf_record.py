@@ -3,6 +3,7 @@ import threading
 import math
 import numpy as np
 import tensorflow as tf
+import pose_util
 from mpii_read import mpii_read, Person
 from timethis import timethis
 from shapes import Point, Rectangle
@@ -433,18 +434,6 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
         writer.write(tf.compat.as_bytes(example.SerializeToString()))
 
 
-def _spacing_to_ranges(spacing):
-    """Takes a list of spacings indicating intervals, e.g. [0, 1, 2] indicating
-    intervals 0-1 and 1-2, and returns a list of lists indicating ranges, i.e.
-    [[0, 1], [1, 2]].
-    """
-    ranges = []
-    for spacing_index in range(len(spacing) - 1):
-        ranges.append([spacing[spacing_index], spacing[spacing_index + 1]])
-
-    return ranges
-
-
 def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset):
     """Processes a range of filenames and labels in the MPII dataset
     corresponding to the given thread index.
@@ -462,11 +451,9 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
         base_name = 'test'
 
     shards_per_thread = FLAGS.train_shards/FLAGS.num_threads
-    shard_spacing = np.linspace(ranges[thread_index][0],
-                                ranges[thread_index][1],
-                                shards_per_thread + 1).astype(np.int)
-
-    shard_ranges = _spacing_to_ranges(shard_spacing)
+    shard_ranges = pose_util.get_n_ranges(ranges[thread_index][0],
+                                          ranges[thread_index][1],
+                                          shards_per_thread)
 
     for shard_index in range(len(shard_ranges)):
         tfrecord_index = int(thread_index*shards_per_thread + shard_index)
@@ -497,8 +484,7 @@ def _process_image_files(mpii_dataset, num_examples, session):
 
     num_threads = FLAGS.num_threads
 
-    spacing = np.linspace(0, num_examples, num_threads + 1).astype(np.int)
-    ranges = _spacing_to_ranges(spacing)
+    ranges = pose_util.get_n_ranges(0, num_examples, num_threads)
 
     coder = ImageCoder(session)
 

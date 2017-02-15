@@ -1,6 +1,7 @@
 """This module contains all of the model definitions, importing models from TF
 Slim where needed.
 """
+import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.slim.nets import inception
 from tensorflow.contrib.slim.nets import vgg
@@ -11,9 +12,9 @@ def vgg_loss(logits, endpoints, dense_joints, weights):
     """For VGG, currently we do a mean squared error on the joint locations
     compared with ground truth locations.
     """
-    slim.losses.mean_squared_error(predictions=logits,
-            labels=dense_joints,
-            weights=weights)
+    tf.losses.mean_squared_error(predictions=logits,
+                                 labels=dense_joints,
+                                 weights=weights)
 
 
 def inception_v3_loss(logits, endpoints, dense_joints, weights):
@@ -22,14 +23,14 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
     """
     auxiliary_logits = endpoints['AuxLogits']
 
-    slim.losses.mean_squared_error(predictions=auxiliary_logits,
-                                   labels=dense_joints,
-                                   weights=weights,
-                                   scope='aux_logits')
+    tf.losses.mean_squared_error(predictions=auxiliary_logits,
+                                 labels=dense_joints,
+                                 weights=weights,
+                                 scope='aux_logits')
 
-    slim.losses.mean_squared_error(predictions=logits,
-                                   labels=dense_joints,
-                                   weights=weights)
+    tf.losses.mean_squared_error(predictions=logits,
+                                 labels=dense_joints,
+                                 weights=weights)
 
 def detector_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
@@ -43,20 +44,20 @@ def regressor_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
-    slim.losses.mean_squared_error(predictions=logits,
-                                   labels=heatmaps,
-                                   weights=weights,
-                                   scope='regressor_loss')
+    tf.losses.mean_squared_error(predictions=logits,
+                                 labels=heatmaps,
+                                 weights=weights,
+                                 scope='regressor_loss')
 
 # Keeping the in for now for legacy
 def vgg_bulat_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
-    slim.losses.mean_squared_error(predictions=logits,
-                                   labels=heatmaps,
-                                   weights=weights,
-                                   scope='mean_squared_loss')
+    tf.losses.mean_squared_error(predictions=logits,
+                                 labels=heatmaps,
+                                 weights=weights,
+                                 scope='mean_squared_loss')
 
 
 NETS = {'vgg': vgg.vgg_16,

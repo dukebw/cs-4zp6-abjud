@@ -152,7 +152,6 @@ def vgg_16(inputs,
                 skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
                                       activation_fn=None,
                                       normalizer_fn=None,
-                                      weights_initializer=init_ops.zeros_initializer,
                                       scope='skip_a4')
                 a9 = a9 + skip_a4
 
@@ -160,7 +159,6 @@ def vgg_16(inputs,
                 skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
                                       activation_fn=None,
                                       normalizer_fn=None,
-                                      weights_initializer=init_ops.zeros_initializer,
                                       scope='skip_a3')
                 a9 = a9 + skip_a3
 
