@@ -1,6 +1,9 @@
 import os
+import threading
 import time
 import numpy as np
+from tqdm import trange
+import pose_util
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import control_flow_ops
@@ -10,7 +13,6 @@ from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from evaluate import evaluate
-from tqdm import trange
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -251,7 +253,7 @@ def _average_gradients(tower_grads):
         for grad, _ in grad_and_vars:
             grads.append(tf.expand_dims(input=grad, axis=0))
 
-        grad = tf.concat(concat_dim=0, values=grads)
+        grad = tf.concat(values=grads, axis=0)
         grad = tf.reduce_mean(input_tensor=grad, axis=0)
 
         avg_grad_and_vars.append((grad, grad_and_vars[0][1]))
@@ -280,9 +282,9 @@ def _setup_training_op(images,
 
     Returns: Operation to run a training step.
     """
-    images_split = tf.split(split_dim=0, num_split=num_gpus, value=images)
-    heatmaps_split = tf.split(split_dim=0, num_split=num_gpus, value=heatmaps)
-    weights_split = tf.split(split_dim=0, num_split=num_gpus, value=weights)
+    images_split = tf.split(value=images, num_or_size_splits=num_gpus, axis=0)
+    heatmaps_split = tf.split(value=heatmaps, num_or_size_splits=num_gpus, axis=0)
+    weights_split = tf.split(value=weights, num_or_size_splits=num_gpus, axis=0)
 
     tower_grads = []
     for gpu_index in range(num_gpus):
@@ -357,6 +359,47 @@ def _restore_checkpoint_variables(session, global_step):
     restorer.restore(sess=session, save_path=FLAGS.checkpoint_path)
 
 
+def _thread_count_examples(num_examples_results,
+                           train_data_filenames,
+                           ranges,
+                           thread_index):
+    """Per-thread function to count the number of examples in its given range
+    (`ranges[thread_index]`) of the `train_data_filenames` list.
+
+    The resultant count is returned in `num_examples_results[thread_index]`,
+    such that `num_examples_results` can be summed after all the threads are
+    joined, in order to produce the total number of examples.
+    """
+    options = tf.python_io.TFRecordOptions(
+        compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+    for file_index in range(ranges[thread_index][0], ranges[thread_index][1]):
+        data_file = train_data_filenames[file_index]
+        for _ in tf.python_io.tf_record_iterator(path=data_file, options=options):
+            num_examples_results[thread_index] += 1
+
+
+def _count_training_examples(train_data_filenames, num_threads):
+    """Counts training examples in the TFRecords given by
+    `train_data_filenames`, by creating `num_threads` threads, which will all
+    count the examples in roughly 1/train_data_filenames of the files.
+    """
+    coord = tf.train.Coordinator()
+
+    ranges = pose_util.get_n_ranges(0, len(train_data_filenames), num_threads)
+
+    num_examples_results = num_threads*[0]
+    threads = []
+    for thread_index in range(num_threads):
+        args = (num_examples_results, train_data_filenames, ranges, thread_index)
+        t = threading.Thread(target=_thread_count_examples, args=args)
+        t.start()
+        threads.append(t)
+
+    coord.join(threads)
+
+    return sum(num_examples_results)
+
+
 def train():
     """Trains an Inception v3 network to regress joint co-ordinates (NUM_JOINTS
     sets of (x, y) co-ordinates) directly.
@@ -373,12 +416,9 @@ def train():
             assert train_data_filenames, ('No data files found.')
             assert len(train_data_filenames) >= FLAGS.num_readers
 
-            num_training_examples = 0
-            options = tf.python_io.TFRecordOptions(
-                compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
-            for data_file in train_data_filenames:
-                for _ in tf.python_io.tf_record_iterator(path=data_file, options=options):
-                    num_training_examples += 1
+            num_training_examples = _count_training_examples(
+                train_data_filenames,
+                FLAGS.num_preprocess_threads + FLAGS.num_readers)
 
             # Merged with FLAGS
             # TODO add ability to summarize heatmaps
