@@ -17,6 +17,9 @@ class EvalBatch(object):
     """
     def __init__(self,
                  images,
+                 binary_maps,
+                 heatmaps,
+                 weights,
                  joint_indices,
                  x_joints,
                  y_joints,
@@ -24,6 +27,9 @@ class EvalBatch(object):
                  batch_size):
         assert images.get_shape()[0] == batch_size
         self._images = images
+        self._binary_maps = binary_maps
+        self._heatmaps = heatmaps
+        self._weights = weights
         self._joint_indices = joint_indices
         self._x_joints = x_joints
         self._y_joints = y_joints
@@ -33,6 +39,18 @@ class EvalBatch(object):
     @property
     def images(self):
         return self._images
+
+    @property
+    def binary_maps(self):
+        return self._binary_maps
+
+    @property
+    def heatmaps(self):
+        return self._heatmaps
+
+    @property
+    def weights(self):
+        return self._weights
 
     @property
     def joint_indices(self):
@@ -109,6 +127,7 @@ def _parse_example_proto(example_serialized, image_dim):
         'y_joints': tf.VarLenFeature(dtype=tf.float32),
         'head_size': tf.FixedLenFeature(shape=[], dtype=tf.float32)
     }
+
     features = tf.parse_single_example(
         serialized=example_serialized, features=feature_map)
 
@@ -216,7 +235,8 @@ def _distort_image(parsed_example, image_dim, thread_id):
     return distorted_image, distorted_binary_maps, joint_indices, x_joints, y_joints
 
 
-def _parse_and_preprocess_example_eval(example_serialized,
+def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
+                                       example_serialized,
                                        num_preprocess_threads,
                                        image_dim):
     """Same as `_parse_and_preprocess_example_train`, except without image
@@ -225,11 +245,11 @@ def _parse_and_preprocess_example_eval(example_serialized,
     Hence this function returns dense x and y joints, instead of dense
     heatmaps.
     """
-    images_and_joints = []
+    images_and_jointmaps = []
     for thread_id in range(num_preprocess_threads):
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
-        decoded_img, _, joint_indices, x_joints, y_joints, head_size = parsed_example
+        decoded_img, binary_maps, joint_indices, x_joints, y_joints, head_size = parsed_example
 
         decoded_img = tf.reshape(tensor=decoded_img,
                                  shape=[image_dim, image_dim, 3])
@@ -237,13 +257,25 @@ def _parse_and_preprocess_example_eval(example_serialized,
         decoded_img = tf.subtract(x=decoded_img, y=0.5)
         decoded_img = tf.multiply(x=decoded_img, y=2.0)
 
-        images_and_joints.append([decoded_img,
+        x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(
+            x_joints, y_joints, joint_indices, NUM_JOINTS)
+
+        heatmaps, weights = _get_joint_heatmaps(heatmap_stddev_pixels,
+                                                image_dim,
+                                                x_dense_joints,
+                                                y_dense_joints,
+                                                weights)
+
+        images_and_jointmaps.append([decoded_img,
+                                  binary_maps,
+                                  heatmaps,
+                                  weights,
                                   joint_indices,
                                   x_joints,
                                   y_joints,
                                   head_size])
 
-    return images_and_joints
+    return images_and_jointmaps
 
 
 def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
@@ -263,7 +295,7 @@ def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
             PDF output from a tensor with shape [16, 380] to a tensor with
             shape [16, 380, 1]
 
-    Returns:
+    
         3-D tensor with first dim being the length of `dense_joints`, and two
         more dimensions, one of which is the length of `coords` and the other
         of which has size 1.
@@ -394,6 +426,8 @@ def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads
 def setup_eval_input_pipeline(batch_size,
                               num_preprocess_threads,
                               image_dim,
+                              heatmap_stddev_pixels,
+                              num_gpus,
                               data_filenames):
     """Sets up an input pipeline for model evaluation.
 
@@ -412,16 +446,20 @@ def setup_eval_input_pipeline(batch_size,
     _, example_serialized = reader.read(filename_queue)
 
     images_and_joint_maps = _parse_and_preprocess_example_eval(
+        heatmap_stddev_pixels,
         example_serialized,
         num_preprocess_threads,
         image_dim)
 
-    images, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
+    images, binary_maps, heatmaps, weights, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
         tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
     return EvalBatch(images,
+                     binary_maps,
+                     heatmaps,
+                     weights,
                      joint_indices,
                      x_joints,
                      y_joints,

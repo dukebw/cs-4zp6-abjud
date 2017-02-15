@@ -157,8 +157,7 @@ def _inference(images, heatmaps, weights, gpu_index, scope):
     net_loss = NET_LOSS[FLAGS.network_name]
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
-            with tf.variable_scope(name_or_scope=tf.get_variable_scope(),
-                                   reuse=(gpu_index > 0)):
+            with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 logits, endpoints = part_detect_net(inputs=images,
                                                     num_classes=NUM_JOINTS,
                                                     scope=scope)
@@ -178,7 +177,7 @@ def _inference(images, heatmaps, weights, gpu_index, scope):
 
             total_loss = _summarize_loss(total_loss, gpu_index)
 
-    return total_loss
+    return total_loss, logits
 
 
 def _setup_optimizer(batches_per_epoch,
@@ -290,7 +289,7 @@ def _setup_training_op(images,
     for gpu_index in range(num_gpus):
         with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
             with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
-                total_loss = _inference(images_split[gpu_index],
+                total_loss,_ = _inference(images_split[gpu_index],
                                         heatmaps_split[gpu_index],
                                         weights_split[gpu_index],
                                         gpu_index,
@@ -347,6 +346,19 @@ def _restore_checkpoint_variables(session, global_step):
                     break
                 # For some reason there are no biases in the resnet checkpoint 0_o
                 if FLAGS.network_name == 'resnet_bulat' and var.op.name.endswith('biases'):
+                    excluded = True
+                    break
+                # There are no batch norm layers in the original vgg - Not having regexp is so annoying
+                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_mean'):
+                    print('i am here')
+                    excluded = True
+                    break
+                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_variance'):
+                    print('i am here')
+                    excluded = True
+                    break
+                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/beta'):
+                    print('i am here')
                     excluded = True
                     break
             if not excluded:
@@ -421,7 +433,6 @@ def train():
                 FLAGS.num_preprocess_threads + FLAGS.num_readers)
 
             # Merged with FLAGS
-            # TODO add ability to summarize heatmaps
             images, binary_maps, heatmaps, weights = setup_train_input_pipeline(
                 FLAGS, train_data_filenames)
 
@@ -459,7 +470,10 @@ def train():
                 graph=session.graph)
 
             epoch = 0
+            # To follow mean loss over epoch
+            curr_step = 0
             while epoch < FLAGS.max_epochs:
+                train_epoch_mean_loss = 0
                 Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
                 for batch_step in Epoch:
                     start_time = time.time()
@@ -469,6 +483,7 @@ def train():
 
                     desc = ('step {}: loss = {} ({:.2f} sec/step)'
                             .format(total_steps, batch_loss, duration))
+                    train_epoch_mean_loss += batch_loss
                     Epoch.set_description(desc)
                     Epoch.refresh()
                     assert not np.isnan(batch_loss)
@@ -484,7 +499,10 @@ def train():
                 saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
 
                 epoch = int(total_steps/num_batches_per_epoch)
-                log_handle.write('Epoch {} done. Evaluating metrics.\n'.format(epoch))
+                train_epoch_mean_loss /= (total_steps - curr_step)
+                curr_step = total_steps
+                log_handle.write('Epoch {} done.\n'.format(epoch))
+                log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
                 log_handle.flush()
 
                 latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=FLAGS.log_dir)
@@ -497,6 +515,8 @@ def train():
                          FLAGS.image_dim,
                          FLAGS.num_preprocess_threads,
                          FLAGS.batch_size,
+                         FLAGS.num_gpus,
+                         FLAGS.heatmap_stddev_pixels,
                          epoch)
 
             log_handle.close()

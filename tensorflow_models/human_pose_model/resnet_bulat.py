@@ -134,7 +134,7 @@ def bulat_resnet_v1(inputs,
   """
   with tf.variable_scope(scope, 'resnet_v1', [inputs], reuse=reuse) as sc:
     end_points_collection = sc.name + '_end_points'
-    with slim.arg_scope(resnet_utils.resnet_arg_scope(),[slim.conv2d, bottleneck, resnet_utils.stack_blocks_dense],
+    with slim.arg_scope([slim.conv2d, bottleneck, resnet_utils.stack_blocks_dense],
                         outputs_collections=end_points_collection):
       with slim.arg_scope([slim.batch_norm], is_training=is_training):
         net = inputs
@@ -144,7 +144,7 @@ def bulat_resnet_v1(inputs,
         # B1
         # 1x Conv       64, 7x7, 2x2
         # 1x Pooling    3x3, 2x2
-        net = resnet_utils.conv2d_same(net, 64, [7,7], stride=2, scope='conv1', activation_fn=None, normalizer_fn=None)
+        net = resnet_utils.conv2d_same(net, 64, 7, stride=2, scope='conv1')
         net = slim.max_pool2d(net, [3, 3], stride=2, scope='pool1')
         # B2 - B5
         net = resnet_utils.stack_blocks_dense(net, blocks, output_stride)
