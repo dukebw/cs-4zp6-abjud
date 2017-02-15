@@ -129,7 +129,7 @@ def _summarize_loss(total_loss, gpu_index):
     return total_loss
 
 
-def _inference(images, heatmaps, weights, gpu_index, scope):
+def _inference(images, binary_maps, heatmaps, weights, gpu_index, scope):
     """Sets up a human pose inference model, computes predictions on input
     images and calculates loss on those predictions based on an input dense
     vector of joint location confidence maps and binary maps (the ground truth
@@ -155,19 +155,27 @@ def _inference(images, heatmaps, weights, gpu_index, scope):
     part_detect_net = NETS[FLAGS.network_name]
     net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
     net_loss = NET_LOSS[FLAGS.network_name]
+    detect = True
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
             with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 logits, endpoints = part_detect_net(inputs=images,
                                                     num_classes=NUM_JOINTS,
                                                     scope=scope)
-
-
-            net_loss(logits, endpoints, heatmaps, weights)
+            #import pdb
+            #pdb.set_trace()
+            # Just simple for now
+            if detect:
+                detector_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+                                                                        labels=binary_maps,
+                                                                        logits=logits,
+                                                                        name='detector_loss'))
+            else:
+                net_loss(logits, endpoints, heatmaps, weights)
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
             regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
-            total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
+            total_loss = tf.add_n([detector_loss] + losses + regularization_losses, name='total_loss')
 
             merged_logits = tf.reshape(
                 tf.reduce_max(logits, 3),
@@ -261,6 +269,7 @@ def _average_gradients(tower_grads):
 
 
 def _setup_training_op(images,
+                       binary_maps,
                        heatmaps,
                        weights,
                        global_step,
@@ -282,6 +291,7 @@ def _setup_training_op(images,
     Returns: Operation to run a training step.
     """
     images_split = tf.split(value=images, num_or_size_splits=num_gpus, axis=0)
+    binary_maps_split = tf.split(value=binary_maps, num_or_size_splits=num_gpus, axis=0)
     heatmaps_split = tf.split(value=heatmaps, num_or_size_splits=num_gpus, axis=0)
     weights_split = tf.split(value=weights, num_or_size_splits=num_gpus, axis=0)
 
@@ -290,10 +300,11 @@ def _setup_training_op(images,
         with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
             with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
                 total_loss,_ = _inference(images_split[gpu_index],
-                                        heatmaps_split[gpu_index],
-                                        weights_split[gpu_index],
-                                        gpu_index,
-                                        scope)
+                                          binary_maps_split[gpu_index],
+                                          heatmaps_split[gpu_index],
+                                          weights_split[gpu_index],
+                                          gpu_index,
+                                          scope)
 
                 batchnorm_updates = tf.get_collection(
                     key=tf.GraphKeys.UPDATE_OPS, scope=scope)
@@ -440,6 +451,7 @@ def train():
                                                       FLAGS.learning_rate_decay_factor)
 
             train_op, loss = _setup_training_op(images,
+                                                binary_maps,
                                                 heatmaps,
                                                 weights,
                                                 global_step,

@@ -32,13 +32,14 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
                                  labels=dense_joints,
                                  weights=weights)
 
-def detector_loss(logits, endpoints, heatmaps, weights):
-    """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
-    Equation 2 of the paper.
+# Not working?! 15Feb'17
+def detector_loss(logits, endpoints, binary_maps, weights):
     """
-    slim.losses.sparse_softmax_cross_entropy_with_logits(logits=logits,
-                                            labels=heatmaps,
-                                            scope='detector_loss')
+    Pixelwise cross entropy between binary masks and logits for each channel - see equation 1 in paper
+    """
+    return tf.nn.sigmoid_cross_entropy_with_logits(labels=binary_maps,
+                                                logits=logits,
+                                                name='detector_loss')
 
 def regressor_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
@@ -79,4 +80,4 @@ NET_LOSS = {'vgg': vgg_loss,
             'vgg_bulat': vgg_bulat_loss,
             'vgg_fcn32': vgg_bulat_loss,
             'vgg_bulat_bn_relu': vgg_bulat_loss,
-            'resnet_bulat': regressor_loss}
+            'resnet_bulat': vgg_bulat_loss}
