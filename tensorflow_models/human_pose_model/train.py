@@ -280,9 +280,9 @@ def _setup_training_op(images,
 
     Returns: Operation to run a training step.
     """
-    images_split = tf.split(split_dim=0, num_split=num_gpus, value=images)
-    heatmaps_split = tf.split(split_dim=0, num_split=num_gpus, value=heatmaps)
-    weights_split = tf.split(split_dim=0, num_split=num_gpus, value=weights)
+    images_split = tf.split(value=images, num_or_size_splits=num_gpus, axis=0)
+    heatmaps_split = tf.split(value=heatmaps, num_or_size_splits=num_gpus, axis=0)
+    weights_split = tf.split(value=weights, num_or_size_splits=num_gpus, axis=0)
 
     tower_grads = []
     for gpu_index in range(num_gpus):

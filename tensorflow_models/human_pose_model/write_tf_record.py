@@ -86,13 +86,13 @@ class ImageCoder(object):
         self._joints_shape = tf.placeholder(dtype=tf.int64)
         sparse_x_joints = tf.SparseTensor(indices=self._joint_indices,
                                           values=self._x_joints,
-                                          shape=self._joints_shape)
+                                          dense_shape=self._joints_shape)
         sparse_y_joints = tf.SparseTensor(indices=self._joint_indices,
                                           values=self._y_joints,
-                                          shape=self._joints_shape)
+                                          dense_shape=self._joints_shape)
         sparse_joint_indices = tf.SparseTensor(indices=self._joint_indices,
                                                values=self._joint_indices,
-                                               shape=self._joints_shape)
+                                               dense_shape=self._joints_shape)
         x_dense_joints, y_dense_joints, _ = sparse_joints_to_dense_single_example(
             sparse_x_joints, sparse_y_joints, sparse_joint_indices, NUM_JOINTS)
 
