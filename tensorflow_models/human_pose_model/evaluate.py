@@ -1,14 +1,13 @@
 import math
 import os
 import numpy as np
+from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
-import pdb
-from tqdm import tqdm
+from nets import inference
 
 NUM_JOINTS = 16
 JOINT_NAMES = ['0 - r ankle',
@@ -38,6 +37,7 @@ def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
 
     return np.array(joint_points)
 
+
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
     loss averages are computed every time the loss is computed.
@@ -45,81 +45,30 @@ def _summarize_loss(total_loss, gpu_index):
     loss_averages = tf.train.ExponentialMovingAverage(
         decay=0.9, name='avg')
     loss_averages_op = loss_averages.apply(var_list=[total_loss])
-    ''' There's currently no validation writer
+
     tf.summary.scalar(name='tower_{}_loss'.format(gpu_index),
                       tensor=total_loss)
     tf.summary.scalar(name='tower_{}_loss_avg'.format(gpu_index),
                       tensor=loss_averages.average(total_loss))
-    '''
+
     with tf.control_dependencies(control_inputs=[loss_averages_op]):
         total_loss = tf.identity(total_loss)
 
     return total_loss
 
 
-
-def _inference(images, heatmaps, weights, gpu_index, scope, network_name):
-    """Sets up a human pose inference model, computes predictions on input
-    images and calculates loss on those predictions based on an input dense
-    vector of joint location confidence maps and binary maps (the ground truth
-    vector).
-
-    TF-slim's `arg_scope` is used to keep variables (`slim.model_variable`) in
-    CPU memory. See the training procedure block diagram in the TF Inception
-    [README](https://github.com/tensorflow/models/tree/master/inception).
-
-    Args:
-        images: Mini-batch of preprocessed examples dequeued from the input
-            pipeline.
-        heatmaps: Confidence maps of ground truth joints.
-        weights: Weights of heatmaps (tensors of all 1s if joint present, all
-            0s if not present).
-        gpu_index: Index of GPU calculating the current loss.
-        scope: Name scope for ops, which is different for each tower (tower_N).
-
-    Returns:
-        Tensor giving the total loss (combined loss from auxiliary and primary
-        logits, added to regularization losses).
-    """
-    part_detect_net = NETS[network_name]
-    net_arg_scope = NET_ARG_SCOPES[network_name]
-    net_loss = NET_LOSS[network_name]
-    with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-        with slim.arg_scope(net_arg_scope()):
-            with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
-                logits, endpoints = part_detect_net(inputs=images,
-                                                    num_classes=NUM_JOINTS,
-                                                    scope=scope)
-
-
-            net_loss(logits, endpoints, heatmaps, weights)
-
-            losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
-            regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
-            total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
-            ''' there's no validation summary writer currently
-            merged_logits = tf.reshape(
-                tf.reduce_max(logits, 3),
-                [int(images.get_shape()[0]), FLAGS.image_dim, FLAGS.image_dim, 1])
-            merged_logits = tf.cast(merged_logits, tf.float32)
-            tf.summary.image(name='logits', tensor=merged_logits)
-            '''
-            total_loss = _summarize_loss(total_loss, gpu_index)
-
-    return total_loss, logits
-
-
 def evaluate(network_name,
+             loss_name,
              data_dir,
              restore_path,
              log_file,
              image_dim,
              num_preprocess_threads,
              batch_size,
-             num_gpus,
              heatmap_stddev_pixels,
              epoch=0):
-
+    """
+    """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             data_filenames = tf.gfile.Glob(
@@ -140,7 +89,6 @@ def evaluate(network_name,
                                                    num_preprocess_threads,
                                                    image_dim,
                                                    heatmap_stddev_pixels,
-                                                   num_gpus,
                                                    data_filenames)
             # sets up the evaluation op
             images_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.images)
@@ -151,26 +99,27 @@ def evaluate(network_name,
             for gpu_index in range(num_gpus):
                 with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
                     with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
-                        loss, logits = _inference(images_split[gpu_index],
-                                                   heatmaps_split[gpu_index],
-                                                   weights_split[gpu_index],
-                                                   gpu_index,
-                                                   scope,
-                                                   network_name)
+                        loss, logits = inference(images_split[gpu_index],
+                                                 heatmaps_split[gpu_index],
+                                                 weights_split[gpu_index],
+                                                 gpu_index,
+                                                 network_name,
+                                                 loss_name,
+                                                 scope)
 
-                        tower_logits_list.append(logits)
+                        if gpu_index == 0:
+                            merged_logits = tf.reshape(
+                                tf.reduce_max(logits, 3),
+                                [int(images.get_shape()[0]), image_dim, image_dim, 1])
+                            merged_logits = tf.cast(merged_logits, tf.float32)
+                            tf.summary.image(name='logits', tensor=merged_logits)
+
+                            loss = _summarize_loss(loss, gpu_index)
+
+                            tower_logits_list.append(logits)
+
             # Concatenate the outputs of the gpus along batch dim
             tower_logits = tf.concat(axis=0, values=tower_logits_list)
-            '''
-            part_detect_net = NETS[network_name]
-            net_arg_scope = NET_ARG_SCOPES[network_name]
-
-            with tf.device(device_name_or_function='/gpu:0'):
-                with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-                    with slim.arg_scope(net_arg_scope()):
-                        logits, _ = part_detect_net(inputs=eval_batch.images,
-                                                    num_classes=Person.NUM_JOINTS)
-            '''
             next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
                 eval_batch, Person.NUM_JOINTS)
 
@@ -275,11 +224,13 @@ def main(argv=None):
                                 processed at once).""")
 
     evaluate(FLAGS.network_name,
+             FLAGS.loss_name,
              FLAGS.data_dir,
              FLAGS.restore_path,
              FLAGS.log_filepath,
              FLAGS.image_dim,
              FLAGS.num_preprocess_threads,
+             FLAGS.heatmap_stddev_pixels,
              FLAGS.batch_size)
 
 

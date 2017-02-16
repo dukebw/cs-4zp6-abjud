@@ -37,7 +37,6 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.ops import init_ops
 from tensorflow.python.framework import ops
 
 slim = tf.contrib.slim
@@ -153,6 +152,7 @@ def vgg_16(inputs,
                 skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
                                       activation_fn=None,
                                       normalizer_fn=None,
+                                      weights_initializer=tf.zeros_initializer(),
                                       scope='skip_a4')
                 a9 = a9 + skip_a4
 
@@ -160,6 +160,7 @@ def vgg_16(inputs,
                 skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
                                       activation_fn=None,
                                       normalizer_fn=None,
+                                      weights_initializer=tf.zeros_initializer(),
                                       scope='skip_a3')
                 a9 = a9 + skip_a3
 
@@ -170,12 +171,13 @@ def vgg_16(inputs,
 
                 return a9, end_points
 
+
 def vgg_16_bn_relu(inputs,
-           num_classes=16,
-           is_training=True,
-           dropout_keep_prob=0.5,
-           batch_norm_var_collection='moving_vars',
-           scope='vgg_16'):
+                   num_classes=16,
+                   is_training=True,
+                   dropout_keep_prob=0.5,
+                   batch_norm_var_collection='moving_vars',
+                   scope='vgg_16'):
     """Oxford Net VGG 16-Layers version D Example.
 
     Note: All the fully_connected layers have been transformed to conv2d layers.
@@ -219,9 +221,9 @@ def vgg_16_bn_relu(inputs,
                                 outputs_collections=end_points_collection):
                 # nested argscope because we don't apply activations and normalization to maxpool
                 with slim.arg_scope([slim.conv2d],
-                                    activation_fn = tf.nn.relu,
-                                    normalizer_fn = slim.batch_norm,
-                                    normalizer_params = batch_norm_params):
+                                    activation_fn=tf.nn.relu,
+                                    normalizer_fn=slim.batch_norm,
+                                    normalizer_params=batch_norm_params):
 
                     a3, a4, a8 = vgg_16_base(inputs,
                                              num_classes,

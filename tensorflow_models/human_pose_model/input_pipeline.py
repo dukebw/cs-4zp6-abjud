@@ -427,7 +427,6 @@ def setup_eval_input_pipeline(batch_size,
                               num_preprocess_threads,
                               image_dim,
                               heatmap_stddev_pixels,
-                              num_gpus,
                               data_filenames):
     """Sets up an input pipeline for model evaluation.
 

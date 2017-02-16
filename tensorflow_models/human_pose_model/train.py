@@ -1,3 +1,4 @@
+import re
 import os
 import threading
 import time
@@ -9,10 +10,10 @@ import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.framework import ops
 from logging import INFO
-from nets import NETS, NET_ARG_SCOPES, NET_LOSS
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
 from evaluate import evaluate
+from nets import inference
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -25,6 +26,9 @@ NUM_JOINTS = Person.NUM_JOINTS
 tf.app.flags.DEFINE_string('network_name', 'vgg_bulat',
                            """Name of desired network to use for part
                            detection. Valid options: vgg, inception_v3.""")
+
+tf.app.flags.DEFINE_string('loss_name', 'pixelwise_l2_loss',
+                           """Name of desired loss function to use.""")
 
 tf.app.flags.DEFINE_string('train_data_dir', './train_vgg_fcn',
                            """Path to take input training TFRecord files
@@ -94,99 +98,6 @@ tf.app.flags.DEFINE_boolean('restore_global_step', False,
 
 tf.app.flags.DEFINE_integer('heatmap_stddev_pixels',5,
                             """Standard deviation of Gaussian joint heatmap, in pixels.""")
-
-def _summarize_bulat_model(endpoints):
-    """Summarizes the activation values that are marked for summaries in the
-    Inception v3 network.
-    """
-    with tf.name_scope('summaries'):
-        for activation in endpoints.values():
-            tensor_name = activation.op.name
-            tf.summary.histogram(
-                name=tensor_name + '/activations',
-                values=activation)
-            tf.summary.scalar(
-                name=tensor_name + '/sparsity',
-                tensor=tf.nn.zero_fraction(value=activation))
-
-
-def _summarize_loss(total_loss, gpu_index):
-    """Summarizes the loss and average loss for this tower, and ensures that
-    loss averages are computed every time the loss is computed.
-    """
-    loss_averages = tf.train.ExponentialMovingAverage(
-        decay=0.9, name='avg')
-    loss_averages_op = loss_averages.apply(var_list=[total_loss])
-
-    tf.summary.scalar(name='tower_{}_loss'.format(gpu_index),
-                      tensor=total_loss)
-    tf.summary.scalar(name='tower_{}_loss_avg'.format(gpu_index),
-                      tensor=loss_averages.average(total_loss))
-
-    with tf.control_dependencies(control_inputs=[loss_averages_op]):
-        total_loss = tf.identity(total_loss)
-
-    return total_loss
-
-
-def _inference(images, binary_maps, heatmaps, weights, gpu_index, scope):
-    """Sets up a human pose inference model, computes predictions on input
-    images and calculates loss on those predictions based on an input dense
-    vector of joint location confidence maps and binary maps (the ground truth
-    vector).
-
-    TF-slim's `arg_scope` is used to keep variables (`slim.model_variable`) in
-    CPU memory. See the training procedure block diagram in the TF Inception
-    [README](https://github.com/tensorflow/models/tree/master/inception).
-
-    Args:
-        images: Mini-batch of preprocessed examples dequeued from the input
-            pipeline.
-        heatmaps: Confidence maps of ground truth joints.
-        weights: Weights of heatmaps (tensors of all 1s if joint present, all
-            0s if not present).
-        gpu_index: Index of GPU calculating the current loss.
-        scope: Name scope for ops, which is different for each tower (tower_N).
-
-    Returns:
-        Tensor giving the total loss (combined loss from auxiliary and primary
-        logits, added to regularization losses).
-    """
-    part_detect_net = NETS[FLAGS.network_name]
-    net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
-    net_loss = NET_LOSS[FLAGS.network_name]
-    detect = True
-    with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-        with slim.arg_scope(net_arg_scope()):
-            with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
-                logits, endpoints = part_detect_net(inputs=images,
-                                                    num_classes=NUM_JOINTS,
-                                                    scope=scope)
-            #import pdb
-            #pdb.set_trace()
-            # Just simple for now
-            if detect:
-                detector_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-                                                                        labels=binary_maps,
-                                                                        logits=logits,
-                                                                        name='detector_loss'))
-            else:
-                net_loss(logits, endpoints, heatmaps, weights)
-
-            losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
-            regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
-            total_loss = tf.add_n([detector_loss] + losses + regularization_losses, name='total_loss')
-
-            merged_logits = tf.reshape(
-                tf.reduce_max(logits, 3),
-                [int(images.get_shape()[0]), FLAGS.image_dim, FLAGS.image_dim, 1])
-            merged_logits = tf.cast(merged_logits, tf.float32)
-            tf.summary.image(name='logits', tensor=merged_logits)
-
-            total_loss = _summarize_loss(total_loss, gpu_index)
-
-    return total_loss, logits
-
 
 def _setup_optimizer(batches_per_epoch,
                      num_epochs_per_decay,
@@ -299,11 +210,13 @@ def _setup_training_op(images,
     for gpu_index in range(num_gpus):
         with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
             with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
-                total_loss,_ = _inference(images_split[gpu_index],
+                total_loss, _ = inference(images_split[gpu_index],
                                           binary_maps_split[gpu_index],
                                           heatmaps_split[gpu_index],
                                           weights_split[gpu_index],
                                           gpu_index,
+                                          FLAGS.network_name,
+                                          FLAGS.loss_name,
                                           scope)
 
                 batchnorm_updates = tf.get_collection(
@@ -352,21 +265,7 @@ def _restore_checkpoint_variables(session, global_step):
         for var in slim.get_model_variables():
             excluded = False
             for exclusion in exclusions:
-                if var.op.name.startswith(exclusion):
-                    excluded = True
-                    break
-                # For some reason there are no biases in the resnet checkpoint 0_o
-                if FLAGS.network_name == 'resnet_bulat' and var.op.name.endswith('biases'):
-                    excluded = True
-                    break
-                # There are no batch norm layers in the original vgg - Not having regexp is so annoying
-                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_mean'):
-                    excluded = True
-                    break
-                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/moving_variance'):
-                    excluded = True
-                    break
-                if FLAGS.network_name == 'vgg_bulat_bn_relu' and var.op.name.endswith('BatchNorm/beta'):
+                if re.match('.*' + exclusion + '.*', var.op.name) is not None:
                     excluded = True
                     break
             if not excluded:
@@ -518,13 +417,13 @@ def train():
                 assert latest_checkpoint is not None
 
                 evaluate(FLAGS.network_name,
+                         FLAGS.loss_name,
                          FLAGS.validation_data_dir,
                          latest_checkpoint,
                          os.path.join(FLAGS.log_dir, 'eval_log'),
                          FLAGS.image_dim,
                          FLAGS.num_preprocess_threads,
                          FLAGS.batch_size,
-                         FLAGS.num_gpus,
                          FLAGS.heatmap_stddev_pixels,
                          epoch)
 
