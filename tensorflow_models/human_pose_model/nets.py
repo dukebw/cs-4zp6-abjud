@@ -11,6 +11,19 @@ import resnet_bulat
 # TODO(brendan): separate file
 NUM_JOINTS = 16
 
+
+def _summarize_loss(total_loss, gpu_index):
+    """Summarizes the loss and average loss for this tower, and ensures that
+    loss averages are computed every time the loss is computed.
+    """
+    loss_averages = tf.train.ExponentialMovingAverage(decay=0.9, name='avg')
+    loss_averages_op = loss_averages.apply(var_list=[total_loss])
+    with tf.control_dependencies(control_inputs=[loss_averages_op]):
+        total_loss = tf.identity(total_loss)
+
+    return total_loss
+
+
 def inference(images,
               binary_maps,
               heatmaps,
@@ -56,7 +69,7 @@ def inference(images,
             regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES,
                                                       scope=scope)
             total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
-
+            total_loss = _summarize_loss(total_loss, gpu_index)
     return total_loss, logits
 
 
@@ -89,11 +102,12 @@ def sigmoid_cross_entropy_loss(logits, endpoints, binary_maps, weights):
     """
     Pixelwise cross entropy between binary masks and logits for each channel - see equation 1 in paper
     """
-    return tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
+    tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
                                            logits=logits,
                                            weights=1.0,
                                            label_smoothing=0,
                                            scope='detector_loss')
+
 
 def mean_squared_error_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on

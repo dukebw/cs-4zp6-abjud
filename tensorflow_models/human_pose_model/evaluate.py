@@ -27,6 +27,7 @@ JOINT_NAMES = ['0 - r ankle',
                '14 - l elbow',
                '15 - l wrist']
 
+
 def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
     """Takes in a list of batches of x and y joint coordinates, and returns a
     list of batches of tuples (x, y) of joint points.
@@ -36,25 +37,6 @@ def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
         joint_points.append([(x, y) for (x, y) in zip(x_joints[batch_index], y_joints[batch_index])])
 
     return np.array(joint_points)
-
-
-def _summarize_loss(total_loss, gpu_index):
-    """Summarizes the loss and average loss for this tower, and ensures that
-    loss averages are computed every time the loss is computed.
-    """
-    loss_averages = tf.train.ExponentialMovingAverage(
-        decay=0.9, name='avg')
-    loss_averages_op = loss_averages.apply(var_list=[total_loss])
-
-    tf.summary.scalar(name='tower_{}_loss'.format(gpu_index),
-                      tensor=total_loss)
-    tf.summary.scalar(name='tower_{}_loss_avg'.format(gpu_index),
-                      tensor=loss_averages.average(total_loss))
-
-    with tf.control_dependencies(control_inputs=[loss_averages_op]):
-        total_loss = tf.identity(total_loss)
-
-    return total_loss
 
 
 def evaluate(network_name,
@@ -71,6 +53,7 @@ def evaluate(network_name,
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
+            num_gpus = 4
             data_filenames = tf.gfile.Glob(
                 os.path.join(data_dir, 'valid*tfrecord'))
             assert data_filenames, ('No data files found.')
@@ -92,14 +75,17 @@ def evaluate(network_name,
                                                    data_filenames)
             # sets up the evaluation op
             images_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.images)
+            binary_maps_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.binary_maps)
             heatmaps_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.heatmaps)
             weights_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.weights)
 
             tower_logits_list = []
+            total_loss = tf.constant(0,dtype=tf.float32)
             for gpu_index in range(num_gpus):
                 with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
                     with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
                         loss, logits = inference(images_split[gpu_index],
+                                                 binary_maps_split[gpu_index],
                                                  heatmaps_split[gpu_index],
                                                  weights_split[gpu_index],
                                                  gpu_index,
@@ -107,19 +93,18 @@ def evaluate(network_name,
                                                  loss_name,
                                                  scope)
 
-                        if gpu_index == 0:
-                            merged_logits = tf.reshape(
-                                tf.reduce_max(logits, 3),
-                                [int(images.get_shape()[0]), image_dim, image_dim, 1])
-                            merged_logits = tf.cast(merged_logits, tf.float32)
-                            tf.summary.image(name='logits', tensor=merged_logits)
+                        tower_logits_list.append(logits)
+                        total_loss += loss
 
-                            loss = _summarize_loss(loss, gpu_index)
-
-                            tower_logits_list.append(logits)
+            total_loss /= num_gpus
+            tf.summary.scalar(name='total_loss', tensor=total_loss)
 
             # Concatenate the outputs of the gpus along batch dim
             tower_logits = tf.concat(axis=0, values=tower_logits_list)
+            merged_logits = tf.reshape(tf.reduce_max(logits, 3),
+                                [int(images_split[0].get_shape()[0]), image_dim, image_dim, 1])
+            merged_logits = tf.cast(merged_logits, tf.float32)
+            tf.summary.image(name='logits', tensor=merged_logits)
             next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
                 eval_batch, Person.NUM_JOINTS)
 

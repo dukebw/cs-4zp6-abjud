@@ -27,7 +27,7 @@ tf.app.flags.DEFINE_string('network_name', 'vgg_bulat',
                            """Name of desired network to use for part
                            detection. Valid options: vgg, inception_v3.""")
 
-tf.app.flags.DEFINE_string('loss_name', 'pixelwise_l2_loss',
+tf.app.flags.DEFINE_string('loss_name', 'mean_squared_error_loss',
                            """Name of desired loss function to use.""")
 
 tf.app.flags.DEFINE_string('train_data_dir', './train_vgg_fcn',
@@ -266,6 +266,7 @@ def _restore_checkpoint_variables(session, global_step):
             excluded = False
             for exclusion in exclusions:
                 if re.match('.*' + exclusion + '.*', var.op.name) is not None:
+                    print(var.op.name)
                     excluded = True
                     break
             if not excluded:
