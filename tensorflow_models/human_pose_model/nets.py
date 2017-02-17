@@ -123,10 +123,17 @@ def mean_squared_error_loss(logits, endpoints, heatmaps, weights):
 
 
 # Keeping the in for now for legacy
+#
 def vgg_bulat_loss(logits, endpoints, heatmaps, weights):
     """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
+    tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
+                                           logits=logits,
+                                           weights=1.0,
+                                           label_smoothing=0,
+                                           scope='detector_loss')
+
     tf.losses.mean_squared_error(predictions=logits,
                                  labels=heatmaps,
                                  weights=weights,

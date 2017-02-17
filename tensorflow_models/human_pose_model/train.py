@@ -358,30 +358,28 @@ def _setup_eval_graph(network_name,
         next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
             eval_batch, Person.NUM_JOINTS)
 
-        val_fetches = [val_loss,
-                       val_tower_logits,
-                       next_x_gt_joints,
-                       next_y_gt_joints,
-                       next_weights,
-                       eval_batch.head_size]
+        gt_data = (next_x_gt_joints, next_y_gt_joints, next_weights)
+        """ There are problems with running multiple sessions we'd rather want
+        multiple subgraphs
 
         val_session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=val_session, coord=coord)
-
-    return val_fetches, val_session
+        """
+    return val_loss, val_tower_logits, gt_data
 
 
 def _train_loop(train_session,
                 train_fetches,
-                val_session,
-                val_fetches,
                 num_batches_per_epoch,
                 num_val_examples):
     """Runs the training loop, executing the graph stored in `train_session`,
     and for every epoch executes the graph in `val_session`, which will
     evaluate the latest model checkpoint on a validation set.
+    """
+    # IMO we should only run a single epoch in this function and keep the loop
+    # over all epochs in the train function
     """
     train_writer = tf.summary.FileWriter(
         logdir=FLAGS.log_dir,
@@ -399,55 +397,43 @@ def _train_loop(train_session,
     while epoch < FLAGS.max_epochs:
         train_epoch_mean_loss = 0
         Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
-        for batch_step in Epoch:
-            start_time = time.time()
-            _, batch_loss, total_steps = train_session.run(
-                fetches=train_fetches)
-            duration = time.time() - start_time
+    """
+    for batch_step in Epoch:
+        start_time = time.time()
+        _, batch_loss, total_steps = train_session.run(
+            fetches=train_fetches)
+        duration = time.time() - start_time
 
-            desc = ('step {}: loss = {} ({:.2f} sec/step)'
-                    .format(total_steps, batch_loss, duration))
-            train_epoch_mean_loss += batch_loss
-            Epoch.set_description(desc)
-            Epoch.refresh()
+        desc = ('step {}: loss = {} ({:.2f} sec/step)'
+                .format(total_steps, batch_loss, duration))
+        train_epoch_mean_loss += batch_loss
+        Epoch.set_description(desc)
+        Epoch.refresh()
 
-            assert not np.isnan(batch_loss)
+        assert not np.isnan(batch_loss)
 
-            if (total_steps % 100) == 0:
-                log_handle.write(desc + '\n')
-                log_handle.flush()
+        if (total_steps % 100) == 0:
+            log_handle.write(desc + '\n')
+            log_handle.flush()
 
-                summary_str = train_session.run(summary_op)
-                train_writer.add_summary(summary=summary_str,
-                                         global_step=total_steps)
+            summary_str = train_session.run(summary_op)
+            train_writer.add_summary(summary=summary_str,
+                                     global_step=total_steps)
 
-        checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
-        saver.save(sess=train_session,
-                   save_path=checkpoint_path,
-                   global_step=total_steps)
+    checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
+    saver.save(sess=train_session,
+               save_path=checkpoint_path,
+               global_step=total_steps)
 
-        epoch = int(total_steps/num_batches_per_epoch)
-        train_epoch_mean_loss /= (total_steps - curr_step)
-        curr_step = total_steps
-        log_handle.write('Epoch {} done.\n'.format(epoch))
-        log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
-        log_handle.flush()
+    epoch = int(total_steps/num_batches_per_epoch)
+    train_epoch_mean_loss /= (total_steps - curr_step)
+    curr_step = total_steps
+    log_handle.write('Epoch {} done.\n'.format(epoch))
+    log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
+    log_handle.flush()
 
-        latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=FLAGS.log_dir)
-        assert latest_checkpoint is not None
-
-        evaluate.evaluate(val_session,
-                          val_fetches,
-                          latest_checkpoint,
-                          os.path.join(FLAGS.log_dir, 'eval_log'),
-                          FLAGS.image_dim,
-                          FLAGS.num_preprocess_threads,
-                          FLAGS.batch_size,
-                          num_val_examples,
-                          epoch)
-
-    log_handle.close()
-    train_writer.close()
+    latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=FLAGS.log_dir)
+    assert latest_checkpoint is not None
 
 
 def train():
@@ -485,6 +471,15 @@ def train():
                                                 optimizer,
                                                 FLAGS.num_gpus)
 
+            val_loss, logits, gt_data = _setup_eval_graph(FLAGS.network_name,
+                                                          FLAGS.loss_name,
+                                                          FLAGS.batch_size,
+                                                          FLAGS.num_preprocess_threads,
+                                                          FLAGS.image_dim,
+                                                          FLAGS.heatmap_stddev_pixels,
+                                                          FLAGS.num_gpus,
+                                                          val_data_filenames)
+
             init = tf.global_variables_initializer()
 
             train_session = tf.Session(
@@ -495,22 +490,33 @@ def train():
 
             _restore_checkpoint_variables(train_session, global_step)
 
-            val_fetches, val_session = _setup_eval_graph(FLAGS.network_name,
-                                                         FLAGS.loss_name,
-                                                         FLAGS.batch_size,
-                                                         FLAGS.num_preprocess_threads,
-                                                         FLAGS.image_dim,
-                                                         FLAGS.heatmap_stddev_pixels,
-                                                         FLAGS.num_gpus,
-                                                         val_data_filenames)
+            train_writer = tf.summary.FileWriter(
+                logdir=FLAGS.log_dir,
+                graph=train_session.graph)
 
-            _train_loop(train_session,
-                        [train_op, loss, global_step],
-                        val_session,
-                        val_fetches,
-                        num_batches_per_epoch,
-                        num_val_examples)
+            log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename), 'a')
 
+            saver = tf.train.Saver(tf.global_variables())
+
+            summary_op = tf.summary.merge_all()
+
+            epoch = 0
+            # To follow mean loss over epoch
+            curr_step = 0
+            while epoch < FLAGS.max_epochs:
+                train_epoch_mean_loss = 0
+                Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
+                _train_loop(train_session,
+                            [train_op, loss, global_step],
+                            num_batches_per_epoch)
+
+                # Evaluates the model being trained
+                _eval_loop(train_session,
+                           [val_loss, tower_logits],
+                           num_val_examples)
+
+            log_handle.close()
+            train_writer.close()
 
 def main(argv=None):
     """Usage: python3 -m train
