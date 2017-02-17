@@ -485,6 +485,15 @@ def train():
                                                 optimizer,
                                                 FLAGS.num_gpus)
 
+            val_fetches, val_session = _setup_eval_graph(FLAGS.network_name,
+                                                         FLAGS.loss_name,
+                                                         FLAGS.batch_size,
+                                                         FLAGS.num_preprocess_threads,
+                                                         FLAGS.image_dim,
+                                                         FLAGS.heatmap_stddev_pixels,
+                                                         FLAGS.num_gpus,
+                                                         val_data_filenames)
+
             init = tf.global_variables_initializer()
 
             train_session = tf.Session(
@@ -494,15 +503,6 @@ def train():
             tf.train.start_queue_runners(sess=train_session)
 
             _restore_checkpoint_variables(train_session, global_step)
-
-            val_fetches, val_session = _setup_eval_graph(FLAGS.network_name,
-                                                         FLAGS.loss_name,
-                                                         FLAGS.batch_size,
-                                                         FLAGS.num_preprocess_threads,
-                                                         FLAGS.image_dim,
-                                                         FLAGS.heatmap_stddev_pixels,
-                                                         FLAGS.num_gpus,
-                                                         val_data_filenames)
 
             _train_loop(train_session,
                         [train_op, loss, global_step],

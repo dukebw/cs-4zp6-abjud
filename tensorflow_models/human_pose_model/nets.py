@@ -106,10 +106,10 @@ def sigmoid_cross_entropy_loss(logits, endpoints, binary_maps, weights):
     Pixelwise cross entropy between binary masks and logits for each channel - see equation 1 in paper
     """
     tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
-                                           logits=logits,
-                                           weights=1.0,
-                                           label_smoothing=0,
-                                           scope='detector_loss')
+                                    logits=logits,
+                                    weights=weights,
+                                    label_smoothing=0,
+                                    scope='detector_loss')
 
 
 def mean_squared_error_loss(logits, endpoints, heatmaps, weights):
