@@ -5,7 +5,6 @@ from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from mpii_read import Person
-from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
 from nets import inference
 
@@ -38,93 +37,89 @@ def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
 
     return np.array(joint_points)
 
+def setup_val_loss_op(num_gpus, eval_batch, image_dim, network_name, loss_name):
+    """Creates the inference part of the validation graph, and returns the
+    total loss calculated across all `num_gpus` used to do the evaluation.
 
-def evaluate(network_name,
-             loss_name,
-             data_dir,
+    Also returns the concatenated list of per-tower logits, which are used as
+    predictions for the batch of examples.
+    """
+    images_split = tf.split(axis=0,
+                            num_or_size_splits=num_gpus,
+                            value=eval_batch.images)
+    binary_maps_split = tf.split(axis=0,
+                                 num_or_size_splits=num_gpus,
+                                 value=eval_batch.binary_maps)
+    heatmaps_split = tf.split(axis=0,
+                              num_or_size_splits=num_gpus,
+                              value=eval_batch.heatmaps)
+    weights_split = tf.split(axis=0,
+                             num_or_size_splits=num_gpus,
+                             value=eval_batch.weights)
+
+    tower_logits_list = []
+    total_loss = tf.constant(0, dtype=tf.float32)
+    for gpu_index in range(num_gpus):
+        with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
+            with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
+                loss, logits = inference(images_split[gpu_index],
+                                         binary_maps_split[gpu_index],
+                                         heatmaps_split[gpu_index],
+                                         weights_split[gpu_index],
+                                         gpu_index,
+                                         network_name,
+                                         loss_name,
+                                         False,
+                                         scope)
+
+                tower_logits_list.append(logits)
+                total_loss += loss
+
+    total_loss /= num_gpus
+
+    tower_logits = tf.concat(axis=0, values=tower_logits_list)
+
+    tf.summary.scalar(name='total_loss', tensor=total_loss)
+
+    per_gpu_batch_size = int(images_split[0].get_shape()[0])
+    merged_logits = tf.reshape(
+        tf.reduce_max(logits, 3),
+        [per_gpu_batch_size, image_dim, image_dim, 1])
+    merged_logits = tf.cast(merged_logits, tf.float32)
+    tf.summary.image(name='logits', tensor=merged_logits)
+
+    return total_loss, tower_logits
+
+
+def evaluate(session,
+             val_fetches,
              restore_path,
              log_file,
              image_dim,
              num_preprocess_threads,
              batch_size,
-             heatmap_stddev_pixels,
+             num_val_examples,
              epoch=0):
+    """Evaluates the model checkpoint given by `restore_path` using the PCKh
+    metric.
+
+    The entire graph is assumed to have been constructed in `session`, such
+    that all there is to run validation is to run `val_fetches`, and compute
+    relevant metrics.
     """
-    """
-    with tf.Graph().as_default():
+    with session.graph.as_default():
         with tf.device('/cpu:0'):
-            num_gpus = 4
-            data_filenames = tf.gfile.Glob(
-                os.path.join(data_dir, 'valid*tfrecord'))
-            assert data_filenames, ('No data files found.')
-
-            min_examples_per_shard = math.inf
-            options = tf.python_io.TFRecordOptions(
-                compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
-            for data_file in data_filenames:
-                examples_in_shard = 0
-                for _ in tf.python_io.tf_record_iterator(path=data_file, options=options):
-                    examples_in_shard += 1
-
-                min_examples_per_shard = min(min_examples_per_shard, examples_in_shard)
-
-            eval_batch = setup_eval_input_pipeline(batch_size,
-                                                   num_preprocess_threads,
-                                                   image_dim,
-                                                   heatmap_stddev_pixels,
-                                                   data_filenames)
-            # sets up the evaluation op
-            images_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.images)
-            binary_maps_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.binary_maps)
-            heatmaps_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.heatmaps)
-            weights_split = tf.split(axis=0, num_or_size_splits=num_gpus, value=eval_batch.weights)
-
-            tower_logits_list = []
-            total_loss = tf.constant(0,dtype=tf.float32)
-            for gpu_index in range(num_gpus):
-                with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
-                    with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
-                        loss, logits = inference(images_split[gpu_index],
-                                                 binary_maps_split[gpu_index],
-                                                 heatmaps_split[gpu_index],
-                                                 weights_split[gpu_index],
-                                                 gpu_index,
-                                                 network_name,
-                                                 loss_name,
-                                                 scope)
-
-                        tower_logits_list.append(logits)
-                        total_loss += loss
-
-            total_loss /= num_gpus
-            tf.summary.scalar(name='total_loss', tensor=total_loss)
-
-            # Concatenate the outputs of the gpus along batch dim
-            tower_logits = tf.concat(axis=0, values=tower_logits_list)
-            merged_logits = tf.reshape(tf.reduce_max(logits, 3),
-                                [int(images_split[0].get_shape()[0]), image_dim, image_dim, 1])
-            merged_logits = tf.cast(merged_logits, tf.float32)
-            tf.summary.image(name='logits', tensor=merged_logits)
-            next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
-                eval_batch, Person.NUM_JOINTS)
-
             restorer = tf.train.Saver()
-
-            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
             restorer.restore(sess=session, save_path=restore_path)
 
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=session, coord=coord)
-
-            num_test_examples = len(data_filenames)*min_examples_per_shard
-            num_batches = int(num_test_examples/batch_size)
+            num_batches = int(num_val_examples/batch_size)
             matched_joints = Person.NUM_JOINTS*[0]
             predicted_joints = Person.NUM_JOINTS*[0]
             valid_epoch_mean_loss = 0
             for _ in tqdm(range(num_batches)):
                 [batch_loss, predictions, x_gt_joints, y_gt_joints, weights, head_size] = session.run(
-                    fetches=[loss, tower_logits, next_x_gt_joints, next_y_gt_joints, next_weights, eval_batch.head_size])
+                    fetches=val_fetches)
 
                 valid_epoch_mean_loss += batch_loss
                 head_size = np.reshape(head_size, [batch_size, 1])
@@ -182,42 +177,9 @@ def evaluate(network_name,
 
             log_file_handle.close()
 
-            coord.request_stop()
-            coord.join(threads)
-
 
 def main(argv=None):
-    FLAGS = tf.app.flags.FLAGS
-
-    tf.app.flags.DEFINE_string('network_name', None,
-                               """Name of desired network to use for part
-                               detection. Valid options: vgg, inception_v3.""")
-    tf.app.flags.DEFINE_string('data_dir', '.',
-                               """Path to take input TFRecord files from.""")
-    tf.app.flags.DEFINE_string('restore_path', None,
-                               """Path to take checkpoint file from.""")
-    tf.app.flags.DEFINE_string('log_filepath', './log/temp/eval_log',
-                               """Relative filepath to log evaluation metrics
-                               to.""")
-    tf.app.flags.DEFINE_integer('image_dim', 299,
-                                """Dimension of the square input image.""")
-    tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
-                                """Number of threads to use to preprocess
-                                images.""")
-    tf.app.flags.DEFINE_integer('batch_size', 32,
-                                """Size of each mini-batch (number of examples
-                                processed at once).""")
-
-    evaluate(FLAGS.network_name,
-             FLAGS.loss_name,
-             FLAGS.data_dir,
-             FLAGS.restore_path,
-             FLAGS.log_filepath,
-             FLAGS.image_dim,
-             FLAGS.num_preprocess_threads,
-             FLAGS.heatmap_stddev_pixels,
-             FLAGS.batch_size)
-
+    assert False, ('No support for standalone evaluate, currently')
 
 if __name__ == "__main__":
     tf.app.run()

@@ -31,6 +31,7 @@ def inference(images,
               gpu_index,
               network_name,
               loss_name,
+              is_training,
               scope):
     """Sets up a human pose inference model, computes predictions on input
     images and calculates loss on those predictions based on an input dense
@@ -62,6 +63,7 @@ def inference(images,
             with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 logits, endpoints = part_detect_net(inputs=images,
                                                     num_classes=NUM_JOINTS,
+                                                    is_training=is_training,
                                                     scope=scope)
                 net_loss(logits, endpoints, heatmaps, weights)
 
@@ -70,6 +72,7 @@ def inference(images,
                                                       scope=scope)
             total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
             total_loss = _summarize_loss(total_loss, gpu_index)
+
     return total_loss, logits
 
 

@@ -9,10 +9,10 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.framework import ops
-from logging import INFO
+from sparse_to_dense import sparse_joints_to_dense
 from mpii_read import Person
 from input_pipeline import setup_train_input_pipeline
-from evaluate import evaluate
+import evaluate
 from nets import inference
 
 FLAGS = tf.app.flags.FLAGS
@@ -217,6 +217,7 @@ def _setup_training_op(images,
                                           gpu_index,
                                           FLAGS.network_name,
                                           FLAGS.loss_name,
+                                          True,
                                           scope)
 
                 batchnorm_updates = tf.get_collection(
@@ -298,31 +299,161 @@ def _thread_count_examples(num_examples_results,
             num_examples_results[thread_index] += 1
 
 
-def _count_training_examples(train_data_filenames, num_threads):
+def _count_training_examples(data_dir, num_threads, tfrecord_prefix):
     """Counts training examples in the TFRecords given by
     `train_data_filenames`, by creating `num_threads` threads, which will all
     count the examples in roughly 1/train_data_filenames of the files.
     """
+    data_filenames = tf.gfile.Glob(
+        os.path.join(data_dir, tfrecord_prefix + '*tfrecord'))
+    assert data_filenames, ('No data files found.')
+    assert len(data_filenames) >= FLAGS.num_readers
+
     coord = tf.train.Coordinator()
 
-    ranges = pose_util.get_n_ranges(0, len(train_data_filenames), num_threads)
+    ranges = pose_util.get_n_ranges(0, len(data_filenames), num_threads)
 
     num_examples_results = num_threads*[0]
     threads = []
     for thread_index in range(num_threads):
-        args = (num_examples_results, train_data_filenames, ranges, thread_index)
+        args = (num_examples_results, data_filenames, ranges, thread_index)
         t = threading.Thread(target=_thread_count_examples, args=args)
         t.start()
         threads.append(t)
 
     coord.join(threads)
 
-    return sum(num_examples_results)
+    return sum(num_examples_results), data_filenames
+
+
+def _setup_eval_graph(network_name,
+                      loss_name,
+                      batch_size,
+                      num_preprocess_threads,
+                      image_dim,
+                      heatmap_stddev_pixels,
+                      num_gpus,
+                      val_data_filenames):
+    """Sets up the entire input pipeline and inference graph for evaluation,
+    using interfaces exposed from `evaluate.py`.
+
+    Returns:
+        (val_fetches, val_session) tuple, where val_fetches must be kept
+        synchronized with the outputs from the session.run() call in
+        evaluate.py.
+    """
+    with tf.Graph().as_default():
+        eval_batch = evaluate.setup_eval_input_pipeline(batch_size,
+                                                        num_preprocess_threads,
+                                                        image_dim,
+                                                        heatmap_stddev_pixels,
+                                                        val_data_filenames)
+
+        val_loss, val_tower_logits = evaluate.setup_val_loss_op(num_gpus,
+                                                                eval_batch,
+                                                                image_dim,
+                                                                network_name,
+                                                                loss_name)
+
+        next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
+            eval_batch, Person.NUM_JOINTS)
+
+        val_fetches = [val_loss,
+                       val_tower_logits,
+                       next_x_gt_joints,
+                       next_y_gt_joints,
+                       next_weights,
+                       eval_batch.head_size]
+
+        val_session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=val_session, coord=coord)
+
+    return val_fetches, val_session
+
+
+def _train_loop(train_session,
+                train_fetches,
+                val_session,
+                val_fetches,
+                num_batches_per_epoch,
+                num_val_examples):
+    """Runs the training loop, executing the graph stored in `train_session`,
+    and for every epoch executes the graph in `val_session`, which will
+    evaluate the latest model checkpoint on a validation set.
+    """
+    train_writer = tf.summary.FileWriter(
+        logdir=FLAGS.log_dir,
+        graph=train_session.graph)
+
+    log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename), 'a')
+
+    saver = tf.train.Saver(tf.global_variables())
+
+    summary_op = tf.summary.merge_all()
+
+    epoch = 0
+    # To follow mean loss over epoch
+    curr_step = 0
+    while epoch < FLAGS.max_epochs:
+        train_epoch_mean_loss = 0
+        Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
+        for batch_step in Epoch:
+            start_time = time.time()
+            _, batch_loss, total_steps = train_session.run(
+                fetches=train_fetches)
+            duration = time.time() - start_time
+
+            desc = ('step {}: loss = {} ({:.2f} sec/step)'
+                    .format(total_steps, batch_loss, duration))
+            train_epoch_mean_loss += batch_loss
+            Epoch.set_description(desc)
+            Epoch.refresh()
+
+            assert not np.isnan(batch_loss)
+
+            if (total_steps % 100) == 0:
+                log_handle.write(desc + '\n')
+                log_handle.flush()
+
+                summary_str = train_session.run(summary_op)
+                train_writer.add_summary(summary=summary_str,
+                                         global_step=total_steps)
+
+        checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
+        saver.save(sess=train_session,
+                   save_path=checkpoint_path,
+                   global_step=total_steps)
+
+        epoch = int(total_steps/num_batches_per_epoch)
+        train_epoch_mean_loss /= (total_steps - curr_step)
+        curr_step = total_steps
+        log_handle.write('Epoch {} done.\n'.format(epoch))
+        log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
+        log_handle.flush()
+
+        latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=FLAGS.log_dir)
+        assert latest_checkpoint is not None
+
+        evaluate.evaluate(val_session,
+                          val_fetches,
+                          latest_checkpoint,
+                          os.path.join(FLAGS.log_dir, 'eval_log'),
+                          FLAGS.image_dim,
+                          FLAGS.num_preprocess_threads,
+                          FLAGS.batch_size,
+                          num_val_examples,
+                          epoch)
+
+    log_handle.close()
+    train_writer.close()
 
 
 def train():
-    """Trains an Inception v3 network to regress joint co-ordinates (NUM_JOINTS
-    sets of (x, y) co-ordinates) directly.
+    """Trains a human pose estimation network to detect and/or regress binary
+    maps and/or confidence maps of joint co-ordinates (NUM_JOINTS sets of (x,
+    y) co-ordinates).
 
     Here we only take files 0-N.
     For now files are manually renamed as train[0-N].tfrecord and
@@ -331,16 +462,12 @@ def train():
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            train_data_filenames = tf.gfile.Glob(
-                os.path.join(FLAGS.train_data_dir, 'train*tfrecord'))
-            assert train_data_filenames, ('No data files found.')
-            assert len(train_data_filenames) >= FLAGS.num_readers
+            num_counting_threads = FLAGS.num_preprocess_threads + FLAGS.num_readers
+            num_training_examples, train_data_filenames = _count_training_examples(
+                FLAGS.train_data_dir, num_counting_threads, 'train')
+            num_val_examples, val_data_filenames = _count_training_examples(
+                FLAGS.validation_data_dir, num_counting_threads, 'valid')
 
-            num_training_examples = _count_training_examples(
-                train_data_filenames,
-                FLAGS.num_preprocess_threads + FLAGS.num_readers)
-
-            # Merged with FLAGS
             images, binary_maps, heatmaps, weights = setup_train_input_pipeline(
                 FLAGS, train_data_filenames)
 
@@ -358,78 +485,31 @@ def train():
                                                 optimizer,
                                                 FLAGS.num_gpus)
 
-            log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename),'a')
-
-            saver = tf.train.Saver(tf.global_variables())
-
-            summary_op = tf.summary.merge_all()
-
             init = tf.global_variables_initializer()
 
-            session = tf.Session(
+            train_session = tf.Session(
                 config=tf.ConfigProto(allow_soft_placement=True))
-            session.run(init)
+            train_session.run(init)
 
-            _restore_checkpoint_variables(session, global_step)
+            tf.train.start_queue_runners(sess=train_session)
 
-            tf.train.start_queue_runners(sess=session)
+            _restore_checkpoint_variables(train_session, global_step)
 
-            train_writer = tf.summary.FileWriter(
-                logdir=FLAGS.log_dir,
-                graph=session.graph)
+            val_fetches, val_session = _setup_eval_graph(FLAGS.network_name,
+                                                         FLAGS.loss_name,
+                                                         FLAGS.batch_size,
+                                                         FLAGS.num_preprocess_threads,
+                                                         FLAGS.image_dim,
+                                                         FLAGS.heatmap_stddev_pixels,
+                                                         FLAGS.num_gpus,
+                                                         val_data_filenames)
 
-            epoch = 0
-            # To follow mean loss over epoch
-            curr_step = 0
-            while epoch < FLAGS.max_epochs:
-                train_epoch_mean_loss = 0
-                Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
-                for batch_step in Epoch:
-                    start_time = time.time()
-                    _, batch_loss, total_steps = session.run(
-                        fetches=[train_op, loss, global_step])
-                    duration = time.time() - start_time
-
-                    desc = ('step {}: loss = {} ({:.2f} sec/step)'
-                            .format(total_steps, batch_loss, duration))
-                    train_epoch_mean_loss += batch_loss
-                    Epoch.set_description(desc)
-                    Epoch.refresh()
-                    assert not np.isnan(batch_loss)
-                    if (total_steps % 100) == 0:
-                        log_handle.write(desc + '\n')
-                        log_handle.flush()
-
-                        summary_str = session.run(summary_op)
-                        train_writer.add_summary(summary=summary_str,
-                                                 global_step=total_steps)
-
-                checkpoint_path = os.path.join(FLAGS.log_dir, 'model.ckpt')
-                saver.save(sess=session, save_path=checkpoint_path, global_step=total_steps)
-
-                epoch = int(total_steps/num_batches_per_epoch)
-                train_epoch_mean_loss /= (total_steps - curr_step)
-                curr_step = total_steps
-                log_handle.write('Epoch {} done.\n'.format(epoch))
-                log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
-                log_handle.flush()
-
-                latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=FLAGS.log_dir)
-                assert latest_checkpoint is not None
-
-                evaluate(FLAGS.network_name,
-                         FLAGS.loss_name,
-                         FLAGS.validation_data_dir,
-                         latest_checkpoint,
-                         os.path.join(FLAGS.log_dir, 'eval_log'),
-                         FLAGS.image_dim,
-                         FLAGS.num_preprocess_threads,
-                         FLAGS.batch_size,
-                         FLAGS.heatmap_stddev_pixels,
-                         epoch)
-
-            log_handle.close()
-            train_writer.close()
+            _train_loop(train_session,
+                        [train_op, loss, global_step],
+                        val_session,
+                        val_fetches,
+                        num_batches_per_epoch,
+                        num_val_examples)
 
 
 def main(argv=None):

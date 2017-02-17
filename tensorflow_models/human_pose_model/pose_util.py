@@ -15,5 +15,3 @@ def get_n_ranges(start, end, num_ranges):
         ranges.append([spacing[spacing_index], spacing[spacing_index + 1]])
 
     return ranges
-
-
