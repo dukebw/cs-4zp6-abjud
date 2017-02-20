@@ -182,6 +182,17 @@ def _distort_colour(distorted_image, thread_id):
     return tf.clip_by_value(t=distorted_image, clip_value_min=0.0, clip_value_max=1.0)
 
 
+def _decode_binary_maps(binary_maps, image_dim):
+    """Decodes a binary map for an example from its post-decompression format
+    (uint8), and reshapes the tensor so that TensorFlow will understand it.
+    """
+    binary_maps = tf.decode_raw(bytes=binary_maps, out_type=tf.uint8)
+    binary_maps = tf.reshape(tensor=binary_maps,
+                             shape=[image_dim, image_dim, NUM_JOINTS])
+
+    return tf.cast(binary_maps, tf.float32)
+
+
 def _distort_image(parsed_example, image_dim, thread_id):
     """Randomly distorts the image from `parsed_example` by randomly cropping,
     randomly flipping left and right, and randomly distorting the colour of
@@ -206,10 +217,7 @@ def _distort_image(parsed_example, image_dim, thread_id):
     # TODO(brendan): Are these reshapes necessary, without the random cropping?
     distorted_image = tf.reshape(tensor=decoded_image,
                                  shape=[image_dim, image_dim, 3])
-    binary_maps = tf.decode_raw(bytes=binary_maps, out_type=tf.uint8)
-    binary_maps = tf.reshape(tensor=binary_maps,
-                             shape=[image_dim, image_dim, NUM_JOINTS])
-    binary_maps = tf.cast(binary_maps, tf.float32)
+    binary_maps = _decode_binary_maps(binary_maps, image_dim)
 
     rand_uniform = tf.random_uniform(shape=[],
                                      minval=0,
@@ -251,6 +259,8 @@ def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
 
         decoded_img, binary_maps, joint_indices, x_joints, y_joints, head_size = parsed_example
 
+        binary_maps = _decode_binary_maps(binary_maps, image_dim)
+
         decoded_img = tf.reshape(tensor=decoded_img,
                                  shape=[image_dim, image_dim, 3])
 
@@ -267,13 +277,13 @@ def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
                                                 weights)
 
         images_and_jointmaps.append([decoded_img,
-                                  binary_maps,
-                                  heatmaps,
-                                  weights,
-                                  joint_indices,
-                                  x_joints,
-                                  y_joints,
-                                  head_size])
+                                    binary_maps,
+                                    heatmaps,
+                                    weights,
+                                    joint_indices,
+                                    x_joints,
+                                    y_joints,
+                                    head_size])
 
     return images_and_jointmaps
 

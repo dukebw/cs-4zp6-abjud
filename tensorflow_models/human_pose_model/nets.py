@@ -11,7 +11,6 @@ import resnet_bulat
 # TODO(brendan): separate file
 NUM_JOINTS = 16
 
-
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
     loss averages are computed every time the loss is computed.
@@ -65,7 +64,7 @@ def inference(images,
                                                     num_classes=NUM_JOINTS,
                                                     is_training=is_training,
                                                     scope=scope)
-                net_loss(logits, endpoints, heatmaps, weights)
+                net_loss(logits, endpoints, heatmaps, binary_maps, weights)
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
             regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES,
@@ -76,18 +75,12 @@ def inference(images,
     return total_loss, logits
 
 
-def vgg_loss(logits, endpoints, dense_joints, weights):
-    """For VGG, currently we do a mean squared error on the joint locations
-    compared with ground truth locations.
-    """
-    tf.losses.mean_squared_error(predictions=logits,
-                                 labels=dense_joints,
-                                 weights=weights)
-
-
 def inception_v3_loss(logits, endpoints, dense_joints, weights):
     """The Inception architecture calculates loss on both the Auxiliary Logits
     and the final layer Logits.
+
+    TODO(brendan): correct this to work with our confidence map/binary map
+    labels.
     """
     auxiliary_logits = endpoints['AuxLogits']
 
@@ -101,18 +94,19 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
                                  weights=weights)
 
 
-def sigmoid_cross_entropy_loss(logits, endpoints, binary_maps, weights):
-    """
-    Pixelwise cross entropy between binary masks and logits for each channel - see equation 1 in paper
+def sigmoid_cross_entropy_loss(logits, endpoints, heatmaps, binary_maps, weights):
+    """Pixelwise cross entropy between binary masks and logits for each channel.
+
+    See equation 1 in Bulat paper.
     """
     tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
-                                           logits=logits,
-                                           weights=1.0,
-                                           label_smoothing=0,
-                                           scope='detector_loss')
+                                    logits=logits,
+                                    weights=weights,
+                                    label_smoothing=0,
+                                    scope='detector_loss')
 
 
-def mean_squared_error_loss(logits, endpoints, heatmaps, weights):
+def mean_squared_error_loss(logits, endpoints, heatmaps, binary_maps, weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
@@ -124,15 +118,15 @@ def mean_squared_error_loss(logits, endpoints, heatmaps, weights):
 
 # Keeping the in for now for legacy
 #
-def vgg_bulat_loss(logits, endpoints, heatmaps, weights):
+def vgg_bulat_loss(logits, endpoints, heatmaps, binary_maps, weights):
     """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
     tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
-                                           logits=logits,
-                                           weights=1.0,
-                                           label_smoothing=0,
-                                           scope='detector_loss')
+                                    logits=logits,
+                                    weights=weights,
+                                    label_smoothing=0,
+                                    scope='detector_loss')
 
     tf.losses.mean_squared_error(predictions=logits,
                                  labels=heatmaps,

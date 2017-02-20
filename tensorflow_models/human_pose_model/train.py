@@ -316,10 +316,10 @@ def train():
             session.run(tf.global_variables_initializer())
             session.run(tf.local_variables_initializer())
 
+            _restore_checkpoint_variables(session, global_step)
+
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
-
-            _restore_checkpoint_variables(session, global_step)
 
             train_writer = tf.summary.FileWriter(
                 logdir=FLAGS.log_dir,
