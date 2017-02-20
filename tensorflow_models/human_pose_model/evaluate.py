@@ -4,7 +4,9 @@ import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+import pose_util
 from mpii_read import Person
+from sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
 from nets import inference
 
@@ -91,15 +93,49 @@ def setup_val_loss_op(num_gpus, eval_batch, image_dim, network_name, loss_name):
     return total_loss, tower_logits
 
 
-def evaluate(session,
-             val_fetches,
-             restore_path,
-             log_file,
-             image_dim,
-             num_preprocess_threads,
-             batch_size,
-             num_val_examples,
-             epoch=0):
+def setup_evaluation(FLAGS):
+    """Sets up the entire input pipeline and inference graph for evaluation,
+    using interfaces exposed from `evaluate.py`.
+
+    Returns:
+        (val_fetches, val_session) tuple, where val_fetches must be kept
+        synchronized with the outputs from the session.run() call in
+        evaluate.py.
+    """
+    num_counting_threads = FLAGS.num_preprocess_threads + FLAGS.num_readers
+    num_val_examples, val_data_filenames = pose_util.count_training_examples(
+        FLAGS.validation_data_dir, num_counting_threads, 'valid')
+
+    eval_batch = setup_eval_input_pipeline(FLAGS.batch_size,
+                                           FLAGS.num_preprocess_threads,
+                                           FLAGS.image_dim,
+                                           FLAGS.heatmap_stddev_pixels,
+                                           val_data_filenames)
+
+    val_loss, val_tower_logits = setup_val_loss_op(FLAGS.num_gpus,
+                                                   eval_batch,
+                                                   FLAGS.image_dim,
+                                                   FLAGS.network_name,
+                                                   FLAGS.loss_name)
+
+    next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
+        eval_batch, Person.NUM_JOINTS)
+
+    gt_data = [next_x_gt_joints, next_y_gt_joints, next_weights, eval_batch.head_size]
+
+    return num_val_examples, val_loss, val_tower_logits, gt_data
+
+
+def evaluate_single_epoch(restorer,
+                          restore_path,
+                          loss,
+                          logits,
+                          gt_data,
+                          num_val_examples,
+                          batch_size,
+                          image_dim,
+                          epoch,
+                          log_file_handle):
     """Evaluates the model checkpoint given by `restore_path` using the PCKh
     metric.
 
@@ -107,19 +143,23 @@ def evaluate(session,
     that all there is to run validation is to run `val_fetches`, and compute
     relevant metrics.
     """
-    with session.graph.as_default():
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as session:
         with tf.device('/cpu:0'):
-            restorer = tf.train.Saver()
+            latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=restore_path)
+            assert latest_checkpoint is not None
 
-            restorer.restore(sess=session, save_path=restore_path)
+            restorer.restore(sess=session, save_path=latest_checkpoint)
 
-            num_batches = int(num_val_examples/batch_size)
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=session, coord=coord)
+
+            num_batches = int(math.ceil(num_val_examples/batch_size))
             matched_joints = Person.NUM_JOINTS*[0]
             predicted_joints = Person.NUM_JOINTS*[0]
             valid_epoch_mean_loss = 0
             for _ in tqdm(range(num_batches)):
                 [batch_loss, predictions, x_gt_joints, y_gt_joints, weights, head_size] = session.run(
-                    fetches=val_fetches)
+                    fetches=[loss, logits] + gt_data)
 
                 valid_epoch_mean_loss += batch_loss
                 head_size = np.reshape(head_size, [batch_size, 1])
@@ -157,10 +197,10 @@ def evaluate(session,
 
                 gt_joints = np.concatenate((x_gt_joints, y_gt_joints), 1)
 
-            log_file_handle = open(log_file, 'a')
-
             if (epoch > 1):
                 log_file_handle.write('\n')
+            valid_epoch_mean_loss /= num_batches
+            log_file_handle.write('\nMean validation loss: {}\n\n'.format(valid_epoch_mean_loss))
             log_file_handle.write('************************************************\n')
             log_file_handle.write('Epoch {} PCKh metric.\n'.format(epoch))
             log_file_handle.write('************************************************\n\n')
@@ -172,14 +212,42 @@ def evaluate(session,
             for joint_index in range(Person.NUM_JOINTS):
                 log_file_handle.write('{}: {}\n'.format(JOINT_NAMES[joint_index], PCKh[joint_index]))
             log_file_handle.write('\nTotal PCKh: {}\n'.format(np.sum(PCKh)/len(PCKh)))
-            valid_epoch_mean_loss /= num_batches
-            log_file_handle.write('\nValidation Loss: {}\n'.format(valid_epoch_mean_loss))
+            log_file_handle.flush()
 
-            log_file_handle.close()
+            coord.request_stop()
+            coord.join(threads=threads)
 
+
+def evaluate():
+    """Does a loop checking for new checkpoints and evaluating them all, then
+    exits.
+
+    TODO(brendan):
+
+    1. Check for `last_evaluated_checkpoint.json` in `FLAGS.log_dir`.
+    2. When the process starts, checks the last evaluated checkpoint, and
+       evaluates all checkpoints present that came later.
+    3. Once there are no new checkpoints, the evaluation process exits.
+    """
+    num_val_examples, val_loss, val_logits, gt_data = setup_evaluation(FLAGS)
+
+    restorer = tf.train.Saver(var_list=tf.global_variables())
+
+    evaluate_single_epoch(restorer,
+                          restore_path,
+                          val_loss,
+                          val_logits,
+                          gt_data,
+                          num_val_examples,
+                          FLAGS.batch_size,
+                          FLAGS.image_dim,
+                          epoch,
+                          log_file_handle)
 
 def main(argv=None):
-    assert False, ('No support for standalone evaluate, currently')
+    """Usage: python3 -m evaluate
+    """
+    evaluate()
 
 if __name__ == "__main__":
     tf.app.run()

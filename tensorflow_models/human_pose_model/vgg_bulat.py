@@ -210,7 +210,8 @@ def vgg_16_bn_relu(inputs,
           'gamma': None,
           'moving_mean': [batch_norm_var_collection],
           'moving_variance': [batch_norm_var_collection],
-      }
+      },
+      'is_training': is_training
     }
 
     with tf.variable_scope(None, 'vgg_16', [inputs]) as sc:
