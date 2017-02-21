@@ -29,6 +29,7 @@ def inference(images,
               binary_maps,
               heatmaps,
               weights,
+              is_visible_weights,
               gpu_index,
               network_name,
               loss_name,
@@ -49,6 +50,8 @@ def inference(images,
         heatmaps: Confidence maps of ground truth joints.
         weights: Weights of heatmaps (tensors of all 1s if joint present, all
             0s if not present).
+        is_visible_weights: Weights of heatmaps/binary maps, with occluded
+            joints zero'ed out.
         gpu_index: Index of GPU calculating the current loss.
         scope: Name scope for ops, which is different for each tower (tower_N).
 
@@ -66,7 +69,7 @@ def inference(images,
                                                     num_classes=NUM_JOINTS,
                                                     is_training=is_training,
                                                     scope=scope)
-                net_loss(logits, endpoints, heatmaps, binary_maps, weights)
+                net_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
 
@@ -127,7 +130,12 @@ def _add_weighted_loss_to_collection(losses, weights):
     tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=total_loss)
 
 
-def sigmoid_cross_entropy_loss(logits, endpoints, heatmaps, binary_maps, weights):
+def sigmoid_cross_entropy_loss(logits,
+                               endpoints,
+                               heatmaps,
+                               binary_maps,
+                               weights,
+                               is_visible_weights):
     """Pixelwise cross entropy between binary masks and logits for each channel.
 
     See equation 1 in Bulat paper.
@@ -136,33 +144,41 @@ def sigmoid_cross_entropy_loss(logits, endpoints, heatmaps, binary_maps, weights
                                                      logits=logits,
                                                      name='cross_entropy_bulat')
 
-    losses = _add_weighted_loss_to_collection(losses, weights)
+    _add_weighted_loss_to_collection(losses, is_visible_weights)
 
 
-def mean_squared_error_loss(logits, endpoints, heatmaps, binary_maps, weights):
+def mean_squared_error_loss(logits,
+                            endpoints,
+                            heatmaps,
+                            binary_maps,
+                            weights,
+                            is_visible_weights):
     """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
     losses = tf.square(tf.subtract(logits, heatmaps))
-    losses = _add_weighted_loss_to_collection(losses, weights)
+    _add_weighted_loss_to_collection(losses, weights)
 
 
 # Keeping the in for now for legacy
 #
-def vgg_bulat_loss(logits, endpoints, heatmaps, binary_maps, weights):
+def vgg_bulat_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights):
     """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
     """
-    tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
-                                    logits=logits,
-                                    weights=weights,
-                                    label_smoothing=0,
-                                    scope='detector_loss')
+    sigmoid_cross_entropy_loss(logits,
+                               endpoints,
+                               heatmaps,
+                               binary_maps,
+                               weights,
+                               is_visible_weights)
 
-    tf.losses.mean_squared_error(predictions=logits,
-                                 labels=heatmaps,
-                                 weights=weights,
-                                 scope='mean_squared_loss')
+    mean_squared_error_loss(logits,
+                            endpoints,
+                            heatmaps,
+                            binary_maps,
+                            weights,
+                            is_visible_weights)
 
 
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
