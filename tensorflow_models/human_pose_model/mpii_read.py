@@ -38,7 +38,7 @@ occluded.
 """
 import sys
 import os
-#import scipy.io
+import scipy.io
 import numpy as np
 from shapes import Rectangle
 

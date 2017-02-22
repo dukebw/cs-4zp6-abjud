@@ -6,6 +6,7 @@ from tensorflow.contrib.slim.nets import inception
 from tensorflow.contrib.slim.nets import vgg
 
 import tensorflow as tf
+from tensorflow.python.ops import control_flow_ops
 import tensorflow.contrib.slim as slim
 import vgg_bulat
 import resnet_bulat
@@ -123,10 +124,12 @@ def _add_weighted_loss_to_collection(losses, weights):
 
     joints_present_map = weights[:, 0, 0, :]
     num_joints_present = tf.reduce_sum(input_tensor=joints_present_map, axis=1)
-    tf.assert_greater(num_joints_present, 0.0)
 
-    losses /= num_joints_present
-    total_loss = tf.reduce_sum(input_tensor=losses)
+    assert_safe_div = tf.assert_greater(num_joints_present, 0.0)
+    with tf.control_dependencies(control_inputs=[assert_safe_div]):
+        losses /= num_joints_present
+
+    total_loss = tf.reduce_mean(input_tensor=losses)
     tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=total_loss)
 
 
