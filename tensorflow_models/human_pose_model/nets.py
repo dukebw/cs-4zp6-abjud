@@ -133,12 +133,7 @@ def _add_weighted_loss_to_collection(losses, weights):
     tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=total_loss)
 
 
-def sigmoid_cross_entropy_loss(logits,
-                               endpoints,
-                               heatmaps,
-                               binary_maps,
-                               weights,
-                               is_visible_weights):
+def _sigmoid_cross_entropy_loss(logits, binary_maps, weights):
     """Pixelwise cross entropy between binary masks and logits for each channel.
 
     See equation 1 in Bulat paper.
@@ -147,41 +142,73 @@ def sigmoid_cross_entropy_loss(logits,
                                                      logits=logits,
                                                      name='cross_entropy_bulat')
 
-    _add_weighted_loss_to_collection(losses, is_visible_weights)
+    _add_weighted_loss_to_collection(losses, weights)
 
 
-def mean_squared_error_loss(logits,
-                            endpoints,
-                            heatmaps,
-                            binary_maps,
-                            weights,
-                            is_visible_weights):
-    """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
-    Equation 2 of the paper.
+def _mean_squared_error_loss(logits, heatmaps, weights):
+    """Currently we regress joint gaussian confidence maps using pixel-wise L2
+    loss, based on Equation 2 of the paper.
     """
     losses = tf.square(tf.subtract(logits, heatmaps))
     _add_weighted_loss_to_collection(losses, weights)
 
 
-# Keeping the in for now for legacy
-#
-def vgg_bulat_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights):
+def detector_only_xentropy_loss(logits,
+                                endpoints,
+                                heatmaps,
+                                binary_maps,
+                                weights,
+                                is_visible_weights):
+    """Trains only the detector, using pixel-wise sigmoid cross-entropy loss.
+
+    Trains only on visible joints.
+    """
+    _sigmoid_cross_entropy_loss(logits, binary_maps, is_visible_weights)
+
+
+def detector_only_regression_loss(logits,
+                                  endpoints,
+                                  heatmaps,
+                                  binary_maps,
+                                  weights,
+                                  is_visible_weights):
+    """Trains only the detector, using regression (pixel-wise L2 loss)."""
+    _mean_squared_error_loss(logits, heatmaps, weights)
+
+
+def both_nets_xentropy_regression_loss(logits,
+                                       endpoints,
+                                       heatmaps,
+                                       binary_maps,
+                                       weights,
+                                       is_visible_weights):
     """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
-    """
-    sigmoid_cross_entropy_loss(logits,
-                               endpoints,
-                               heatmaps,
-                               binary_maps,
-                               weights,
-                               is_visible_weights)
 
-    mean_squared_error_loss(logits,
-                            endpoints,
-                            heatmaps,
-                            binary_maps,
-                            weights,
-                            is_visible_weights)
+    Cross-entropy on visible joints, with endpoints from first network.
+    Regression on outputs from second network.
+
+    TODO(brendan): Add proper end point for output from detector network.
+    """
+    _sigmoid_cross_entropy_loss(logits, binary_maps, is_visible_weights)
+
+    _mean_squared_error_loss(logits, heatmaps, weights)
+
+
+def both_nets_regression_loss(logits,
+                              endpoints,
+                              heatmaps,
+                              binary_maps,
+                              weights,
+                              is_visible_weights):
+    """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
+    Equation 2 of the paper.
+
+    Regression on outputs from each network.
+    """
+    _mean_squared_error_loss(logits, binary_maps, is_visible_weights)
+
+    _mean_squared_error_loss(logits, heatmaps, weights)
 
 
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
@@ -191,6 +218,8 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)}
 
-NET_LOSS = {'sigmoid_cross_entropy_loss': sigmoid_cross_entropy_loss,
-            'mean_squared_error_loss': mean_squared_error_loss,
+NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
+            'detector_only_xentropy': detector_only_xentropy_loss,
+            'both_nets_regression': both_nets_regression_loss,
+            'both_nets_xentropy_regression': both_nets_xentropy_regression_loss,
             'inception_v3_loss': inception_v3_loss}
