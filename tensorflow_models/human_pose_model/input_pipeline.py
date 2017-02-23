@@ -286,16 +286,15 @@ def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
 
         x_dense_joints, y_dense_joints, weights, sparse_joint_indices = sparse_joints_to_dense_single_example(
             x_joints, y_joints, joint_indices, NUM_JOINTS)
-        is_visible_weights = tf.sparse_to_dense(sparse_indices=sparse_joint_indices,
-                                                output_shape=[NUM_JOINTS],
-                                                sparse_values=parsed_example['is_visible_list'].values)
 
-        heatmaps, weights, is_visible_weights = _get_joint_heatmaps(heatmap_stddev_pixels,
-                                                                    image_dim,
-                                                                    x_dense_joints,
-                                                                    y_dense_joints,
-                                                                    weights,
-                                                                    is_visible_weights)
+        is_visible_weights = _get_is_visible_weights(sparse_joint_indices,
+                                                     parsed_example['is_visible_list'].values,
+                                                     weights)
+
+        heatmaps = _get_joint_heatmaps(heatmap_stddev_pixels,
+                                       image_dim,
+                                       x_dense_joints,
+                                       y_dense_joints)
 
         images_and_jointmaps.append([decoded_img,
                                      binary_maps,
@@ -339,29 +338,10 @@ def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
     return tf.expand_dims(input=probs, axis=expand_axis)
 
 
-def _tile_weights_to_image_dim(weights, image_dim):
-    """Expands the dimensions of `weights` up to
-    [image_dim, image_dim, num_joints].
-
-    The weights returned will be of shape [380, 380, 16], for 380x380 images
-    and 16 joints. The elements of the returned weights tensor will either be
-    all zeros (if the ground truth joint label is not present), or all 1/N,
-    where N is the number of ground truth joint labels that were present for
-    this example. This is based on Equation 2 on page 6 of the Bulat paper.
-    """
-    weights = tf.expand_dims(weights, 0)
-    weights = tf.expand_dims(weights, 0)
-    weights = tf.tile(weights, [image_dim, image_dim, 1])
-
-    return weights
-
-
 def _get_joint_heatmaps(heatmap_stddev_pixels,
                         image_dim,
                         x_dense_joints,
-                        y_dense_joints,
-                        weights,
-                        is_visible_dense):
+                        y_dense_joints):
     """Calculates a set of confidence maps for the joints given by
     `x_dense_joints` and `y_dense_joints`.
 
@@ -384,12 +364,16 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
     heatmaps = tf.matmul(a=y_probs, b=x_probs)
     heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
 
-    is_visible_weights = tf.multiply(weights, tf.cast(is_visible_dense, weights.dtype))
-    is_visible_weights = _tile_weights_to_image_dim(is_visible_weights,
-                                                    image_dim)
-    weights = _tile_weights_to_image_dim(weights, image_dim)
+    return heatmaps
 
-    return heatmaps, weights, is_visible_weights
+def _get_is_visible_weights(sparse_joint_indices, is_visible_list, weights):
+    """Calculates and returns a set of per-joint weights, which are 1 if and
+    only if the joint annotation is both present and unoccluded.
+    """
+    is_visible_dense = tf.sparse_to_dense(sparse_indices=sparse_joint_indices,
+                                          output_shape=[NUM_JOINTS],
+                                          sparse_values=is_visible_list)
+    return tf.multiply(weights, tf.cast(is_visible_dense, tf.float32))
 
 
 def _parse_and_preprocess_example_train(example_serialized,
@@ -427,16 +411,15 @@ def _parse_and_preprocess_example_train(example_serialized,
 
         x_dense_joints, y_dense_joints, weights, sparse_joint_indices = sparse_joints_to_dense_single_example(
             x_joints, y_joints, joint_indices, NUM_JOINTS)
-        is_visible_weights = tf.sparse_to_dense(sparse_indices=sparse_joint_indices,
-                                                output_shape=[NUM_JOINTS],
-                                                sparse_values=parsed_example['is_visible_list'].values)
 
-        heatmaps, weights, is_visible_weights = _get_joint_heatmaps(heatmap_stddev_pixels,
-                                                                    image_dim,
-                                                                    x_dense_joints,
-                                                                    y_dense_joints,
-                                                                    weights,
-                                                                    is_visible_weights)
+        is_visible_weights = _get_is_visible_weights(sparse_joint_indices,
+                                                     parsed_example['is_visible_list'].values,
+                                                     weights)
+
+        heatmaps = _get_joint_heatmaps(heatmap_stddev_pixels,
+                                       image_dim,
+                                       x_dense_joints,
+                                       y_dense_joints)
 
         distorted_image = tf.subtract(x=distorted_image, y=0.5)
         distorted_image = tf.multiply(x=distorted_image, y=2.0)

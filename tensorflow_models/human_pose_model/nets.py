@@ -118,18 +118,17 @@ def _add_weighted_loss_to_collection(losses, weights):
         losses: Element-wise losses as calculated by your favourite function.
         weights: Element-wise weights.
     """
-    weights = tf.cast(weights, tf.float32)
-    losses = tf.multiply(losses, weights)
-    losses = tf.reduce_sum(input_tensor=losses, axis=[1, 2, 3])
+    losses = tf.transpose(a=losses, perm=[1, 2, 0, 3])
+    weighted_loss = tf.multiply(losses, weights)
+    per_batch_loss = tf.reduce_sum(input_tensor=weighted_loss, axis=[0, 1, 3])
 
-    joints_present_map = weights[:, 0, 0, :]
-    num_joints_present = tf.reduce_sum(input_tensor=joints_present_map, axis=1)
+    num_joints_present = tf.reduce_sum(input_tensor=weights, axis=1)
 
     assert_safe_div = tf.assert_greater(num_joints_present, 0.0)
     with tf.control_dependencies(control_inputs=[assert_safe_div]):
-        losses /= num_joints_present
+        per_batch_loss /= num_joints_present
 
-    total_loss = tf.reduce_mean(input_tensor=losses)
+    total_loss = tf.reduce_mean(input_tensor=per_batch_loss)
     tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=total_loss)
 
 

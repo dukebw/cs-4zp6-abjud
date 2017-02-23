@@ -36,7 +36,7 @@ def _sparse_joints_to_dense_inner(dense_shape,
 
     weights = tf.sparse_to_dense(sparse_indices=x_sparse_joints.indices,
                                  output_shape=dense_shape,
-                                 sparse_values=1,
+                                 sparse_values=1.0,
                                  default_value=0)
 
     return x_dense_joints, y_dense_joints, weights, x_sparse_joints.indices
