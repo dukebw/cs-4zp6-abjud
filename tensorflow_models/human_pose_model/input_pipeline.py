@@ -1,3 +1,4 @@
+import math
 import os
 import numpy as np
 import tensorflow as tf
@@ -153,18 +154,6 @@ def _parse_example_proto(example_serialized, image_dim):
 
     return parsed_example
 
-# DEPRECATED 08FEB17
-def _get_renormalized_joints(joints, old_img_dim, new_center, new_img_dim):
-    """Renormalizes a 1-D vector of joints to a new co-ordinate system given by
-    `new_center`, and returns the `SparseTensor` of joints, renormalized.
-
-    N(x, b') = 1/w'*(x - x_c')
-             = 1/w'*(w*N(x; b) + (x_c - x_c'))
-    """
-    new_joint_vals = (1/new_img_dim*
-                      (old_img_dim*tf.cast(joints.values, tf.float32) + (old_img_dim/2 - new_center)))
-
-    return tf.SparseTensor(joints.indices, new_joint_vals, joints.dense_shape)
 
 def _distort_colour(distorted_image, thread_id):
     """Distorts the brightness, saturation, hue and contrast of an image
@@ -199,59 +188,86 @@ def _decode_binary_maps(binary_maps, image_dim):
     return tf.cast(binary_maps, tf.float32)
 
 
-def _distort_image(parsed_example, image_dim, thread_id):
-    """Randomly distorts the image from `parsed_example` by randomly cropping,
+def _randomly_flip(image, binary_maps, heatmaps):
+    """Randomly flips an image and set of joint-maps left or right, and returns
+    the (possibly) flipped results.
+    """
+    rand_uniform = tf.random_uniform(shape=[],
+                                     minval=0,
+                                     maxval=1.0)
+    should_flip = rand_uniform < 0.5
+    flipped_image = tf.cond(
+        pred=should_flip,
+        fn1=lambda: tf.image.flip_left_right(image=image),
+        fn2=lambda: image)
+
+    flipped_binary_maps = tf.cond(
+        pred=should_flip,
+        fn1=lambda: tf.image.flip_left_right(image=binary_maps),
+        fn2=lambda: binary_maps)
+
+    flipped_heatmaps = tf.cond(
+        pred=should_flip,
+        fn1=lambda: tf.image.flip_left_right(image=heatmaps),
+        fn2=lambda: heatmaps)
+
+    return flipped_image, flipped_binary_maps, flipped_heatmaps
+
+
+def _randomly_rotate(image, binary_maps, heatmaps):
+    """Randomly rotates inputs between -pi/4 and pi/4 radians, and returns the
+    results.
+    """
+    max_rotation_angle = math.pi/4
+    rand_angle = tf.random_uniform(shape=[],
+                                   minval=-max_rotation_angle,
+                                   maxval=max_rotation_angle)
+
+    rotated_image = tf.contrib.image.rotate(images=image, angles=rand_angle)
+
+    rotated_maps = tf.contrib.image.rotate(images=[binary_maps, heatmaps],
+                                           angles=rand_angle)
+    rotated_binary_maps = rotated_maps[0]
+    rotated_heatmaps = rotated_maps[1]
+
+    return rotated_image, rotated_binary_maps, rotated_heatmaps
+
+
+def _distort_image(decoded_image, binary_maps, heatmaps, image_dim, thread_id):
+    """Randomly distorts the image from `parsed_example` by randomly rotating,
     randomly flipping left and right, and randomly distorting the colour of
     that image.
 
     Args:
-        parsed_example: Tuple (decoded_img, joint_indices, x_joints, y_joints, head_size)
-            returned from parsing a serialized example protobuf.
+        decoded_image: Raw image, decoded from JPEG.
+        binary_maps: Binary maps of joint positions.
+        heatmaps: Confidence maps of joint positions.
         image_dim: Dimension of the image as required when input to the
             network.
         thread_id: Number of the image preprocessing thread responsible for
             these image distortions.
 
     Returns:
-        (distorted_image, joint_indices, x_joints, y_joints) tuple containing
-        all information from `parsed_example`, except the image has been
-        distorted and the joints have been renormalized to account for those
-        distortions.
+        (distorted_image, distorted_binary_maps, distorted_heatmaps) tuple
+        containing joint-maps and image post flipping, rotation, and colour
+        distortion.
     """
-    decoded_image = parsed_example['image']
-    binary_maps = parsed_example['binary_maps']
-    joint_indices = parsed_example['joint_indices']
-    x_joints = parsed_example['x_joints']
-    y_joints = parsed_example['y_joints']
-    head_size = parsed_example['head_size']
-
-    # TODO(brendan): Are these reshapes necessary, without the random cropping?
-    distorted_image = tf.reshape(tensor=decoded_image,
+    decoded_image = tf.reshape(tensor=decoded_image,
                                  shape=[image_dim, image_dim, 3])
     binary_maps = _decode_binary_maps(binary_maps, image_dim)
 
-    rand_uniform = tf.random_uniform(shape=[],
-                                     minval=0,
-                                     maxval=1.0)
-    should_flip = rand_uniform < 0.5
-    distorted_image = tf.cond(
-        pred=should_flip,
-        fn1=lambda: tf.image.flip_left_right(image=distorted_image),
-        fn2=lambda: distorted_image)
+    flipped_image, flipped_binary_maps, flipped_heatmaps = _randomly_flip(
+        decoded_image, binary_maps, heatmaps)
 
-    distorted_binary_maps = tf.cond(
-        pred=should_flip,
-        fn1=lambda: tf.image.flip_left_right(image=binary_maps),
-        fn2=lambda: binary_maps)
+    distorted_image = _distort_colour(flipped_image, thread_id)
 
-    x_joints = tf.cond(
-        pred=should_flip,
-        fn1=lambda: tf.SparseTensor(x_joints.indices, -x_joints.values, x_joints.dense_shape),
-        fn2=lambda: x_joints)
+    distorted_image, distorted_binary_maps, distorted_heatmaps = _randomly_rotate(
+        distorted_image, flipped_binary_maps, flipped_heatmaps)
 
-    distorted_image = _distort_colour(distorted_image, thread_id)
+    distorted_image = tf.subtract(x=distorted_image, y=0.5)
+    distorted_image = tf.multiply(x=distorted_image, y=2.0)
 
-    return distorted_image, distorted_binary_maps, joint_indices, x_joints, y_joints
+    return distorted_image, distorted_binary_maps, distorted_heatmaps
 
 
 def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
@@ -404,11 +420,11 @@ def _parse_and_preprocess_example_train(example_serialized,
     for thread_id in range(num_preprocess_threads):
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
-        distorted_image, binary_maps, joint_indices, x_joints, y_joints = _distort_image(
-            parsed_example, image_dim, thread_id)
-
         x_dense_joints, y_dense_joints, weights, sparse_joint_indices = sparse_joints_to_dense_single_example(
-            x_joints, y_joints, joint_indices, Person.NUM_JOINTS)
+            parsed_example['x_joints'],
+            parsed_example['y_joints'],
+            parsed_example['joint_indices'],
+            Person.NUM_JOINTS)
 
         is_visible_weights = _get_is_visible_weights(sparse_joint_indices,
                                                      parsed_example['is_visible_list'].values,
@@ -419,8 +435,11 @@ def _parse_and_preprocess_example_train(example_serialized,
                                        x_dense_joints,
                                        y_dense_joints)
 
-        distorted_image = tf.subtract(x=distorted_image, y=0.5)
-        distorted_image = tf.multiply(x=distorted_image, y=2.0)
+        distorted_image, binary_maps, heatmaps = _distort_image(parsed_example['image'],
+                                                                parsed_example['binary_maps'],
+                                                                heatmaps,
+                                                                image_dim,
+                                                                thread_id)
 
         images_and_joint_maps.append([distorted_image,
                                       binary_maps,
