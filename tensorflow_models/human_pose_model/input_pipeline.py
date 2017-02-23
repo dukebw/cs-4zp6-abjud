@@ -1,12 +1,10 @@
 import os
 import numpy as np
 import tensorflow as tf
-from sparse_to_dense import sparse_joints_to_dense_single_example
-from mpii_read import Person
+from pose_utils.sparse_to_dense import sparse_joints_to_dense_single_example
+from dataset.mpii_datatypes import Person
 
 EXAMPLES_PER_SHARD = 256
-
-NUM_JOINTS = Person.NUM_JOINTS
 
 class EvalBatch(object):
     """Contains an evaluation batch of images along with corresponding
@@ -196,7 +194,7 @@ def _decode_binary_maps(binary_maps, image_dim):
     """
     binary_maps = tf.decode_raw(bytes=binary_maps, out_type=tf.uint8)
     binary_maps = tf.reshape(tensor=binary_maps,
-                             shape=[image_dim, image_dim, NUM_JOINTS])
+                             shape=[image_dim, image_dim, Person.NUM_JOINTS])
 
     return tf.cast(binary_maps, tf.float32)
 
@@ -285,7 +283,7 @@ def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
         decoded_img = tf.multiply(x=decoded_img, y=2.0)
 
         x_dense_joints, y_dense_joints, weights, sparse_joint_indices = sparse_joints_to_dense_single_example(
-            x_joints, y_joints, joint_indices, NUM_JOINTS)
+            x_joints, y_joints, joint_indices, Person.NUM_JOINTS)
 
         is_visible_weights = _get_is_visible_weights(sparse_joint_indices,
                                                      parsed_example['is_visible_list'].values,
@@ -351,11 +349,11 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
     tensors with shape [380, 380, 16] will be returned, where each
     [380, 380, i] tensor will be a gaussian corresponding to the i'th joint.
     """
-    std_dev = np.full(NUM_JOINTS, heatmap_stddev_pixels/image_dim)
+    std_dev = np.full(Person.NUM_JOINTS, heatmap_stddev_pixels/image_dim)
     std_dev = tf.cast(std_dev, tf.float32)
 
     pixel_spacing = np.linspace(-0.5, 0.5, image_dim)
-    coords = np.empty((image_dim, NUM_JOINTS), dtype=np.float32)
+    coords = np.empty((image_dim, Person.NUM_JOINTS), dtype=np.float32)
     coords[...] = pixel_spacing[:, None]
 
     x_probs = _get_joints_normal_pdf(x_dense_joints, std_dev, coords, -2)
@@ -371,7 +369,7 @@ def _get_is_visible_weights(sparse_joint_indices, is_visible_list, weights):
     only if the joint annotation is both present and unoccluded.
     """
     is_visible_dense = tf.sparse_to_dense(sparse_indices=sparse_joint_indices,
-                                          output_shape=[NUM_JOINTS],
+                                          output_shape=[Person.NUM_JOINTS],
                                           sparse_values=is_visible_list)
     return tf.multiply(weights, tf.cast(is_visible_dense, tf.float32))
 
@@ -410,7 +408,7 @@ def _parse_and_preprocess_example_train(example_serialized,
             parsed_example, image_dim, thread_id)
 
         x_dense_joints, y_dense_joints, weights, sparse_joint_indices = sparse_joints_to_dense_single_example(
-            x_joints, y_joints, joint_indices, NUM_JOINTS)
+            x_joints, y_joints, joint_indices, Person.NUM_JOINTS)
 
         is_visible_weights = _get_is_visible_weights(sparse_joint_indices,
                                                      parsed_example['is_visible_list'].values,

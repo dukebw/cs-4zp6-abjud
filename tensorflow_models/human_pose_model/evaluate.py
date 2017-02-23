@@ -4,13 +4,12 @@ import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import pose_util
-from mpii_read import Person
-from sparse_to_dense import sparse_joints_to_dense
+from pose_utils import pose_util
+from dataset.mpii_datatypes import Person
+from pose_utils.sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
-from nets import inference
+from networks.inference import inference
 
-NUM_JOINTS = 16
 JOINT_NAMES = ['0 - r ankle',
                '1 - r knee',
                '2 - r hip',

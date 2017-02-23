@@ -8,11 +8,9 @@ from tensorflow.contrib.slim.nets import vgg
 import tensorflow as tf
 from tensorflow.python.ops import control_flow_ops
 import tensorflow.contrib.slim as slim
-import vgg_bulat
-import resnet_bulat
-
-# TODO(brendan): separate file
-NUM_JOINTS = 16
+from dataset.mpii_datatypes import Person
+from networks import vgg_bulat
+from networks import resnet_bulat
 
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
@@ -67,7 +65,7 @@ def inference(images,
         with slim.arg_scope(net_arg_scope()):
             with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 logits, endpoints = part_detect_net(inputs=images,
-                                                    num_classes=NUM_JOINTS,
+                                                    num_classes=Person.NUM_JOINTS,
                                                     is_training=is_training,
                                                     scope=scope)
                 net_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)

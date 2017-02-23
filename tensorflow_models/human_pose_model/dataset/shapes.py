@@ -17,5 +17,3 @@ class Rectangle(object):
 
     def get_width(self):
         return self.bottom_right.x - self.top_left.x
-
-

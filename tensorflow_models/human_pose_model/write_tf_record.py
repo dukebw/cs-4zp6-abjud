@@ -3,14 +3,14 @@ import threading
 import math
 import numpy as np
 import tensorflow as tf
-import pose_util
-from mpii_read import mpii_read, Person
-from timethis import timethis
-from shapes import Point, Rectangle
-from sparse_to_dense import sparse_joints_to_dense_single_example
+from pose_utils import pose_util
+from dataset.mpii_read import mpii_read
+from dataset.mpii_datatypes import Person
+from pose_utils.timethis import timethis
+from dataset.shapes import Point, Rectangle
+from pose_utils.sparse_to_dense import sparse_joints_to_dense_single_example
 
 FLAGS = tf.app.flags.FLAGS
-NUM_JOINTS = Person.NUM_JOINTS
 
 tf.app.flags.DEFINE_string(
     'mpii_filepath',
@@ -95,7 +95,7 @@ class ImageCoder(object):
                                                values=self._joint_indices,
                                                dense_shape=self._joints_shape)
         x_dense_joints, y_dense_joints, _, _ = sparse_joints_to_dense_single_example(
-            sparse_x_joints, sparse_y_joints, sparse_joint_indices, NUM_JOINTS)
+            sparse_x_joints, sparse_y_joints, sparse_joint_indices, Person.NUM_JOINTS)
 
         self._binary_maps = _get_binary_maps(FLAGS.image_dim, x_dense_joints, y_dense_joints)
 
@@ -364,7 +364,7 @@ def _find_padded_person_dim(person_rect):
 
 def _get_binary_maps(image_dim, x_dense_joints, y_dense_joints):
     """
-    Creates binary maps of shape [image_dim, image_dim, NUM_JOINTS],
+    Creates binary maps of shape [image_dim, image_dim, Person.NUM_JOINTS],
     that are 10 pixels in radius.
     """
     dim_j = complex(0, image_dim)
@@ -372,9 +372,9 @@ def _get_binary_maps(image_dim, x_dense_joints, y_dense_joints):
     y = y.astype(np.float32)
     x = x.astype(np.float32)
     y = tf.expand_dims(input=y, axis=-1)
-    y = tf.tile(input=y, multiples=[1, 1, NUM_JOINTS])
+    y = tf.tile(input=y, multiples=[1, 1, Person.NUM_JOINTS])
     x = tf.expand_dims(input=x, axis=-1)
-    x = tf.tile(input=x, multiples=[1, 1, NUM_JOINTS])
+    x = tf.tile(input=x, multiples=[1, 1, Person.NUM_JOINTS])
 
     binary_maps = ((y - y_dense_joints)**2 + (x - x_dense_joints)**2 < (10/image_dim)**2)
 
