@@ -46,18 +46,21 @@ def setup_val_loss_op(num_gpus, eval_batch, image_dim, network_name, loss_name):
     Also returns the concatenated list of per-tower logits, which are used as
     predictions for the batch of examples.
     """
-    images_split = tf.split(axis=0,
+    images_split = tf.split(value=eval_batch.images,
                             num_or_size_splits=num_gpus,
-                            value=eval_batch.images)
-    binary_maps_split = tf.split(axis=0,
+                            axis=0)
+    binary_maps_split = tf.split(value=eval_batch.binary_maps,
                                  num_or_size_splits=num_gpus,
-                                 value=eval_batch.binary_maps)
-    heatmaps_split = tf.split(axis=0,
+                                 axis=0)
+    heatmaps_split = tf.split(value=eval_batch.heatmaps,
                               num_or_size_splits=num_gpus,
-                              value=eval_batch.heatmaps)
-    weights_split = tf.split(axis=0,
+                              axis=0)
+    weights_split = tf.split(value=eval_batch.weights,
                              num_or_size_splits=num_gpus,
-                             value=eval_batch.weights)
+                             axis=0)
+    is_visible_weights_split = tf.split(value=eval_batch.is_visible_weights,
+                                        num_or_size_splits=num_gpus,
+                                        axis=0)
 
     tower_logits_list = []
     total_loss = tf.constant(0, dtype=tf.float32)
@@ -68,6 +71,7 @@ def setup_val_loss_op(num_gpus, eval_batch, image_dim, network_name, loss_name):
                                          binary_maps_split[gpu_index],
                                          heatmaps_split[gpu_index],
                                          weights_split[gpu_index],
+                                         is_visible_weights_split[gpu_index],
                                          gpu_index,
                                          network_name,
                                          loss_name,

@@ -104,6 +104,7 @@ def _setup_training_op(images,
                        binary_maps,
                        heatmaps,
                        weights,
+                       is_visible_weights,
                        global_step,
                        optimizer,
                        num_gpus):
@@ -123,9 +124,18 @@ def _setup_training_op(images,
     Returns: Operation to run a training step.
     """
     images_split = tf.split(value=images, num_or_size_splits=num_gpus, axis=0)
-    binary_maps_split = tf.split(value=binary_maps, num_or_size_splits=num_gpus, axis=0)
-    heatmaps_split = tf.split(value=heatmaps, num_or_size_splits=num_gpus, axis=0)
-    weights_split = tf.split(value=weights, num_or_size_splits=num_gpus, axis=0)
+    binary_maps_split = tf.split(value=binary_maps,
+                                 num_or_size_splits=num_gpus,
+                                 axis=0)
+    heatmaps_split = tf.split(value=heatmaps,
+                              num_or_size_splits=num_gpus,
+                              axis=0)
+    weights_split = tf.split(value=weights,
+                             num_or_size_splits=num_gpus,
+                             axis=0)
+    is_visible_weights_split = tf.split(value=is_visible_weights,
+                                        num_or_size_splits=num_gpus,
+                                        axis=0)
 
     tower_grads = []
     for gpu_index in range(num_gpus):
@@ -135,6 +145,7 @@ def _setup_training_op(images,
                                           binary_maps_split[gpu_index],
                                           heatmaps_split[gpu_index],
                                           weights_split[gpu_index],
+                                          is_visible_weights_split[gpu_index],
                                           gpu_index,
                                           FLAGS.network_name,
                                           FLAGS.loss_name,
@@ -273,7 +284,7 @@ def _setup_training(FLAGS):
     num_training_examples, train_data_filenames = pose_util.count_training_examples(
         FLAGS.train_data_dir, num_counting_threads, 'train')
 
-    images, binary_maps, heatmaps, weights = setup_train_input_pipeline(
+    images, binary_maps, heatmaps, weights, is_visible_weights = setup_train_input_pipeline(
         FLAGS, train_data_filenames)
 
     num_batches_per_epoch = int(num_training_examples / FLAGS.batch_size)
@@ -286,6 +297,7 @@ def _setup_training(FLAGS):
                                               binary_maps,
                                               heatmaps,
                                               weights,
+                                              is_visible_weights,
                                               global_step,
                                               optimizer,
                                               FLAGS.num_gpus)

@@ -20,6 +20,7 @@ class EvalBatch(object):
                  binary_maps,
                  heatmaps,
                  weights,
+                 is_visible_weights,
                  joint_indices,
                  x_joints,
                  y_joints,
@@ -30,6 +31,7 @@ class EvalBatch(object):
         self._binary_maps = binary_maps
         self._heatmaps = heatmaps
         self._weights = weights
+        self._is_visible_weights = is_visible_weights
         self._joint_indices = joint_indices
         self._x_joints = x_joints
         self._y_joints = y_joints
@@ -51,6 +53,10 @@ class EvalBatch(object):
     @property
     def weights(self):
         return self._weights
+
+    @property
+    def is_visible_weights(self):
+        return self._is_visible_weights
 
     @property
     def joint_indices(self):
@@ -123,6 +129,7 @@ def _parse_example_proto(example_serialized, image_dim):
         'image_jpeg': tf.FixedLenFeature(shape=[], dtype=tf.string),
         'binary_maps': tf.FixedLenFeature(shape=[], dtype=tf.string),
         'joint_indices': tf.VarLenFeature(dtype=tf.int64),
+        'is_visible_list': tf.VarLenFeature(dtype=tf.int64),
         'x_joints': tf.VarLenFeature(dtype=tf.float32),
         'y_joints': tf.VarLenFeature(dtype=tf.float32),
         'head_size': tf.FixedLenFeature(shape=[], dtype=tf.float32)
@@ -138,12 +145,13 @@ def _parse_example_proto(example_serialized, image_dim):
         decoded_img = tf.image.convert_image_dtype(
             image=img_tensor, dtype=tf.float32)
 
-    parsed_example = (decoded_img,
-                      features['binary_maps'],
-                      features['joint_indices'],
-                      features['x_joints'],
-                      features['y_joints'],
-                      features['head_size'])
+    parsed_example = {'image': decoded_img,
+                      'binary_maps': features['binary_maps'],
+                      'joint_indices': features['joint_indices'],
+                      'x_joints': features['x_joints'],
+                      'y_joints': features['y_joints'],
+                      'head_size': features['head_size'],
+                      'is_visible_list': features['is_visible_list']}
 
     return parsed_example
 
@@ -212,7 +220,12 @@ def _distort_image(parsed_example, image_dim, thread_id):
         distorted and the joints have been renormalized to account for those
         distortions.
     """
-    decoded_image, binary_maps, joint_indices, x_joints, y_joints, _ = parsed_example
+    decoded_image = parsed_example['image']
+    binary_maps = parsed_example['binary_maps']
+    joint_indices = parsed_example['joint_indices']
+    x_joints = parsed_example['x_joints']
+    y_joints = parsed_example['y_joints']
+    head_size = parsed_example['head_size']
 
     # TODO(brendan): Are these reshapes necessary, without the random cropping?
     distorted_image = tf.reshape(tensor=decoded_image,
@@ -257,7 +270,11 @@ def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
     for thread_id in range(num_preprocess_threads):
         parsed_example = _parse_example_proto(example_serialized, image_dim)
 
-        decoded_img, binary_maps, joint_indices, x_joints, y_joints, head_size = parsed_example
+        decoded_img = parsed_example['image']
+        binary_maps = parsed_example['binary_maps']
+        joint_indices = parsed_example['joint_indices']
+        x_joints = parsed_example['x_joints']
+        y_joints = parsed_example['y_joints']
 
         binary_maps = _decode_binary_maps(binary_maps, image_dim)
 
@@ -267,23 +284,28 @@ def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
         decoded_img = tf.subtract(x=decoded_img, y=0.5)
         decoded_img = tf.multiply(x=decoded_img, y=2.0)
 
-        x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(
+        x_dense_joints, y_dense_joints, weights, sparse_joint_indices = sparse_joints_to_dense_single_example(
             x_joints, y_joints, joint_indices, NUM_JOINTS)
+        is_visible_weights = tf.sparse_to_dense(sparse_indices=sparse_joint_indices,
+                                                output_shape=[NUM_JOINTS],
+                                                sparse_values=parsed_example['is_visible_list'].values)
 
-        heatmaps, weights = _get_joint_heatmaps(heatmap_stddev_pixels,
-                                                image_dim,
-                                                x_dense_joints,
-                                                y_dense_joints,
-                                                weights)
+        heatmaps, weights, is_visible_weights = _get_joint_heatmaps(heatmap_stddev_pixels,
+                                                                    image_dim,
+                                                                    x_dense_joints,
+                                                                    y_dense_joints,
+                                                                    weights,
+                                                                    is_visible_weights)
 
         images_and_jointmaps.append([decoded_img,
-                                    binary_maps,
-                                    heatmaps,
-                                    weights,
-                                    joint_indices,
-                                    x_joints,
-                                    y_joints,
-                                    head_size])
+                                     binary_maps,
+                                     heatmaps,
+                                     weights,
+                                     is_visible_weights,
+                                     joint_indices,
+                                     x_joints,
+                                     y_joints,
+                                     parsed_example['head_size']])
 
     return images_and_jointmaps
 
@@ -317,25 +339,37 @@ def _get_joints_normal_pdf(dense_joints, std_dev, coords, expand_axis):
     return tf.expand_dims(input=probs, axis=expand_axis)
 
 
+def _tile_weights_to_image_dim(weights, image_dim):
+    """Expands the dimensions of `weights` up to
+    [image_dim, image_dim, num_joints].
+
+    The weights returned will be of shape [380, 380, 16], for 380x380 images
+    and 16 joints. The elements of the returned weights tensor will either be
+    all zeros (if the ground truth joint label is not present), or all 1/N,
+    where N is the number of ground truth joint labels that were present for
+    this example. This is based on Equation 2 on page 6 of the Bulat paper.
+    """
+    weights = tf.expand_dims(weights, 0)
+    weights = tf.expand_dims(weights, 0)
+    weights = tf.tile(weights, [image_dim, image_dim, 1])
+
+    return weights
+
+
 def _get_joint_heatmaps(heatmap_stddev_pixels,
                         image_dim,
                         x_dense_joints,
                         y_dense_joints,
-                        weights):
+                        weights,
+                        is_visible_dense):
     """Calculates a set of confidence maps for the joints given by
-    `x_dense_joints` and `y_dense_joints`, and corresponding weights.
+    `x_dense_joints` and `y_dense_joints`.
 
-    The convidence maps are 2-D Gaussians with means given by the joints'
+    The confidence maps are 2-D Gaussians with means given by the joints'
     (x, y) locations, and standard deviations given by `heatmap_stddev_pixels`.
     So, e.g. for a set of 16 joints and an image dimension of 380, a set of
     tensors with shape [380, 380, 16] will be returned, where each
     [380, 380, i] tensor will be a gaussian corresponding to the i'th joint.
-
-    The weights returned will also be of shape [380, 380, 16]. The elements of
-    the returned weights tensor will either be all zeros (if the ground truth
-    joint label is not present), or all 1/N, where N is the number of ground
-    truth joint labels that were present for this example. This is based on
-    Equation 2 on page 6 of the Bulat paper.
     """
     std_dev = np.full(NUM_JOINTS, heatmap_stddev_pixels/image_dim)
     std_dev = tf.cast(std_dev, tf.float32)
@@ -350,13 +384,12 @@ def _get_joint_heatmaps(heatmap_stddev_pixels,
     heatmaps = tf.matmul(a=y_probs, b=x_probs)
     heatmaps = tf.transpose(a=heatmaps, perm=[1, 2, 0])
 
-    # TODO(brendan): Add back this 1/N factor to the weights?
-    # weights /= tf.reduce_sum(input_tensor=weights)
-    weights = tf.expand_dims(weights, 0)
-    weights = tf.expand_dims(weights, 0)
-    weights = tf.tile(weights, [image_dim, image_dim, 1])
+    is_visible_weights = tf.multiply(weights, tf.cast(is_visible_dense, weights.dtype))
+    is_visible_weights = _tile_weights_to_image_dim(is_visible_weights,
+                                                    image_dim)
+    weights = _tile_weights_to_image_dim(weights, image_dim)
 
-    return heatmaps, weights
+    return heatmaps, weights, is_visible_weights
 
 
 def _parse_and_preprocess_example_train(example_serialized,
@@ -392,19 +425,27 @@ def _parse_and_preprocess_example_train(example_serialized,
         distorted_image, binary_maps, joint_indices, x_joints, y_joints = _distort_image(
             parsed_example, image_dim, thread_id)
 
-        x_dense_joints, y_dense_joints, weights = sparse_joints_to_dense_single_example(
+        x_dense_joints, y_dense_joints, weights, sparse_joint_indices = sparse_joints_to_dense_single_example(
             x_joints, y_joints, joint_indices, NUM_JOINTS)
+        is_visible_weights = tf.sparse_to_dense(sparse_indices=sparse_joint_indices,
+                                                output_shape=[NUM_JOINTS],
+                                                sparse_values=parsed_example['is_visible_list'].values)
 
-        heatmaps, weights = _get_joint_heatmaps(heatmap_stddev_pixels,
-                                                image_dim,
-                                                x_dense_joints,
-                                                y_dense_joints,
-                                                weights)
+        heatmaps, weights, is_visible_weights = _get_joint_heatmaps(heatmap_stddev_pixels,
+                                                                    image_dim,
+                                                                    x_dense_joints,
+                                                                    y_dense_joints,
+                                                                    weights,
+                                                                    is_visible_weights)
 
         distorted_image = tf.subtract(x=distorted_image, y=0.5)
         distorted_image = tf.multiply(x=distorted_image, y=2.0)
 
-        images_and_joint_maps.append([distorted_image, binary_maps, heatmaps, weights])
+        images_and_joint_maps.append([distorted_image,
+                                      binary_maps,
+                                      heatmaps,
+                                      weights,
+                                      is_visible_weights])
 
     return images_and_joint_maps
 
@@ -413,12 +454,12 @@ def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads
     """Sets up a batch queue that returns, e.g., a batch of 32 each of images,
     sparse joints and sparse joint indices.
     """
-    images, binary_maps, heatmaps, weights = tf.train.batch_join(
+    images, binary_maps, heatmaps, weights, is_visible_weights = tf.train.batch_join(
         tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
 
-    image_dim =  heatmaps.get_shape().as_list()[1]
+    image_dim = heatmaps.get_shape().as_list()[1]
 
     merged_heatmaps = tf.reshape(tf.reduce_max(heatmaps,3),[batch_size,image_dim, image_dim, 1])
     merged_heatmaps = tf.cast(merged_heatmaps, tf.float32)
@@ -430,7 +471,7 @@ def _setup_batch_queue(images_and_joint_maps, batch_size, num_preprocess_threads
     tf.summary.image(name='heatmaps', tensor=merged_heatmaps)
     tf.summary.image(name='binary_maps', tensor=merged_binary_maps)
 
-    return images, binary_maps, heatmaps, weights
+    return images, binary_maps, heatmaps, weights, is_visible_weights
 
 
 def setup_eval_input_pipeline(batch_size,
@@ -460,7 +501,7 @@ def setup_eval_input_pipeline(batch_size,
         num_preprocess_threads,
         image_dim)
 
-    images, binary_maps, heatmaps, weights, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
+    images, binary_maps, heatmaps, weights, is_visible_weights, joint_indices, x_joints, y_joints, head_size = tf.train.batch_join(
         tensors_list=images_and_joint_maps,
         batch_size=batch_size,
         capacity=2*num_preprocess_threads*batch_size)
@@ -469,6 +510,7 @@ def setup_eval_input_pipeline(batch_size,
                      binary_maps,
                      heatmaps,
                      weights,
+                     is_visible_weights,
                      joint_indices,
                      x_joints,
                      y_joints,

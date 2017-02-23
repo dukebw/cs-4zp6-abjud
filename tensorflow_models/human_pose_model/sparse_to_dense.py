@@ -39,7 +39,7 @@ def _sparse_joints_to_dense_inner(dense_shape,
                                  sparse_values=1,
                                  default_value=0)
 
-    return x_dense_joints, y_dense_joints, weights
+    return x_dense_joints, y_dense_joints, weights, x_sparse_joints.indices
 
 
 def sparse_joints_to_dense_single_example(x_joints,
@@ -69,7 +69,7 @@ def sparse_joints_to_dense(batch, num_joints):
         present in the sparse vector. `weights` contains 1s for all the present
         joints and 0s otherwise.
     """
-    x_dense_joints, y_dense_joints, weights = _sparse_joints_to_dense_inner(
+    x_dense_joints, y_dense_joints, weights, _ = _sparse_joints_to_dense_inner(
         [batch.batch_size, num_joints],
         batch.x_joints,
         batch.y_joints,

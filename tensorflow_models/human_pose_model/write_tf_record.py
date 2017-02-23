@@ -94,7 +94,7 @@ class ImageCoder(object):
         sparse_joint_indices = tf.SparseTensor(indices=self._joint_indices,
                                                values=self._joint_indices,
                                                dense_shape=self._joints_shape)
-        x_dense_joints, y_dense_joints, _ = sparse_joints_to_dense_single_example(
+        x_dense_joints, y_dense_joints, _, _ = sparse_joints_to_dense_single_example(
             sparse_x_joints, sparse_y_joints, sparse_joint_indices, NUM_JOINTS)
 
         self._binary_maps = _get_binary_maps(FLAGS.image_dim, x_dense_joints, y_dense_joints)

@@ -1,10 +1,13 @@
 """This module contains all of the model definitions, importing models from TF
 Slim where needed.
 """
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
+
 from tensorflow.contrib.slim.nets import inception
 from tensorflow.contrib.slim.nets import vgg
+
+import tensorflow as tf
+from tensorflow.python.ops import control_flow_ops
+import tensorflow.contrib.slim as slim
 import vgg_bulat
 import resnet_bulat
 
@@ -27,6 +30,7 @@ def inference(images,
               binary_maps,
               heatmaps,
               weights,
+              is_visible_weights,
               gpu_index,
               network_name,
               loss_name,
@@ -47,6 +51,8 @@ def inference(images,
         heatmaps: Confidence maps of ground truth joints.
         weights: Weights of heatmaps (tensors of all 1s if joint present, all
             0s if not present).
+        is_visible_weights: Weights of heatmaps/binary maps, with occluded
+            joints zero'ed out.
         gpu_index: Index of GPU calculating the current loss.
         scope: Name scope for ops, which is different for each tower (tower_N).
 
@@ -64,12 +70,15 @@ def inference(images,
                                                     num_classes=NUM_JOINTS,
                                                     is_training=is_training,
                                                     scope=scope)
-                net_loss(logits, endpoints, heatmaps, binary_maps, weights)
+                net_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
-            regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES,
-                                                      scope=scope)
-            total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
+
+            regularization_losses = tf.get_collection(
+                key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
+
+            total_loss = tf.add_n(inputs=losses + regularization_losses,
+                                  name='total_loss')
             total_loss = _summarize_loss(total_loss, gpu_index)
 
     return total_loss, logits
@@ -94,44 +103,112 @@ def inception_v3_loss(logits, endpoints, dense_joints, weights):
                                  weights=weights)
 
 
-def sigmoid_cross_entropy_loss(logits, endpoints, heatmaps, binary_maps, weights):
+def _add_weighted_loss_to_collection(losses, weights):
+    """Weights `losses` by weights, and adds the weighted losses, normalized by
+    the number of joints present, to `tf.GraphKeys.LOSSES`.
+
+    Specifically, the losses are summed across all dimensions (x, y,
+    num_joints), producing a scalar loss per batch. That scalar loss then needs
+    to be normalized by the number of joints present. This is equivalent to
+    sum(weights[:, 0, 0, :]), since `weights` is a [image_dim, image_dim] map
+    of eithers all 1s or all 0s, depending on whether a joints is present or
+    not, respectively.
+
+    Args:
+        losses: Element-wise losses as calculated by your favourite function.
+        weights: Element-wise weights.
+    """
+    weights = tf.cast(weights, tf.float32)
+    losses = tf.multiply(losses, weights)
+    losses = tf.reduce_sum(input_tensor=losses, axis=[1, 2, 3])
+
+    joints_present_map = weights[:, 0, 0, :]
+    num_joints_present = tf.reduce_sum(input_tensor=joints_present_map, axis=1)
+
+    assert_safe_div = tf.assert_greater(num_joints_present, 0.0)
+    with tf.control_dependencies(control_inputs=[assert_safe_div]):
+        losses /= num_joints_present
+
+    total_loss = tf.reduce_mean(input_tensor=losses)
+    tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=total_loss)
+
+
+def _sigmoid_cross_entropy_loss(logits, binary_maps, weights):
     """Pixelwise cross entropy between binary masks and logits for each channel.
 
     See equation 1 in Bulat paper.
     """
-    tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
-                                    logits=logits,
-                                    weights=weights,
-                                    label_smoothing=0,
-                                    scope='detector_loss')
+    losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=binary_maps,
+                                                     logits=logits,
+                                                     name='cross_entropy_bulat')
+
+    _add_weighted_loss_to_collection(losses, weights)
 
 
-def mean_squared_error_loss(logits, endpoints, heatmaps, binary_maps, weights):
-    """Currently we regress joint gaussian confidence maps using pixel-wise L2 loss, based on
-    Equation 2 of the paper.
+def _mean_squared_error_loss(logits, heatmaps, weights):
+    """Currently we regress joint gaussian confidence maps using pixel-wise L2
+    loss, based on Equation 2 of the paper.
     """
-    tf.losses.mean_squared_error(predictions=logits,
-                                 labels=heatmaps,
-                                 weights=weights,
-                                 scope='regressor_loss')
+    losses = tf.square(tf.subtract(logits, heatmaps))
+    _add_weighted_loss_to_collection(losses, weights)
 
 
-# Keeping the in for now for legacy
-#
-def vgg_bulat_loss(logits, endpoints, heatmaps, binary_maps, weights):
+def detector_only_xentropy_loss(logits,
+                                endpoints,
+                                heatmaps,
+                                binary_maps,
+                                weights,
+                                is_visible_weights):
+    """Trains only the detector, using pixel-wise sigmoid cross-entropy loss.
+
+    Trains only on visible joints.
+    """
+    _sigmoid_cross_entropy_loss(logits, binary_maps, is_visible_weights)
+
+
+def detector_only_regression_loss(logits,
+                                  endpoints,
+                                  heatmaps,
+                                  binary_maps,
+                                  weights,
+                                  is_visible_weights):
+    """Trains only the detector, using regression (pixel-wise L2 loss)."""
+    _mean_squared_error_loss(logits, heatmaps, weights)
+
+
+def both_nets_xentropy_regression_loss(logits,
+                                       endpoints,
+                                       heatmaps,
+                                       binary_maps,
+                                       weights,
+                                       is_visible_weights):
     """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
     Equation 2 of the paper.
-    """
-    tf.losses.sigmoid_cross_entropy(multi_class_labels=binary_maps,
-                                    logits=logits,
-                                    weights=weights,
-                                    label_smoothing=0,
-                                    scope='detector_loss')
 
-    tf.losses.mean_squared_error(predictions=logits,
-                                 labels=heatmaps,
-                                 weights=weights,
-                                 scope='mean_squared_loss')
+    Cross-entropy on visible joints, with endpoints from first network.
+    Regression on outputs from second network.
+
+    TODO(brendan): Add proper end point for output from detector network.
+    """
+    _sigmoid_cross_entropy_loss(logits, binary_maps, is_visible_weights)
+
+    _mean_squared_error_loss(logits, heatmaps, weights)
+
+
+def both_nets_regression_loss(logits,
+                              endpoints,
+                              heatmaps,
+                              binary_maps,
+                              weights,
+                              is_visible_weights):
+    """Currently we regress joint heatmaps using pixel-wise L2 loss, based on
+    Equation 2 of the paper.
+
+    Regression on outputs from each network.
+    """
+    _mean_squared_error_loss(logits, binary_maps, is_visible_weights)
+
+    _mean_squared_error_loss(logits, heatmaps, weights)
 
 
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
@@ -141,6 +218,8 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)}
 
-NET_LOSS = {'sigmoid_cross_entropy_loss': sigmoid_cross_entropy_loss,
-            'mean_squared_error_loss': mean_squared_error_loss,
+NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
+            'detector_only_xentropy': detector_only_xentropy_loss,
+            'both_nets_regression': both_nets_regression_loss,
+            'both_nets_xentropy_regression': both_nets_xentropy_regression_loss,
             'inception_v3_loss': inception_v3_loss}
