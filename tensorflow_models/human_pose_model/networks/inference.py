@@ -184,10 +184,10 @@ def both_nets_xentropy_regression_loss(logits,
 
     Cross-entropy on visible joints, with endpoints from first network.
     Regression on outputs from second network.
-
-    TODO(brendan): Add proper end point for output from detector network.
     """
-    _sigmoid_cross_entropy_loss(logits, binary_maps, is_visible_weights)
+    _sigmoid_cross_entropy_loss(endpoints['detect_logits'],
+                                binary_maps,
+                                is_visible_weights)
 
     _mean_squared_error_loss(logits, heatmaps, weights)
 
@@ -203,14 +203,16 @@ def both_nets_regression_loss(logits,
 
     Regression on outputs from each network.
     """
-    _mean_squared_error_loss(logits, binary_maps, is_visible_weights)
+    _mean_squared_error_loss(endpoints['detect_logits'],
+                             heatmaps,
+                             is_visible_weights)
 
     _mean_squared_error_loss(logits, heatmaps, weights)
 
 
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'inception_v3': (inception.inception_v3, inception.inception_v3_arg_scope),
-        'vgg_bulat': (vgg_bulat.vgg_16, vgg_bulat.vgg_arg_scope),
+        'vgg_bulat_cascade': (vgg_bulat.vgg_bulat_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_fcn32': (vgg_bulat.vgg_16_fcn32, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)}
