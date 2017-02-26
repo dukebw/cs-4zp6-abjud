@@ -69,13 +69,13 @@ tf.app.flags.DEFINE_integer('max_epochs', 90,
 tf.app.flags.DEFINE_integer('heatmap_stddev_pixels', 5,
                             """Standard deviation of Gaussian joint heatmap, in pixels.""")
 
-tf.app.flags.DEFINE_integer('max_rotation_angle', math.pi/6,
-                            """Maximum amount to rotate images, in radians.""")
-
 tf.app.flags.DEFINE_integer('eval_interval_secs', 360,
                             """Interval in seconds for which we will wait
                             between checking for new checkpoints and evaluating
                             them.""")
+
+tf.app.flags.DEFINE_float('max_rotation_angle', math.pi/6,
+                          """Maximum amount to rotate images, in radians.""")
 
 tf.app.flags.DEFINE_float('initial_learning_rate', 0.01,
                           """Initial learning rate.""")
