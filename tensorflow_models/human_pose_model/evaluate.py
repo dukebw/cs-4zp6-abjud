@@ -75,6 +75,7 @@ def setup_val_loss_op(num_gpus, eval_batch, image_dim, network_name, loss_name):
                                          network_name,
                                          loss_name,
                                          False,
+                                         False,
                                          scope)
 
                 tower_logits_list.append(logits)

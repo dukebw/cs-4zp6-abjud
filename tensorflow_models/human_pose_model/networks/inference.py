@@ -32,7 +32,8 @@ def inference(images,
               gpu_index,
               network_name,
               loss_name,
-              is_training,
+              is_detector_training,
+              is_regressor_training,
               scope):
     """Sets up a human pose inference model, computes predictions on input
     images and calculates loss on those predictions based on an input dense
@@ -66,7 +67,8 @@ def inference(images,
             with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 logits, endpoints = part_detect_net(inputs=images,
                                                     num_classes=Person.NUM_JOINTS,
-                                                    is_training=is_training,
+                                                    is_detector_training=is_detector_training,
+                                                    is_regressor_training=is_regressor_training,
                                                     scope=scope)
                 net_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
 
@@ -213,7 +215,6 @@ def both_nets_regression_loss(logits,
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'inception_v3': (inception.inception_v3, inception.inception_v3_arg_scope),
         'vgg_bulat_cascade': (vgg_bulat.vgg_bulat_cascade, vgg_bulat.vgg_arg_scope),
-        'vgg_fcn32': (vgg_bulat.vgg_16_fcn32, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)}
 

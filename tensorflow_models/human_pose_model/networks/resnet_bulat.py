@@ -157,7 +157,8 @@ def bulat_resnet_v1(inputs,
 
 def resnet_detector(inputs,
                     num_classes=16,
-                    is_training=True,
+                    is_detector_training=True,
+                    is_regressor_training=True,
                     reuse=None,
                     scope='resnet_v1_152'):
   """ResNet-152 model of [1]. See resnet_v2() for arg and return description."""
@@ -174,7 +175,7 @@ def resnet_detector(inputs,
       resnet_utils.Block('block3b', bottleneck, [(1024, 256, 1)] * 2),
       # B5
       resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)]
-  return bulat_resnet_v1(inputs, blocks, num_classes, is_training=is_training,
+  return bulat_resnet_v1(inputs, blocks, num_classes, is_training=is_detector_training,
                          include_root_block=True, reuse=reuse, scope='resnet_v1_152')
 
 
@@ -242,4 +243,3 @@ def hourglass_bulat(inputs, blocks, num_classes = 16, scope=None):
       # Convert end_points_collection into a dictionary of end_points.
       end_points = slim.utils.convert_collection_to_dict(end_points_collection)
       return D11, end_points
-

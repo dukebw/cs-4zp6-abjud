@@ -88,37 +88,11 @@ def vgg_16_base(inputs, num_classes, dropout_keep_prob, is_training):
     return a3, a4, a8
 
 
-def vgg_16_fcn32(inputs,
-                 num_classes=16,
-                 is_training=True,
-                 dropout_keep_prob=0.5,
-                 scope='vgg_16'):
-    """This network doesn't use any skip layers, and directly does a bilinear
-    upsample from the vgg_16/fc8 activations.
-    """
-    with tf.variable_scope(None, 'vgg_16', [inputs]) as sc:
-        with tf.name_scope(scope):
-            end_points_collection = sc.original_name_scope + '_end_points'
-            # Collect outputs for conv2d, fully_connected and max_pool2d.
-            with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
-                                outputs_collections=end_points_collection):
-                _, _, a8 = vgg_16_base(inputs,
-                                 num_classes,
-                                 dropout_keep_prob,
-                                 is_training)
-                a9 = tf.image.resize_bilinear(images=a8,
-                                              size=inputs.get_shape()[1:3])
-
-                end_points = slim.utils.convert_collection_to_dict(end_points_collection)
-
-                return a9, end_points
-
-
-def vgg_16(inputs,
-           num_classes=16,
-           is_training=True,
-           dropout_keep_prob=0.5,
-           scope='vgg_16'):
+def _vgg_16(inputs,
+            num_classes=16,
+            is_training=True,
+            dropout_keep_prob=0.5,
+            scope='vgg_16'):
     """Oxford Net VGG 16-Layers version D Example.
 
     Note: All the fully_connected layers have been transformed to conv2d layers.
@@ -172,12 +146,28 @@ def vgg_16(inputs,
                 return a9, end_points
 
 
-def vgg_16_bn_relu(inputs,
-                   num_classes=16,
-                   is_training=True,
-                   dropout_keep_prob=0.5,
-                   batch_norm_var_collection='moving_vars',
-                   scope='vgg_16'):
+def vgg_16(inputs,
+           num_classes=16,
+           is_detector_training=True,
+           is_regressor_training=True,
+           dropout_keep_prob=0.5,
+           batch_norm_var_collection='moving_vars',
+           scope='vgg_16'):
+    """This is a wrapper around the `_vgg_16`, which assumes that we want to
+    run VGG-16 as a single network pose estimator (i.e. just the detector).
+    """
+    return _vgg_16(inputs=inputs,
+                   num_classes=num_classes,
+                   is_training=is_detector_training,
+                   scope=scope)
+
+
+def _vgg_16_bn_relu(inputs,
+                    num_classes=16,
+                    is_training=True,
+                    dropout_keep_prob=0.5,
+                    batch_norm_var_collection='moving_vars',
+                    scope='vgg_16'):
     """Oxford Net VGG 16-Layers version D Example.
 
     Note: All the fully_connected layers have been transformed to conv2d layers.
@@ -249,12 +239,12 @@ def vgg_16_bn_relu(inputs,
                 return a9, end_points
 
 
-def vgg_bulat_regression(inputs,
-                         num_classes=16,
-                         is_training=True,
-                         dropout_keep_prob=0.5,
-                         batch_norm_var_collection='moving_vars_vgg_bulat',
-                         scope='vgg_bulat_regression'):
+def _vgg_bulat_regression(inputs,
+                          num_classes=16,
+                          is_training=True,
+                          dropout_keep_prob=0.5,
+                          batch_norm_var_collection='moving_vars_vgg_bulat',
+                          scope='vgg_bulat_regression'):
     """An interpretation of the regression subnetwork from the Bulat paper.
 
     Note that dropout has been added after the two layers of size 1x1, and
@@ -344,22 +334,40 @@ def vgg_bulat_regression(inputs,
             return net, end_points
 
 
+def vgg_16_bn_relu(inputs,
+                   num_classes=16,
+                   is_detector_training=True,
+                   is_regressor_training=True,
+                   dropout_keep_prob=0.5,
+                   batch_norm_var_collection='moving_vars',
+                   scope='vgg_16'):
+    """This is a wrapper around the `_vgg_16_bn_relu`, which assumes that we
+    want to run VGG-16 with batchnorm and RELU as a single network pose
+    estimator (i.e. just the detector).
+    """
+    return _vgg_16_bn_relu(inputs=inputs,
+                           num_classes=num_classes,
+                           is_training=is_detector_training,
+                           scope=scope)
+
+
 def vgg_bulat_cascade(inputs,
                       num_classes=16,
-                      is_training=True,
+                      is_detector_training=True,
+                      is_regressor_training=True,
                       scope='vgg_bulat_cascade'):
     """The cascade of VGG-style networks from the Bulat paper."""
-    detect_logits, detect_endpoints = vgg_16_bn_relu(inputs=inputs,
-                                                     num_classes=num_classes,
-                                                     is_training=False,
-                                                     scope=scope)
+    detect_logits, detect_endpoints = _vgg_16_bn_relu(inputs=inputs,
+                                                      num_classes=num_classes,
+                                                      is_training=is_detector_training,
+                                                      scope=scope)
     detect_endpoints['detect_logits'] = detect_logits
 
     stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
 
-    regression_logits, _ = vgg_bulat_regression(inputs=stacked_heatmaps,
-                                                num_classes=num_classes,
-                                                is_training=is_training,
-                                                scope=scope)
+    regression_logits, _ = _vgg_bulat_regression(inputs=stacked_heatmaps,
+                                                 num_classes=num_classes,
+                                                 is_training=is_regressor_training,
+                                                 scope=scope)
 
     return regression_logits, detect_endpoints

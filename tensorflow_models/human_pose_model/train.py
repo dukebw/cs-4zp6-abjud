@@ -146,6 +146,7 @@ def _setup_training_op(images,
                                           gpu_index,
                                           FLAGS.network_name,
                                           FLAGS.loss_name,
+                                          FLAGS.is_detector_training,
                                           True,
                                           scope)
 
