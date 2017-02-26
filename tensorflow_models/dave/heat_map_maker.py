@@ -53,7 +53,7 @@ batch_length = 5
 
 # heat map parameters
 num_parts = 7
-heat_map_size = 64
+heat_map_size = 5
 
 
 # Gaussian Constants
@@ -286,8 +286,12 @@ def read_label_file(file, path, num_parts, image_dimension):
         width_factor = image_dimension/width
         length_factor = image_dimension/height
         for part_num in range(0, num_parts):
+            print("this is a joint number" )
+            print(part_num)
             x[count, part_num, 0] = width_factor * row[2*part_num+1]
             y[count, part_num, 0] = length_factor * row[2*part_num+2]
+            print(x[count, part_num, 0])
+            print(y[count, part_num, 0])
         count = count +1
     return filepaths, x, y
 
@@ -387,14 +391,12 @@ def processing_labels(labelx, num_parts, image_dimension, xory):
 
 # have as input (x-x_avg)^2 and (y-y_avg)^2
 # so combine these into gaussians e ^-((x-x_avg)^2 and (y-y_avg)^2)
-
 def combinexy(labelx, labely, stdev, gaussFact):
     outt = tf.add(labelx, labely, name=None)
     outt = tf.scalar_mul(-1/stdev, outt)
     outt = tf.exp(outt, name=None)
     outt = tf.scalar_mul(gaussFact, outt)
     return outt
-
 
 
 def read_images_from_disk(input_queue, rescale_size, num_channels):
@@ -453,8 +455,8 @@ def test_pipeline(database_access_file, data_path,  batch_length, image_dimensio
     image_batch, label_batch = _input_pipeline(database_access_file, data_path,  batch_length, image_dimension, rescale_size, num_channels, num_parts, stdev, gaussFact)
 
     pred = conv_net(image_batch, weights, biases)
-    outt = tf.squared_difference(pred, label_batch,name=None)
-    minThis = tf.nn.l2_loss(outt, name=None)
+    #outt = tf.squared_difference(pred, label_batch,name=None)
+    # minThis = tf.nn.l2_loss(outt, name=None)
     # the image batch would be a set of tensors that are of size
     init_op = tf.initialize_all_variables()
     sess = tf.Session()
@@ -463,7 +465,9 @@ def test_pipeline(database_access_file, data_path,  batch_length, image_dimensio
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         #result = sess.run(loss ,feed_dict={x: image_batch, y:label_batch })
-        print(sess.run(minThis))
+        print(sess.run(label_batch))
+        print(sess.run(pred))
+        #print(sess.run(minThis))
         
         #image_batch, label_batch = _input_pipeline(database_access_file, data_path,  batch_length, image_dimension, rescale_size, num_channels, num_parts, stdev, gaussFact)
 
