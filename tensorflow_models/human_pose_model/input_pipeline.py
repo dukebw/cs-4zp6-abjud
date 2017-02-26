@@ -214,11 +214,10 @@ def _randomly_flip(image, binary_maps, heatmaps):
     return flipped_image, flipped_binary_maps, flipped_heatmaps
 
 
-def _randomly_rotate(image, binary_maps, heatmaps):
-    """Randomly rotates inputs between -pi/4 and pi/4 radians, and returns the
+def _randomly_rotate(image, binary_maps, heatmaps, max_rotation_angle):
+    """Randomly rotates inputs between +/-`max_rotation_angle`, and returns the
     results.
     """
-    max_rotation_angle = math.pi/4
     rand_angle = tf.random_uniform(shape=[],
                                    minval=-max_rotation_angle,
                                    maxval=max_rotation_angle)
@@ -233,7 +232,12 @@ def _randomly_rotate(image, binary_maps, heatmaps):
     return rotated_image, rotated_binary_maps, rotated_heatmaps
 
 
-def _distort_image(decoded_image, binary_maps, heatmaps, image_dim, thread_id):
+def _distort_image(decoded_image,
+                   binary_maps,
+                   heatmaps,
+                   image_dim,
+                   thread_id,
+                   max_rotation_angle):
     """Randomly distorts the image from `parsed_example` by randomly rotating,
     randomly flipping left and right, and randomly distorting the colour of
     that image.
@@ -246,6 +250,7 @@ def _distort_image(decoded_image, binary_maps, heatmaps, image_dim, thread_id):
             network.
         thread_id: Number of the image preprocessing thread responsible for
             these image distortions.
+        max_rotation_angle: Maximum amount to rotate images, in radians.
 
     Returns:
         (distorted_image, distorted_binary_maps, distorted_heatmaps) tuple
@@ -262,7 +267,7 @@ def _distort_image(decoded_image, binary_maps, heatmaps, image_dim, thread_id):
     distorted_image = _distort_colour(flipped_image, thread_id)
 
     distorted_image, distorted_binary_maps, distorted_heatmaps = _randomly_rotate(
-        distorted_image, flipped_binary_maps, flipped_heatmaps)
+        distorted_image, flipped_binary_maps, flipped_heatmaps, max_rotation_angle)
 
     distorted_image = tf.subtract(x=distorted_image, y=0.5)
     distorted_image = tf.multiply(x=distorted_image, y=2.0)
@@ -393,7 +398,8 @@ def _get_is_visible_weights(sparse_joint_indices, is_visible_list, weights):
 def _parse_and_preprocess_example_train(example_serialized,
                                         num_preprocess_threads,
                                         image_dim,
-                                        heatmap_stddev_pixels):
+                                        heatmap_stddev_pixels,
+                                        max_rotation_angle):
     """Parses Example protobufs containing input images and their ground truth
     vectors and preprocesses those images, returning a vector with one
     preprocessed tensor per thread.
@@ -410,6 +416,7 @@ def _parse_and_preprocess_example_train(example_serialized,
         image_dim: Dimension of square input images.
         heatmap_stddev_pixels: Standard deviation of Gaussian joint heatmap, in
             pixels.
+        max_rotation_angle: Maximum amount to rotate images, in radians.
 
     Returns:
         A list of lists, one for each thread, where each inner list contains a
@@ -439,7 +446,8 @@ def _parse_and_preprocess_example_train(example_serialized,
                                                                 parsed_example['binary_maps'],
                                                                 heatmaps,
                                                                 image_dim,
-                                                                thread_id)
+                                                                thread_id,
+                                                                max_rotation_angle)
 
         images_and_joint_maps.append([distorted_image,
                                       binary_maps,
@@ -546,6 +554,7 @@ def setup_train_input_pipeline(FLAGS, data_filenames):
             data.
         image_dim: Dimension of square input images.
         data_filenames: Set of filenames to get examples from.
+        max_rotation_angle: Maximum amount to rotate images, in radians.
 
     Returns:
         (images, heatmaps, weights, batch_size): List of image
@@ -560,6 +569,7 @@ def setup_train_input_pipeline(FLAGS, data_filenames):
     num_preprocess_threads = FLAGS.num_preprocess_threads
     image_dim = FLAGS.image_dim
     heatmap_stddev_pixels = FLAGS.heatmap_stddev_pixels
+    max_rotation_angle = FLAGS.max_rotation_angle
 
     # TODO(brendan): num_readers == 1 case
     assert num_readers > 1
@@ -579,7 +589,8 @@ def setup_train_input_pipeline(FLAGS, data_filenames):
             example_serialized,
             num_preprocess_threads,
             image_dim,
-            heatmap_stddev_pixels)
+            heatmap_stddev_pixels,
+            max_rotation_angle)
 
         return _setup_batch_queue(images_and_joint_maps,
                                   batch_size,

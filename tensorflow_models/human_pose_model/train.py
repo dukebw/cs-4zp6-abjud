@@ -1,4 +1,3 @@
-import re
 import os
 import time
 import numpy as np
@@ -196,7 +195,7 @@ def _restore_checkpoint_variables(session, global_step):
         for var in slim.get_model_variables():
             excluded = False
             for exclusion in exclusions:
-                if re.match('.*' + exclusion + '.*', var.op.name) is not None:
+                if exclusion in var.op.name:
                     excluded = True
                     break
             if not excluded:
