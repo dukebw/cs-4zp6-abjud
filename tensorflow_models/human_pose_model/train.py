@@ -187,7 +187,7 @@ def _restore_checkpoint_variables(session, global_step):
         return
 
     if FLAGS.checkpoint_exclude_scopes is None:
-        variables_to_restore = slim.get_model_variables()
+        variables_to_restore = tf.global_variables()
     else:
         exclusions = [scope.strip()
                       for scope in FLAGS.checkpoint_exclude_scopes.split(',')]

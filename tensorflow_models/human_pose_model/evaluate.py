@@ -248,6 +248,7 @@ def evaluate():
                           epoch,
                           log_file_handle)
 
+
 def main(argv=None):
     """Usage: python3 -m evaluate
     """

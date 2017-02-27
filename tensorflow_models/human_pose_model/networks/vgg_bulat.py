@@ -204,7 +204,7 @@ def _vgg_16_bn_relu(inputs,
       'is_training': is_training
     }
 
-    with tf.variable_scope(None, 'vgg_16', [inputs]) as sc:
+    with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
         with tf.name_scope(scope):
             end_points_collection = sc.original_name_scope + '_end_points'
             # Collect outputs for conv2d, fully_connected and max_pool2d.
@@ -576,7 +576,7 @@ def vgg_16_bn_relu(inputs,
     return _vgg_16_bn_relu(inputs=inputs,
                            num_classes=num_classes,
                            is_training=is_detector_training,
-                           scope=scope)
+                           scope='vgg_16')
 
 
 def vgg_bulat_cascade_maxpool_c3c4(inputs,
@@ -632,7 +632,7 @@ def vgg_bulat_cascade_conv3x3_c2c3c4(inputs,
     detect_logits, detect_endpoints = _vgg_16_bn_relu(inputs=inputs,
                                                       num_classes=num_classes,
                                                       is_training=is_detector_training,
-                                                      scope=scope)
+                                                      scope='vgg_16')
     detect_endpoints['detect_logits'] = detect_logits
 
     stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
@@ -641,5 +641,29 @@ def vgg_bulat_cascade_conv3x3_c2c3c4(inputs,
                                                                 num_classes=num_classes,
                                                                 is_training=is_regressor_training,
                                                                 scope=scope)
+
+    return regression_logits, detect_endpoints
+
+
+def two_vgg_16s_cascade(inputs,
+                        num_classes=16,
+                        is_detector_training=True,
+                        is_regressor_training=True,
+                        scope='vgg_bulat_cascade'):
+    """A cascade of two VGG-16s, in place of the simpler VGG-style regression
+    subnetwork from the Bulat paper.
+    """
+    detect_logits, detect_endpoints = _vgg_16_bn_relu(inputs=inputs,
+                                                      num_classes=num_classes,
+                                                      is_training=is_detector_training,
+                                                      scope='vgg_16')
+    detect_endpoints['detect_logits'] = detect_logits
+
+    stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
+
+    regression_logits, _ = _vgg_16_bn_relu(inputs=stacked_heatmaps,
+                                           num_classes=num_classes,
+                                           is_training=is_regressor_training,
+                                           scope='vgg_16_regression')
 
     return regression_logits, detect_endpoints

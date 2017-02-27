@@ -217,6 +217,7 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'vgg_bulat_cascade_maxpool_c3c4': (vgg_bulat.vgg_bulat_cascade_maxpool_c3c4, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_cascade_maxpool_c2c3c4': (vgg_bulat.vgg_bulat_cascade_maxpool_c2c3c4, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_cascade_conv3x3_c2c3c4': (vgg_bulat.vgg_bulat_cascade_conv3x3_c2c3c4, vgg_bulat.vgg_arg_scope),
+        'two_vgg_16s_cascade': (vgg_bulat.two_vgg_16s_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)}
 
