@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_string('checkpoint_path',
                            inception_v3.ckpt) from.""")
 
 tf.app.flags.DEFINE_string('checkpoint_exclude_scopes',
-                           'block3b,logits,b7_deconv,biases',
+                           None,
                            """Comma-separated list of scopes to exclude when
                            restoring from a checkpoint.""")
 
