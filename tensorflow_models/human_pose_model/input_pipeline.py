@@ -496,7 +496,7 @@ def setup_eval_input_pipeline(batch_size,
     filename_queue = tf.train.string_input_producer(
         string_tensor=data_filenames,
         shuffle=False,
-        capacity=1)
+        capacity=16)
 
     options = tf.python_io.TFRecordOptions(
         compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
