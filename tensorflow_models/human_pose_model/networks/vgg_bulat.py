@@ -280,20 +280,28 @@ def _vgg_bulat_regression(inputs,
                 net = slim.conv2d(inputs=net,
                                   num_outputs=64,
                                   kernel_size=[13, 13],
-                                  stride=2,
+                                  stride=1,
                                   scope='c2')
 
                 net = slim.conv2d(inputs=net,
                                   num_outputs=128,
                                   kernel_size=[13, 13],
-                                  stride=2,
+                                  stride=1,
                                   scope='c3')
+
+                net = slim.max_pool2d(inputs=net,
+                                      kernel_size=[2, 2],
+                                      scope='c3_pool')
 
                 net = slim.conv2d(inputs=net,
                                   num_outputs=256,
                                   kernel_size=[15, 15],
                                   stride=1,
                                   scope='c4')
+
+                net = slim.max_pool2d(inputs=net,
+                                      kernel_size=[2, 2],
+                                      scope='c4_pool')
 
                 net = slim.conv2d(inputs=net,
                                   num_outputs=512,
