@@ -1,0 +1,106 @@
+\select@language {english}
+\contentsline {chapter}{\numberline {1}Project Drivers}{6}{chapter.1}
+\contentsline {section}{\numberline {1.1}Legal and Copyright Information}{6}{section.1.1}
+\contentsline {subsection}{\numberline {1.1.1}The User Business or Background of the Project Effort}{6}{subsection.1.1.1}
+\contentsline {subsection}{\numberline {1.1.2}Goals of the Project}{6}{subsection.1.1.2}
+\contentsline {section}{\numberline {1.2}The Client, the Customer, and Other Stakeholders}{7}{section.1.2}
+\contentsline {subsection}{\numberline {1.2.1}The Client}{7}{subsection.1.2.1}
+\contentsline {subsection}{\numberline {1.2.2}The Customer}{7}{subsection.1.2.2}
+\contentsline {subsection}{\numberline {1.2.3}Other Stakeholders}{7}{subsection.1.2.3}
+\contentsline {section}{\numberline {1.3}Users of the Product}{8}{section.1.3}
+\contentsline {subsection}{\numberline {1.3.1}The Hands-on Users of the Product}{8}{subsection.1.3.1}
+\contentsline {subsection}{\numberline {1.3.2}Priorities Assigned to Users}{8}{subsection.1.3.2}
+\contentsline {subsection}{\numberline {1.3.3}User Participation}{8}{subsection.1.3.3}
+\contentsline {subsection}{\numberline {1.3.4}Maintenance Users and Service Technicians}{8}{subsection.1.3.4}
+\contentsline {chapter}{\numberline {2}Project Constraints}{10}{chapter.2}
+\contentsline {section}{\numberline {2.1}Mandated Constraints}{10}{section.2.1}
+\contentsline {subsection}{\numberline {2.1.1}Solution Constraints}{10}{subsection.2.1.1}
+\contentsline {subsection}{\numberline {2.1.2}Implementation Environment of the Current System}{11}{subsection.2.1.2}
+\contentsline {subsection}{\numberline {2.1.3}Partner or Collaborative Applications}{12}{subsection.2.1.3}
+\contentsline {subsection}{\numberline {2.1.4}Off-the-Shelf Software}{12}{subsection.2.1.4}
+\contentsline {subsection}{\numberline {2.1.5}Anticipated Workplace Environment}{13}{subsection.2.1.5}
+\contentsline {subsection}{\numberline {2.1.6}Schedule Constraints}{13}{subsection.2.1.6}
+\contentsline {subsection}{\numberline {2.1.7}Budget Constraints}{14}{subsection.2.1.7}
+\contentsline {section}{\numberline {2.2}Naming Conventions and Definitions}{14}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}Definitions of All Terms, Including Acronyms, Used in the Project}{14}{subsection.2.2.1}
+\contentsline {subsection}{\numberline {2.2.2}Data Dictionary for any Included Models}{15}{subsection.2.2.2}
+\contentsline {section}{\numberline {2.3}Relevant Facts and Assumptions}{16}{section.2.3}
+\contentsline {subsection}{\numberline {2.3.1}Facts}{16}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}Assumptions}{16}{subsection.2.3.2}
+\contentsline {chapter}{\numberline {3}Functional Requirements}{17}{chapter.3}
+\contentsline {section}{\numberline {3.1}The Scope of the Work}{17}{section.3.1}
+\contentsline {subsection}{\numberline {3.1.1}The Current Situation}{17}{subsection.3.1.1}
+\contentsline {subsection}{\numberline {3.1.2}The Context of the Work}{17}{subsection.3.1.2}
+\contentsline {subsection}{\numberline {3.1.3}Work Partitioning}{17}{subsection.3.1.3}
+\contentsline {section}{\numberline {3.2}The Scope of the Product}{19}{section.3.2}
+\contentsline {subsection}{\numberline {3.2.1}Product Boundary}{19}{subsection.3.2.1}
+\contentsline {subsection}{\numberline {3.2.2}Product Use-case List}{19}{subsection.3.2.2}
+\contentsline {subsection}{\numberline {3.2.3}Individual Product Use Cases}{20}{subsection.3.2.3}
+\contentsline {section}{\numberline {3.3}Functional and Data Requirements}{20}{section.3.3}
+\contentsline {subsection}{\numberline {3.3.1}Functional Requirements}{20}{subsection.3.3.1}
+\contentsline {subsection}{\numberline {3.3.2}Data Requirements}{22}{subsection.3.3.2}
+\contentsline {chapter}{\numberline {4}Nonfunctional Requirements}{24}{chapter.4}
+\contentsline {section}{\numberline {4.1}Look and Feel Requirements}{24}{section.4.1}
+\contentsline {subsection}{\numberline {4.1.1}Appearance Requirements}{24}{subsection.4.1.1}
+\contentsline {subsection}{\numberline {4.1.2}Style Requirements}{25}{subsection.4.1.2}
+\contentsline {section}{\numberline {4.2}Usability and Humanity Requirements}{25}{section.4.2}
+\contentsline {subsection}{\numberline {4.2.1}Ease of Use Requirements}{25}{subsection.4.2.1}
+\contentsline {subsection}{\numberline {4.2.2}Personalization and Internationalization Requirements}{26}{subsection.4.2.2}
+\contentsline {subsection}{\numberline {4.2.3}Learning Requirements}{27}{subsection.4.2.3}
+\contentsline {subsection}{\numberline {4.2.4}Understandability and Politeness Requirements}{28}{subsection.4.2.4}
+\contentsline {subsection}{\numberline {4.2.5}Accessibility Requirements}{29}{subsection.4.2.5}
+\contentsline {section}{\numberline {4.3}Performance Requirements}{30}{section.4.3}
+\contentsline {subsection}{\numberline {4.3.1}Speed and Latency Requirements}{30}{subsection.4.3.1}
+\contentsline {subsection}{\numberline {4.3.2}Safety-Critical Requirements}{31}{subsection.4.3.2}
+\contentsline {subsection}{\numberline {4.3.3}Precision or Accuracy Requirements}{32}{subsection.4.3.3}
+\contentsline {subsection}{\numberline {4.3.4}Reliability and Availability Requirements}{33}{subsection.4.3.4}
+\contentsline {subsection}{\numberline {4.3.5}Robustness or Fault-Tolerance Requirements}{34}{subsection.4.3.5}
+\contentsline {subsection}{\numberline {4.3.6}Capacity Requirements}{35}{subsection.4.3.6}
+\contentsline {subsection}{\numberline {4.3.7}Scaling of Extensibility Requirements}{36}{subsection.4.3.7}
+\contentsline {subsection}{\numberline {4.3.8}Longevity Requirements}{36}{subsection.4.3.8}
+\contentsline {section}{\numberline {4.4}Operational and Environmental Requirements}{37}{section.4.4}
+\contentsline {subsection}{\numberline {4.4.1}Expected Physical Environment}{37}{subsection.4.4.1}
+\contentsline {subsection}{\numberline {4.4.2}Requirements for Interfacing with Adjacent Systems}{37}{subsection.4.4.2}
+\contentsline {subsection}{\numberline {4.4.3}Productization Requirements}{38}{subsection.4.4.3}
+\contentsline {subsection}{\numberline {4.4.4}Release Requirements}{38}{subsection.4.4.4}
+\contentsline {section}{\numberline {4.5}Maintainability and Support Requirements}{38}{section.4.5}
+\contentsline {subsection}{\numberline {4.5.1}Maintenance Requirements}{38}{subsection.4.5.1}
+\contentsline {subsection}{\numberline {4.5.2}Supportability Requirements}{39}{subsection.4.5.2}
+\contentsline {subsection}{\numberline {4.5.3}Adaptability Requirements}{39}{subsection.4.5.3}
+\contentsline {section}{\numberline {4.6}Security Requirements}{40}{section.4.6}
+\contentsline {subsection}{\numberline {4.6.1}Access Requirements}{40}{subsection.4.6.1}
+\contentsline {subsection}{\numberline {4.6.2}Integrity Requirements}{40}{subsection.4.6.2}
+\contentsline {subsection}{\numberline {4.6.3}Privacy Requirements}{40}{subsection.4.6.3}
+\contentsline {subsection}{\numberline {4.6.4}Audit Requirements}{40}{subsection.4.6.4}
+\contentsline {subsection}{\numberline {4.6.5}Immunity Requirements}{40}{subsection.4.6.5}
+\contentsline {section}{\numberline {4.7}Cultural and Political Requirements}{41}{section.4.7}
+\contentsline {subsection}{\numberline {4.7.1}Cultural Requirements}{41}{subsection.4.7.1}
+\contentsline {subsection}{\numberline {4.7.2}Political Requirements}{41}{subsection.4.7.2}
+\contentsline {section}{\numberline {4.8}Legal Requirements}{41}{section.4.8}
+\contentsline {subsection}{\numberline {4.8.1}Compliance Requirements}{41}{subsection.4.8.1}
+\contentsline {subsection}{\numberline {4.8.2}Standards Requirements}{41}{subsection.4.8.2}
+\contentsline {chapter}{\numberline {5}Project Issues}{42}{chapter.5}
+\contentsline {section}{\numberline {5.1}Open Issues}{42}{section.5.1}
+\contentsline {section}{\numberline {5.2}Off-the-Shelf Solutions}{42}{section.5.2}
+\contentsline {subsection}{\numberline {5.2.1}Ready-Made Products}{42}{subsection.5.2.1}
+\contentsline {subsection}{\numberline {5.2.2}Reusable Components}{42}{subsection.5.2.2}
+\contentsline {subsection}{\numberline {5.2.3}Products That Can Be Copied}{43}{subsection.5.2.3}
+\contentsline {section}{\numberline {5.3}New Problems}{43}{section.5.3}
+\contentsline {subsection}{\numberline {5.3.1}Effects on the Current Environment}{43}{subsection.5.3.1}
+\contentsline {subsection}{\numberline {5.3.2}Effects on the Installed Systems}{43}{subsection.5.3.2}
+\contentsline {subsection}{\numberline {5.3.3}Potential User Problems}{44}{subsection.5.3.3}
+\contentsline {subsection}{\numberline {5.3.4}Limitations in the Anticipated Implementation Environment That May Inhibit the New Product}{44}{subsection.5.3.4}
+\contentsline {subsection}{\numberline {5.3.5}Follow-Up Problems}{44}{subsection.5.3.5}
+\contentsline {section}{\numberline {5.4}Tasks}{44}{section.5.4}
+\contentsline {subsection}{\numberline {5.4.1}Project Planning}{44}{subsection.5.4.1}
+\contentsline {subsection}{\numberline {5.4.2}Planning of the Development Phases}{44}{subsection.5.4.2}
+\contentsline {section}{\numberline {5.5}Migration to the New Product}{45}{section.5.5}
+\contentsline {subsection}{\numberline {5.5.1}Requirements for Migration of the New Product}{45}{subsection.5.5.1}
+\contentsline {subsection}{\numberline {5.5.2}Data That Has to Be Modified or Translated for the New System}{45}{subsection.5.5.2}
+\contentsline {section}{\numberline {5.6}Risks}{45}{section.5.6}
+\contentsline {section}{\numberline {5.7}Costs}{46}{section.5.7}
+\contentsline {section}{\numberline {5.8}User Documentation and Training}{47}{section.5.8}
+\contentsline {subsection}{\numberline {5.8.1}User Documentation Requirements}{47}{subsection.5.8.1}
+\contentsline {subsection}{\numberline {5.8.2}Training Requirements}{47}{subsection.5.8.2}
+\contentsline {section}{\numberline {5.9}Waiting Room}{47}{section.5.9}
+\contentsline {section}{\numberline {5.10}Ideas for Solutions}{47}{section.5.10}

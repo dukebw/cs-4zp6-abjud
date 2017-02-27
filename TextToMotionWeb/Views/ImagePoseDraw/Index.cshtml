@@ -1,55 +1,70 @@
 @model IEnumerable<TextToMotionWeb.Models.PoseDrawnImage>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "List of Uploads";
 }
 
-<h2>Index</h2>
+<br />
+<div class="row">
+    <div class="card page-heading col-lg-10 col-md-10 col-sm-10 col-xs-10 col-lg-offset-1 col-md-offset-1 col-sm-offset-1 col-xs-offset-1">
+        <h2 class="text-center"><b>@ViewData["Title"]</b></h2>
+    </div>
+</div>
+<div class="row">
+    <a asp-action="Create" class="btn btn-success col-lg-offset-1"><span class="glyphicon glyphicon-plus-sign"></span> <b>Add New Image</b></a>
+    <a disabled class="btn btn-primary card-inverse"><span class="glyphicon glyphicon-plus-sign"></span> <b>Add New Video</b></a>
+</div>
+<br />
+<div class="row">
+    <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
+        <div class="mdl-card mdl-card--border mdl-shadow--8dp fullWidth">
+            <div class="card-content">
+                <br />
+                <table id='test' class="display table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Name)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Description)
+                            </th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Name)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Description)
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.ID">Edit</a> |
+                                    <a asp-action="Details" asp-route-id="@item.ID">Details</a> |
+                                    <a asp-action="Delete" asp-route-id="@item.ID">Delete</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
 
-<table id='test' class="display">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ID">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ID">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ID">Delete</a>
-            </td>
-        </tr>
+        @section Scripts{
+            <script>
+                $(document).ready(function () {
+
+                    var dTable = $('#test').DataTable({
+
+                    });
+
+                });
+            </script>
         }
-    </tbody>
-</table>
-
-
-@section Scripts{
-    <script>
-        $(document).ready(function(){
-
-            var dTable = $('#test').DataTable({
-
-            });
-
-        });
-    </script>
-}

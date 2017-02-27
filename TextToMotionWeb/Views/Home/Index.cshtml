@@ -1,60 +1,66 @@
-@{
-    ViewData["Title"] = "Home";
-}
+
 <div class="row">
-    <div class="col-lg-12">
-        <h2 class="text-center">
-            @ViewData["Title"]
-        </h2>
-        <hr />
+    <div class="custom-banner">
+        <br /><br /><br />
+        <h1 class="geoFont text-center noMargins white-txt" >Text To Motion</h1>
     </div>
 </div>
+<div class="row banner-transition"></div>
+<br /><br />
 <div class="row">
-    <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-        <div class="panel panel-default fullHeight">
-            <div class="panel-heading">
-                <h3 class="text-center">Application Description</h3>
-            </div>
-            <div class="panel-body">
-                <ul>
-                    <li>This app should act as a 'databank' for visual and text-based motion data captured from the images and videos uploaded</li>
-                    <li>It will also allow the user to add their media to the database, and will include a text-based search for images</li>
-                    <br />
-                    <li> As of now, pose estimation can find the upper half of a single human in frame, and save the processed image to a database</li>
-                    <li> Once uploaded the images can be found with the tag that they were labeled with on creation</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-        <div class="panel panel-default fullHeight">
-            <div class="panel-heading">
-                <h3 class="text-center">Resources</h3>
-            </div>
-            <div class="panel-body">
-                <ul>
-                    <li> <a href="http://caffe.berkeleyvision.org/">Caffe</a> Deep Learning Framework</li>
-                    <li> <a href="https://www.asp.net/">ASP.Net</a></li>
-                    <li> Flowing Convolutional Neural Network for Human Pose Estimation in Videos</li>
-                    <li> Looking into adding tensorflow </li>
-                </ul>
+    <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="mdl-card mdl-shadow--6dp fullWidth">
+                <span>
+                    <h4 class="text-center mdl-card--border">Application Description</h4>
+                </span>
+                <div class="mdl-card__supporting-text">
+                    <ul>
+                        <li>This app should act as a 'databank' for visual and text-based motion data captured from images and videos</li>
+                        <br />
+                        <li> As of now, the pose estimation algorithm can find the joint positions of the upper half of a single human</li>
+                        <li> Once uploaded the images can be found with the tag that they were labeled with on creation</li>
+                    </ul>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-        <div class="panel panel-default fullHeight">
-            <div class="panel-heading">
-                <h3 class="text-center">Instructions</h3>
-            </div>
-            <div class="panel-body">
-                <p class="md-font">Login/Register for further instructions</p>
-                <br />
-                <p class="geoFont">Page Navigation</p>
-                <ul>
-                    <li> "Contact" contains group information with external and internal supervisors</li>
-                    <li> "About" contains the initial problem statement and some additional information about the project</li>
-                </ul>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="mdl-card mdl-shadow--6dp fullWidth">
+                <span>
+                    <h4 class="text-center mdl-card--border">Resources</h4>
+                </span>
+                <div class="mdl-card__supporting-text">
+                    <ul>
+                        <li> <a href="http://caffe.berkeleyvision.org/">Caffe</a> Deep Learning Framework</li>
+                        <li> <a href="https://www.asp.net/">ASP.Net</a></li>
+                        <li> Flowing Convolutional Neural Network for Human Pose Estimation in Videos</li>
+                        <li> Looking into adding tensorflow </li>
+                    </ul>
+                </div>
             </div>
         </div>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="mdl-card mdl-shadow--6dp fullWidth">
+                <span>
+                    <h4 class="text-center mdl-card--border">Instructions</h4>
+                </span>
+                <div class="mdl-card__supporting-text">
+                    <ul>
+                        <li>Upload images and videos to be processed <ul><li>from the <b>ImagePoseDraw</b> page</li></ul></li>
+                        <li>Search through the images and videos uploaded to the site (by all users)<ul><li>from the <b>TextToMotion</b> page</li></ul></li>
+                    </ul>
+                </div>
+                <div class="mdl-card__actions mdl-card--border text-center">
+                    <a href="/Account/Login" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
+                        Sign In
+                    </a>
+                    <a href="/Account/Register"class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
+                        Sign Up
+                    </a>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
+<br />
