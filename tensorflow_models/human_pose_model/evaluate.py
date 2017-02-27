@@ -1,28 +1,14 @@
+import math
+import os
 import numpy as np
+from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from nets import NETS, NET_ARG_SCOPES
-from mpii_read import Person
-from sparse_to_dense import sparse_joints_to_dense
+from pose_utils import pose_util
+from dataset.mpii_datatypes import Person
+from pose_utils.sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
-
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_string('network_name', None,
-                           """Name of desired network to use for part
-                           detection. Valid options: vgg, inception_v3.""")
-tf.app.flags.DEFINE_string('data_dir', '.',
-                           """Path to take input TFRecord files from.""")
-tf.app.flags.DEFINE_string('restore_path', None,
-                           """Path to take checkpoint file from.""")
-tf.app.flags.DEFINE_integer('image_dim', 299,
-                            """Dimension of the square input image.""")
-tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
-                            """Number of threads to use to preprocess
-                            images.""")
-tf.app.flags.DEFINE_integer('batch_size', 32,
-                            """Size of each mini-batch (number of examples
-                            processed at once).""")
+from networks.inference import inference
 
 JOINT_NAMES = ['0 - r ankle',
                '1 - r knee',
@@ -41,6 +27,7 @@ JOINT_NAMES = ['0 - r ankle',
                '14 - l elbow',
                '15 - l wrist']
 
+
 def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
     """Takes in a list of batches of x and y joint coordinates, and returns a
     list of batches of tuples (x, y) of joint points.
@@ -51,54 +38,153 @@ def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
 
     return np.array(joint_points)
 
+def setup_val_loss_op(num_gpus, eval_batch, image_dim, network_name, loss_name):
+    """Creates the inference part of the validation graph, and returns the
+    total loss calculated across all `num_gpus` used to do the evaluation.
 
-def evaluate():
-    with tf.Graph().as_default():
+    Also returns the concatenated list of per-tower logits, which are used as
+    predictions for the batch of examples.
+    """
+    images_split = tf.split(value=eval_batch.images,
+                            num_or_size_splits=num_gpus,
+                            axis=0)
+    binary_maps_split = tf.split(value=eval_batch.binary_maps,
+                                 num_or_size_splits=num_gpus,
+                                 axis=0)
+    heatmaps_split = tf.split(value=eval_batch.heatmaps,
+                              num_or_size_splits=num_gpus,
+                              axis=0)
+    weights_split = tf.split(value=eval_batch.weights,
+                             num_or_size_splits=num_gpus,
+                             axis=0)
+    is_visible_weights_split = tf.split(value=eval_batch.is_visible_weights,
+                                        num_or_size_splits=num_gpus,
+                                        axis=0)
+
+    tower_logits_list = []
+    total_loss = tf.constant(0, dtype=tf.float32)
+    for gpu_index in range(num_gpus):
+        with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
+            with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
+                loss, logits = inference(images_split[gpu_index],
+                                         binary_maps_split[gpu_index],
+                                         heatmaps_split[gpu_index],
+                                         weights_split[gpu_index],
+                                         is_visible_weights_split[gpu_index],
+                                         gpu_index,
+                                         network_name,
+                                         loss_name,
+                                         False,
+                                         False,
+                                         scope)
+
+                tower_logits_list.append(logits)
+                total_loss += loss
+
+    total_loss /= num_gpus
+
+    tower_logits = tf.concat(axis=0, values=tower_logits_list)
+
+    tf.summary.scalar(name='total_loss', tensor=total_loss)
+
+    per_gpu_batch_size = int(images_split[0].get_shape()[0])
+    merged_logits = tf.reshape(
+        tf.reduce_max(logits, 3),
+        [per_gpu_batch_size, image_dim, image_dim, 1])
+    merged_logits = tf.cast(merged_logits, tf.float32)
+    tf.summary.image(name='logits', tensor=merged_logits)
+
+    return total_loss, tower_logits
+
+
+def setup_evaluation(FLAGS):
+    """Sets up the entire input pipeline and inference graph for evaluation,
+    using interfaces exposed from `evaluate.py`.
+
+    Returns:
+        (val_fetches, val_session) tuple, where val_fetches must be kept
+        synchronized with the outputs from the session.run() call in
+        evaluate.py.
+    """
+    num_counting_threads = FLAGS.num_preprocess_threads + FLAGS.num_readers
+    num_val_examples, val_data_filenames = pose_util.count_training_examples(
+        FLAGS.validation_data_dir, num_counting_threads, 'valid')
+
+    eval_batch = setup_eval_input_pipeline(FLAGS.batch_size,
+                                           FLAGS.num_preprocess_threads,
+                                           FLAGS.image_dim,
+                                           FLAGS.heatmap_stddev_pixels,
+                                           val_data_filenames)
+
+    val_loss, val_tower_logits = setup_val_loss_op(FLAGS.num_gpus,
+                                                   eval_batch,
+                                                   FLAGS.image_dim,
+                                                   FLAGS.network_name,
+                                                   FLAGS.loss_name)
+
+    next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
+        eval_batch, Person.NUM_JOINTS)
+
+    gt_data = [next_x_gt_joints, next_y_gt_joints, next_weights, eval_batch.head_size]
+
+    return num_val_examples, val_loss, val_tower_logits, gt_data
+
+
+def evaluate_single_epoch(restorer,
+                          restore_path,
+                          loss,
+                          logits,
+                          gt_data,
+                          num_val_examples,
+                          batch_size,
+                          image_dim,
+                          epoch,
+                          log_file_handle):
+    """Evaluates the model checkpoint given by `restore_path` using the PCKh
+    metric.
+
+    The entire graph is assumed to have been constructed in `session`, such
+    that all there is to run validation is to run `val_fetches`, and compute
+    relevant metrics.
+    """
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as session:
         with tf.device('/cpu:0'):
-            eval_batch = setup_eval_input_pipeline(FLAGS.data_dir,
-                                                   FLAGS.batch_size,
-                                                   FLAGS.num_preprocess_threads,
-                                                   FLAGS.image_dim)
+            latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=restore_path)
+            assert latest_checkpoint is not None
 
-            part_detect_net = NETS[FLAGS.network_name]
-            net_arg_scope = NET_ARG_SCOPES[FLAGS.network_name]
-
-            with tf.device(device_name_or_function='/gpu:0'):
-                with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-                    with slim.arg_scope(net_arg_scope()):
-                        logits, _ = part_detect_net(inputs=eval_batch.images,
-                                                    num_classes=2*Person.NUM_JOINTS)
-
-            next_x_gt_joints, next_y_gt_joints, next_weights = sparse_joints_to_dense(
-                eval_batch, Person.NUM_JOINTS)
-
-            restorer = tf.train.Saver()
-
-            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-
-            restorer.restore(sess=session, save_path=FLAGS.restore_path)
+            restorer.restore(sess=session, save_path=latest_checkpoint)
 
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
 
-            sum_squared_loss = 0
-            num_test_data = 1024
-            num_batches = int(num_test_data/FLAGS.batch_size)
+            num_batches = int(math.ceil(num_val_examples/batch_size))
             matched_joints = Person.NUM_JOINTS*[0]
             predicted_joints = Person.NUM_JOINTS*[0]
-            for _ in range(num_batches):
-                [predictions, x_gt_joints, y_gt_joints, weights, head_size] = session.run(
-                    fetches=[logits, next_x_gt_joints, next_y_gt_joints, next_weights, eval_batch.head_size])
+            valid_epoch_mean_loss = 0
+            for _ in tqdm(range(num_batches)):
+                [batch_loss, predictions, x_gt_joints, y_gt_joints, weights, head_size] = session.run(
+                    fetches=[loss, logits] + gt_data)
 
-                head_size = np.reshape(head_size, [FLAGS.batch_size, 1])
+                valid_epoch_mean_loss += batch_loss
+                head_size = np.reshape(head_size, [batch_size, 1])
 
                 gt_joint_points = _get_points_from_flattened_joints(
-                    x_gt_joints, y_gt_joints, FLAGS.batch_size)
+                    x_gt_joints, y_gt_joints, batch_size)
+
+                x_predicted_joints = np.empty((batch_size, Person.NUM_JOINTS))
+                y_predicted_joints = np.empty((batch_size, Person.NUM_JOINTS))
+                for batch_index in range(batch_size):
+                    for joint_index in range(Person.NUM_JOINTS):
+                        joint_heatmap = predictions[batch_index, ..., joint_index]
+                        xy_max_confidence = np.unravel_index(
+                            joint_heatmap.argmax(), joint_heatmap.shape)
+                        y_predicted_joints[batch_index, joint_index] = xy_max_confidence[0]/image_dim - 0.5
+                        x_predicted_joints[batch_index, joint_index] = xy_max_confidence[1]/image_dim - 0.5
 
                 predicted_joint_points = _get_points_from_flattened_joints(
-                    predictions[:, 0:Person.NUM_JOINTS],
-                    predictions[:, Person.NUM_JOINTS:],
-                    FLAGS.batch_size)
+                    x_predicted_joints,
+                    y_predicted_joints,
+                    batch_size)
 
                 # NOTE(brendan): Here we are following steps to calculate the
                 # PCKh metric, which defines a joint estimate as matching the
@@ -114,26 +200,58 @@ def evaluate():
                 predicted_joints += np.sum(joint_weights, 0)
 
                 gt_joints = np.concatenate((x_gt_joints, y_gt_joints), 1)
-                sum_squared_loss += np.sum(weights*np.square(predictions - gt_joints))
 
-            print('Matched joints:', matched_joints)
-            print('Predicted joints:', predicted_joints)
+            if (epoch > 1):
+                log_file_handle.write('\n')
+            valid_epoch_mean_loss /= num_batches
+            log_file_handle.write('\nMean validation loss: {}\n\n'.format(valid_epoch_mean_loss))
+            log_file_handle.write('************************************************\n')
+            log_file_handle.write('Epoch {} PCKh metric.\n'.format(epoch))
+            log_file_handle.write('************************************************\n\n')
+            log_file_handle.write('Matched joints: {}\n'.format(matched_joints))
+            log_file_handle.write('Predicted joints: {}\n'.format(predicted_joints))
 
             PCKh = matched_joints/predicted_joints
-            print('PCKh:')
+            log_file_handle.write('PCKh:\n')
             for joint_index in range(Person.NUM_JOINTS):
-                print(JOINT_NAMES[joint_index], ':', PCKh[joint_index])
-            print('Total PCKh:', np.sum(PCKh)/len(PCKh))
-
-            print('Average squared loss:', sum_squared_loss/num_test_data)
+                log_file_handle.write('{}: {}\n'.format(JOINT_NAMES[joint_index], PCKh[joint_index]))
+            log_file_handle.write('\nTotal PCKh: {}\n'.format(np.sum(PCKh)/len(PCKh)))
+            log_file_handle.flush()
 
             coord.request_stop()
-            coord.join(threads)
+            coord.join(threads=threads)
 
+
+def evaluate():
+    """Does a loop checking for new checkpoints and evaluating them all, then
+    exits.
+
+    TODO(brendan):
+
+    1. Check for `last_evaluated_checkpoint.json` in `FLAGS.log_dir`.
+    2. When the process starts, checks the last evaluated checkpoint, and
+       evaluates all checkpoints present that came later.
+    3. Once there are no new checkpoints, the evaluation process exits.
+    """
+    num_val_examples, val_loss, val_logits, gt_data = setup_evaluation(FLAGS)
+
+    restorer = tf.train.Saver(var_list=tf.global_variables())
+
+    evaluate_single_epoch(restorer,
+                          restore_path,
+                          val_loss,
+                          val_logits,
+                          gt_data,
+                          num_val_examples,
+                          FLAGS.batch_size,
+                          FLAGS.image_dim,
+                          epoch,
+                          log_file_handle)
 
 def main(argv=None):
+    """Usage: python3 -m evaluate
+    """
     evaluate()
-
 
 if __name__ == "__main__":
     tf.app.run()
