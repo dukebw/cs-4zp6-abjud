@@ -1,5 +1,42 @@
 # `write_tf_record` Related Information
 
+## PCKh Results from Experiments
+
+### Inception V3 Trained on Direct Joint Regression (No Cascades)
+
+Matched joints: [ 29  20 158  73  36  36 127 218 145 123  72  61  99 152  97  79]
+Predicted joints: [ 498  812  990  994  817  480  987 1019 1017  939 1003 1017 1022 1021 1016
+ 1000]
+
+PCKh:
+0 - r ankle : 0.0582329317269
+1 - r knee : 0.0246305418719
+2 - r hip : 0.159595959596
+3 - l hip : 0.0734406438632
+4 - l knee : 0.0440636474908
+5 - l ankle : 0.075
+6 - pelvis : 0.128672745694
+7 - thorax : 0.213935230618
+8 - upper neck : 0.142576204523
+9 - head top : 0.130990415335
+10 - r wrist : 0.0717846460618
+11 - r elbow : 0.0599803343166
+12 - r shoulder : 0.0968688845401
+13 - l shoulder : 0.148873653281
+14 - l elbow : 0.0954724409449
+15 - l wrist : 0.079
+
+Total PCKh: 0.100194892492
+
+Average squared loss: 0.655795275901
+
+## Running VGG
+
+```
+python3 -m train --log_dir ./log/temp --checkpoint_path /export/mlrg/soe-bduke/checkpoints/vgg_16.ckpt --checkpoint_exclude_scopes vgg_16/fc --trainable_scopes vgg_16/fc --image_dim 224 --batch_size 16 --initial_learning_rate 0.01
+python3 -m write_tf_record --train_dir ./train --image_dim 224
+```
+
 ## Writing TensorFlow Records
 
 It is possible to write TFRecords using the `tf.python_io.TFRecordWriter`

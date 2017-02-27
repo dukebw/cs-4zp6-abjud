@@ -29,99 +29,19 @@ images, meaning that they have at least one person with joints labelled,
 Test images do not seem to have head rectangles or joint annotations, and
 rather only contain the `objpos` and `scale` values as methods of estimating
 where the person is in the picture.
+
+15247 of the training images contain annotations for single people, indicated
+by the `single_person` list.
+
+Each joint has an `is_visible` attribute, indicating whether it is visible or
+occluded.
 """
 import sys
 import os
 import scipy.io
 import numpy as np
-
-class Person(object):
-    """A class representing each person in a given image, including their
-    joints, objpos and scale.
-
-    The joints should be a list of (x, y) tuples where x and y are both in the
-    range [img_x_max, img_y_max], and the joint ids are as follows,
-
-    0 - r ankle
-    1 - r knee
-    2 - r hip
-    3 - l hip
-    4 - l knee
-    5 - l ankle
-    6 - pelvis
-    7 - thorax
-    8 - upper neck
-    9 - head top
-    10 - r wrist
-    11 - r elbow
-    12 - r shoulder
-    13 - l shoulder
-    14 - l elbow
-    15 - l wrist
-
-    Attributes:
-        joints: A list of 16 joints for the person, which all default to
-            `None`. Their values are potentially filled in from the MPII
-            dataset annotations.
-        objpos: The approximate position of the center of the person in the
-            image.
-        scale: Scale of the person with respect to 200px.
-    """
-    NUM_JOINTS = 16
-
-    def __init__(self, joints, objpos, scale):
-        self._joints = Person.NUM_JOINTS*[None]
-
-        joints = _make_iterable(joints)
-
-        for joint in joints:
-            self._joints[joint.id] = (joint.x, joint.y)
-
-        self._objpos = objpos
-        self._scale = scale
-
-    @property
-    def joints(self):
-        return self._joints
-
-    @property
-    def objpos(self):
-        return self._objpos
-
-    @property
-    def scale(self):
-        return self._scale
-
-
-class MpiiDataset(object):
-    """Representation of the entire MPII dataset.
-
-    The annotation description can be found
-    [here](http://human-pose.mpi-inf.mpg.de/#download).
-
-    Currently only the images and person-centric body joint annotations are
-    taken from the dataset.
-
-    Attributes:
-        img_filenames: A list of the names of the paths of each image.
-        people_in_imgs: A list of lists of the `Person` class, where each list
-            of `Person`s represents all the people in the image at the same
-            list index. Must be the same length as `img_filenames`.
-    """
-    def __init__(self, img_filenames, people_in_imgs):
-        assert len(img_filenames) == len(people_in_imgs)
-
-        self._img_filenames = img_filenames
-        self._people_in_imgs = people_in_imgs
-
-    @property
-    def img_filenames(self):
-        return self._img_filenames
-
-    @property
-    def people_in_imgs(self):
-        return self._people_in_imgs
-
+from dataset.shapes import Rectangle
+from dataset.mpii_datatypes import Person, MpiiDataset
 
 def _make_iterable(maybe_iterable):
     """Checks whether `maybe_iterable` is iterable, and if not returns an
@@ -141,7 +61,10 @@ def _make_iterable(maybe_iterable):
     return maybe_iterable
 
 
-def _parse_annotation(img_annotation, mpii_images_dir, is_train):
+def _parse_annotation(img_annotation,
+                      single_person_list,
+                      mpii_images_dir,
+                      is_train):
     """Parses a single image annotation from the MPII dataset.
 
     Looks at the annotations for a single image, and returns the people in the
@@ -150,7 +73,11 @@ def _parse_annotation(img_annotation, mpii_images_dir, is_train):
     Args:
         img_annotation: The annotations coming from annolist(index) from the
             MPII dataset.
+        single_person_list: List of MATLAB indices (starts from 1) of singular
+            people in this image.
         mpii_images_dir: Path to the directory where the MPII images are.
+        is_train: Training or test annotation? Training annotations require at
+            least one joint to be annotated in order to be useful.
 
     Returns:
         img_abs_filepath: Filepath of the image corresponding to
@@ -164,7 +91,9 @@ def _parse_annotation(img_annotation, mpii_images_dir, is_train):
     img_annotation.annorect = _make_iterable(img_annotation.annorect)
 
     people = []
-    for img_annorect in img_annotation.annorect:
+    for annorect_index in single_person_list:
+        img_annorect = img_annotation.annorect[annorect_index - 1]
+
         try:
             objpos = img_annorect.objpos
             if (not hasattr(objpos, 'x')) or (not hasattr(objpos, 'y')):
@@ -176,7 +105,13 @@ def _parse_annotation(img_annotation, mpii_images_dir, is_train):
             continue
 
         try:
-            people.append(Person(img_annorect.annopoints.point, objpos, scale))
+            head_rect = Rectangle((img_annorect.x1, img_annorect.y1,
+                                   img_annorect.x2, img_annorect.y2))
+            person = Person(img_annorect.annopoints.point,
+                            objpos,
+                            scale,
+                            head_rect)
+            people.append(person)
         except AttributeError:
             if is_train:
                 continue
@@ -245,7 +180,9 @@ def parse_mpii_data_from_mat(mpii_dataset_mat, mpii_images_dir, is_train):
     filenames_on_disk = set(os.listdir(mpii_images_dir))
     for img_index in range(len(mpii_annotations)):
         if train_or_test[img_index] == int(is_train):
+            single_person_list = _make_iterable(mpii_dataset_mat.single_person[img_index])
             img_abs_filepath, people = _parse_annotation(mpii_annotations[img_index],
+                                                         single_person_list,
                                                          mpii_images_dir,
                                                          is_train)
             if len(people) == 0:

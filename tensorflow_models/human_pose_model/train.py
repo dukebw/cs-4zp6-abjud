@@ -1,173 +1,23 @@
+import os
+import time
+import numpy as np
+from tqdm import trange
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from tensorflow.python.platform import tf_logging
-from logging import INFO
-from tensorflow.contrib.slim.nets import inception
+from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.framework import ops
+from pose_utils import pose_util
+from pose_utils.pose_flags import FLAGS
+from dataset.mpii_datatypes import Person
 from input_pipeline import setup_train_input_pipeline
-
-FLAGS = tf.app.flags.FLAGS
-
-# NOTE(brendan): equal to the total number of joint-annotated people in the
-# MPII Human Pose Dataset training images.
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 28883
+from networks.inference import inference
+from evaluate import setup_evaluation, evaluate_single_epoch
 
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
 RMSPROP_EPSILON = 1.0
 
-NUM_JOINTS = 16
-
-tf.app.flags.DEFINE_string('data_dir', '.',
-                           """Path to take input TFRecord files from.""")
-tf.app.flags.DEFINE_string('log_dir', './log',
-                           """Path to take summaries and checkpoints from, and
-                           write them to.""")
-tf.app.flags.DEFINE_string('checkpoint_path', None,
-                           """Path to take checkpoint file (e.g.
-                           inception_v3.ckpt) from.""")
-tf.app.flags.DEFINE_string('checkpoint_exclude_scopes', None,
-                           """Comma-separated list of scopes to exclude when
-                           restoring from a checkpoint.""")
-tf.app.flags.DEFINE_string('trainable_scopes', None,
-                           """Comma-separated list of scopes to train.""")
-
-tf.app.flags.DEFINE_integer('image_dim', 299,
-                            """Dimension of the square input image.""")
-
-tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
-                            """Number of threads to use to preprocess
-                            images.""")
-tf.app.flags.DEFINE_integer('num_readers', 4,
-                            """Number of threads to use to read example
-                            protobufs from TFRecords.""")
-tf.app.flags.DEFINE_integer('num_gpus', 1,
-                            """Number of GPUs in system.""")
-
-tf.app.flags.DEFINE_integer('batch_size', 32,
-                            """Size of each mini-batch (number of examples
-                            processed at once).""")
-tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
-                            """Factor by which to increase the minimum examples
-                            in RandomShuffleQueue.""")
-
-tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
-                          """Initial learning rate.""")
-tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.16,
-                          """Rate at which learning rate is decayed.""")
-tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
-                          """Number of epochs before decay factor is applied
-                          once.""")
-
-def _summarize_inception_model(endpoints):
-    """Summarizes the activation values that are marked for summaries in the
-    Inception v3 network.
-    """
-    with tf.name_scope('summaries'):
-        for activation in endpoints.values():
-            tensor_name = activation.op.name
-            tf.summary.histogram(
-                name=tensor_name + '/activations',
-                values=activation)
-            tf.summary.scalar(
-                name=tensor_name + '/sparsity',
-                tensor=tf.nn.zero_fraction(value=activation))
-
-
-def _sparse_joints_to_dense_one_dim(dense_shape, joint_indices, joints):
-    """Converts a sparse vector of joints in a single dimension to dense
-    joints, and returns those dense joints.
-    """
-    sparse_joints = tf.sparse_merge(sp_ids=joint_indices,
-                                    sp_values=joints,
-                                    vocab_size=NUM_JOINTS)
-    dense_joints = tf.sparse_tensor_to_dense(sp_input=sparse_joints,
-                                             default_value=0)
-
-    return tf.reshape(tensor=dense_joints, shape=dense_shape), sparse_joints
-
-
-def _sparse_joints_to_dense(training_batch):
-    """Converts a sparse vector of joints to a dense format, and also returns a
-    set of weights indicating which joints are present.
-
-    Args:
-        training_batch: A batch of training images with associated joint
-            vectors.
-
-    Returns:
-        (dense_joints, weights) tuple, where dense_joints is a dense vector of
-        shape [batch_size, NUM_JOINTS], with zeros in the indices not
-        present in the sparse vector. `weights` contains 1s for all the present
-        joints and 0s otherwise.
-    """
-    dense_shape = [training_batch.batch_size, NUM_JOINTS]
-
-    x_dense_joints, x_sparse_joints = _sparse_joints_to_dense_one_dim(
-        dense_shape,
-        training_batch.joint_indices,
-        training_batch.x_joints)
-
-    y_dense_joints, _ = _sparse_joints_to_dense_one_dim(
-        dense_shape,
-        training_batch.joint_indices,
-        training_batch.y_joints)
-
-    weights = tf.sparse_to_dense(sparse_indices=x_sparse_joints.indices,
-                                 output_shape=dense_shape,
-                                 sparse_values=1,
-                                 default_value=0)
-
-    return x_dense_joints, y_dense_joints, tf.concat(concat_dim=1, values=[weights, weights])
-
-
-def _inference(training_batch):
-    """Sets up an Inception v3 model, computes predictions on input images and
-    calculates loss on those predictions based on an input sparse vector of
-    joints (the ground truth vector).
-
-    TF-slim's `arg_scope` is used to keep variables (`slim.model_variable`) in
-    CPU memory. See the training procedure block diagram in the TF Inception
-    [README](https://github.com/tensorflow/models/tree/master/inception).
-
-    Args:
-        training_batch: A batch of training images with associated joint
-            vectors.
-
-    Returns:
-        Tensor giving the total loss (combined loss from auxiliary and primary
-        logits, added to regularization losses).
-    """
-    with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-        with slim.arg_scope(inception.inception_v3_arg_scope()):
-            logits, endpoints = inception.inception_v3(inputs=training_batch.images,
-                                                       num_classes=2*NUM_JOINTS)
-
-            _summarize_inception_model(endpoints)
-
-            x_dense_joints, y_dense_joints, weights = _sparse_joints_to_dense(
-                training_batch)
-
-            dense_joints = tf.concat(concat_dim=1,
-                                     values=[x_dense_joints, y_dense_joints])
-
-            auxiliary_logits = endpoints['AuxLogits']
-
-            slim.losses.mean_squared_error(predictions=logits,
-                                           labels=dense_joints,
-                                           weights=weights)
-            slim.losses.mean_squared_error(predictions=auxiliary_logits,
-                                           labels=dense_joints,
-                                           weights=weights,
-                                           scope='aux_logits')
-
-            # TODO(brendan): Calculate loss averages for tensorboard
-
-            total_loss = slim.losses.get_total_loss()
-
-    return total_loss
-
-
-def _setup_optimizer(batch_size,
+def _setup_optimizer(batches_per_epoch,
                      num_epochs_per_decay,
                      initial_learning_rate,
                      learning_rate_decay_factor):
@@ -176,7 +26,7 @@ def _setup_optimizer(batch_size,
     and learning rate decay schedule.
 
     Args:
-        batch_size: Number of elements in training batch.
+        batches_per_epoch: Number of batches in an epoch.
         num_epochs_per_decay: Number of full runs through of the data set per
             learning rate decay.
         initial_learning_rate: Learning rate to start with on step 0.
@@ -195,8 +45,7 @@ def _setup_optimizer(batch_size,
         initializer=tf.constant_initializer(0),
         trainable=False)
 
-    num_batches_per_epoch = (NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / batch_size)
-    decay_steps = int(num_batches_per_epoch*num_epochs_per_decay)
+    decay_steps = batches_per_epoch*num_epochs_per_decay
     learning_rate = tf.train.exponential_decay(learning_rate=initial_learning_rate,
                                                global_step=global_step,
                                                decay_steps=decay_steps,
@@ -206,6 +55,8 @@ def _setup_optimizer(batch_size,
                                           decay=RMSPROP_DECAY,
                                           momentum=RMSPROP_MOMENTUM,
                                           epsilon=RMSPROP_EPSILON)
+
+    tf.summary.scalar(name='learning_rate', tensor=learning_rate)
 
     return global_step, optimizer
 
@@ -228,92 +79,301 @@ def _get_variables_to_train():
     return variables_to_train
 
 
-def _setup_training_op(training_batch, global_step, optimizer):
+def _average_gradients(tower_grads):
+    """Averages the gradients for all gradients in `tower_grads`, and returns a
+    list of `(avg_grad, var)` tuples.
+    """
+    avg_grad_and_vars = []
+    for grad_and_vars in zip(*tower_grads):
+        grads = []
+        for grad, _ in grad_and_vars:
+            grads.append(tf.expand_dims(input=grad, axis=0))
+
+        grad = tf.concat(values=grads, axis=0)
+        grad = tf.reduce_mean(input_tensor=grad, axis=0)
+
+        avg_grad_and_vars.append((grad, grad_and_vars[0][1]))
+
+    return avg_grad_and_vars
+
+
+def _setup_training_op(images,
+                       binary_maps,
+                       heatmaps,
+                       weights,
+                       is_visible_weights,
+                       global_step,
+                       optimizer,
+                       num_gpus):
     """Sets up inference (predictions), loss calculation, and minimization
     based on the input optimizer.
 
     Args:
-        training_batch: Batch of preprocessed examples dequeued from the input
+        images: Batch of preprocessed examples dequeued from the input
             pipeline.
+        heatmaps: Confidence maps of ground truth joints.
+        weights: Weights of heatmaps (tensors of all 1s if joint present, all
+            0s if not present).
         global_step: Training step counter.
         optimizer: Optimizer to minimize the loss function.
+        num_gpus: Number of GPUs to split each mini-batch across.
 
     Returns: Operation to run a training step.
     """
-    with tf.device(device_name_or_function='/gpu:0'):
-        loss = _inference(training_batch)
+    images_split = tf.split(value=images, num_or_size_splits=num_gpus, axis=0)
+    binary_maps_split = tf.split(value=binary_maps,
+                                 num_or_size_splits=num_gpus,
+                                 axis=0)
+    heatmaps_split = tf.split(value=heatmaps,
+                              num_or_size_splits=num_gpus,
+                              axis=0)
+    weights_split = tf.split(value=weights,
+                             num_or_size_splits=num_gpus,
+                             axis=0)
+    is_visible_weights_split = tf.split(value=is_visible_weights,
+                                        num_or_size_splits=num_gpus,
+                                        axis=0)
 
-        train_op = slim.learning.create_train_op(
-            total_loss=loss,
-            optimizer=optimizer,
-            global_step=global_step,
-            variables_to_train=_get_variables_to_train())
+    tower_grads = []
+    for gpu_index in range(num_gpus):
+        with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
+            with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
+                total_loss, _ = inference(images_split[gpu_index],
+                                          binary_maps_split[gpu_index],
+                                          heatmaps_split[gpu_index],
+                                          weights_split[gpu_index],
+                                          is_visible_weights_split[gpu_index],
+                                          gpu_index,
+                                          FLAGS.network_name,
+                                          FLAGS.loss_name,
+                                          FLAGS.is_detector_training,
+                                          True,
+                                          scope)
 
-    return train_op
+                batchnorm_updates = tf.get_collection(
+                    key=tf.GraphKeys.UPDATE_OPS, scope=scope)
+
+                with ops.control_dependencies(batchnorm_updates):
+                    barrier = control_flow_ops.no_op(name='update_barrier')
+                total_loss = control_flow_ops.with_dependencies(
+                    [barrier], total_loss)
+
+                grads = optimizer.compute_gradients(
+                    loss=total_loss, var_list=_get_variables_to_train())
+
+                tower_grads.append(grads)
+
+    avg_grad_and_vars = _average_gradients(tower_grads)
+
+    apply_gradient_op = optimizer.apply_gradients(
+        grads_and_vars=avg_grad_and_vars,
+        global_step=global_step)
+
+    # TODO(brendan): It is possible to keep track of moving averages of
+    # variables ("shadow variables"), and these shadow variables can be used
+    # for evaluation.
+    #
+    # See TF models ImageNet Inception training code.
+
+    return apply_gradient_op, total_loss
 
 
-def _get_init_pretrained_fn():
-    """Returns a function that initializes the model in the graph of a passed
-    session with the variables in the file found in `FLAGS.checkpoint_path`,
-    except those excluded by `FLAGS.checkpoint_exclude_scopes`.
+def _restore_checkpoint_variables(session, global_step):
+    """Initializes the model in the graph of a passed session with the
+    variables in the file found in `FLAGS.checkpoint_path`, except those
+    excluded by `FLAGS.checkpoint_exclude_scopes`.
     """
     if FLAGS.checkpoint_path is None:
-        return None
+        return
 
-    exclusions = [scope.strip()
-                  for scope in FLAGS.checkpoint_exclude_scopes.split(',')]
+    if FLAGS.checkpoint_exclude_scopes is None:
+        variables_to_restore = slim.get_model_variables()
+    else:
+        exclusions = [scope.strip()
+                      for scope in FLAGS.checkpoint_exclude_scopes.split(',')]
 
-    variables_to_restore = []
-    for var in slim.get_model_variables():
-        excluded = False
-        for exclusion in exclusions:
-            if var.op.name.startswith(exclusion):
-                excluded = True
-                break
-        if not excluded:
-            variables_to_restore.append(var)
+        variables_to_restore = []
+        for var in slim.get_model_variables():
+            excluded = False
+            for exclusion in exclusions:
+                if exclusion in var.op.name:
+                    excluded = True
+                    break
+            if not excluded:
+                variables_to_restore.append(var)
 
-    return slim.assign_from_checkpoint_fn(model_path=FLAGS.checkpoint_path,
-                                          var_list=variables_to_restore)
+    if FLAGS.restore_global_step:
+        variables_to_restore.append(global_step)
+
+    restorer = tf.train.Saver(var_list=variables_to_restore)
+    restorer.restore(sess=session, save_path=FLAGS.checkpoint_path)
+
+
+def _train_single_epoch(session,
+                        saver,
+                        train_writer,
+                        train_op,
+                        loss,
+                        global_step,
+                        summary_op,
+                        num_batches_per_epoch,
+                        log_handle,
+                        log_dir):
+    """Runs the training loop, executing the graph stored in `session`,
+    and for every epoch executes the graph in `val_session`, which will
+    evaluate the latest model checkpoint on a validation set.
+
+    After the epoch, a checkpoint is saved to `log_dir`.
+
+    Returns:
+        epoch: The epoch number that was just trained, calculated from the
+               `global_step` variable.
+    """
+    train_epoch_mean_loss = 0
+    Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
+    for batch_step in Epoch:
+        start_time = time.time()
+        _, batch_loss, total_steps = session.run(fetches=[train_op,
+                                                          loss,
+                                                          global_step])
+
+        duration = time.time() - start_time
+
+        step_desc = ('step {}: loss = {} ({:.2f} sec/step)'
+                     .format(total_steps, batch_loss, duration))
+        train_epoch_mean_loss += batch_loss
+        Epoch.set_description(step_desc)
+        Epoch.refresh()
+
+        assert not np.isnan(batch_loss)
+
+        if (total_steps % 100) == 0:
+            summary_str = session.run(summary_op)
+            train_writer.add_summary(summary=summary_str,
+                                     global_step=total_steps)
+
+    checkpoint_path = os.path.join(log_dir, 'model.ckpt')
+    saver.save(sess=session,
+               save_path=checkpoint_path,
+               global_step=total_steps)
+
+    epoch = int(total_steps/num_batches_per_epoch)
+    train_epoch_mean_loss /= num_batches_per_epoch
+    log_handle.write('Epoch {} done.\n'.format(epoch))
+    log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
+    log_handle.flush()
+
+    return epoch
+
+
+def _setup_training(FLAGS):
+    """Sets up the entire training graph, including input pipeline, inference
+    back-propagation and summaries.
+
+    Args:
+        FLAGS: The set of flags passed via command line. See the definitions at
+            the top of this file.
+
+    Returns:
+        (num_batches_per_epoch, train_op, train_loss, global_step) tuple needed
+        to run training steps.
+    """
+    num_counting_threads = FLAGS.num_preprocess_threads + FLAGS.num_readers
+    num_training_examples, train_data_filenames = pose_util.count_training_examples(
+        FLAGS.train_data_dir, num_counting_threads, 'train')
+
+    images, binary_maps, heatmaps, weights, is_visible_weights = setup_train_input_pipeline(
+        FLAGS, train_data_filenames)
+
+    num_batches_per_epoch = int(num_training_examples / FLAGS.batch_size)
+    global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
+                                              FLAGS.num_epochs_per_decay,
+                                              FLAGS.initial_learning_rate,
+                                              FLAGS.learning_rate_decay_factor)
+
+    train_op, train_loss = _setup_training_op(images,
+                                              binary_maps,
+                                              heatmaps,
+                                              weights,
+                                              is_visible_weights,
+                                              global_step,
+                                              optimizer,
+                                              FLAGS.num_gpus)
+
+    return num_batches_per_epoch, train_op, train_loss, global_step
 
 
 def train():
-    """Trains an Inception v3 network to regress joint co-ordinates (NUM_JOINTS
-    sets of (x, y) co-ordinates) directly.
+    """Trains a human pose estimation network to detect and/or regress binary
+    maps and/or confidence maps of joint co-ordinates (NUM_JOINTS sets of (x,
+    y) co-ordinates).
+
+    Here we only take files 0-N.
+    For now files are manually renamed as train[0-N].tfrecord and
+    valid[N-M].tfrecord, where there are N + 1 train records, (M - N)
+    validation records and M + 1 records in total.
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            # TODO(brendan): Support multiple GPUs?
-            assert FLAGS.num_gpus == 1
+            num_batches_per_epoch, train_op, train_loss, global_step = _setup_training(FLAGS)
 
-            training_batch = setup_train_input_pipeline(
-                FLAGS.data_dir,
-                FLAGS.num_readers,
-                FLAGS.input_queue_memory_factor,
-                FLAGS.batch_size,
-                FLAGS.num_preprocess_threads,
-                FLAGS.image_dim)
+            eval_graph = tf.Graph()
+            with eval_graph.as_default():
+                num_val_examples, val_loss, val_logits, gt_data = setup_evaluation(FLAGS)
 
-            global_step, optimizer = _setup_optimizer(FLAGS.batch_size,
-                                                      FLAGS.num_epochs_per_decay,
-                                                      FLAGS.initial_learning_rate,
-                                                      FLAGS.learning_rate_decay_factor)
+            session = tf.Session(
+                config=tf.ConfigProto(allow_soft_placement=True))
+            session.run(tf.global_variables_initializer())
+            session.run(tf.local_variables_initializer())
 
-            train_op = _setup_training_op(training_batch,
-                                          global_step,
-                                          optimizer)
+            _restore_checkpoint_variables(session, global_step)
 
-            # TODO(brendan): track moving averages of trainable variables
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=session, coord=coord)
 
-            tf_logging._logger.setLevel(INFO)
-
-            slim.learning.train(
-                train_op=train_op,
+            train_writer = tf.summary.FileWriter(
                 logdir=FLAGS.log_dir,
-                log_every_n_steps=10,
-                global_step=global_step,
-                init_fn=_get_init_pretrained_fn(),
-                session_config=tf.ConfigProto(allow_soft_placement=True))
+                graph=session.graph)
+
+            log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename), 'a')
+
+            saver = tf.train.Saver(var_list=tf.global_variables())
+
+            with eval_graph.as_default():
+                restorer = tf.train.Saver(var_list=tf.global_variables())
+
+            summary_op = tf.summary.merge_all()
+
+            epoch = 0
+            while epoch < FLAGS.max_epochs:
+                epoch = _train_single_epoch(session,
+                                            saver,
+                                            train_writer,
+                                            train_op,
+                                            train_loss,
+                                            global_step,
+                                            summary_op,
+                                            num_batches_per_epoch,
+                                            log_handle,
+                                            FLAGS.log_dir)
+
+                with eval_graph.as_default():
+                    evaluate_single_epoch(restorer,
+                                          FLAGS.log_dir,
+                                          val_loss,
+                                          val_logits,
+                                          gt_data,
+                                          num_val_examples,
+                                          FLAGS.batch_size,
+                                          FLAGS.image_dim,
+                                          epoch,
+                                          log_handle)
+
+            log_handle.close()
+            train_writer.close()
+
+            coord.request_stop()
+            coord.join(threads=threads)
 
 
 def main(argv=None):
