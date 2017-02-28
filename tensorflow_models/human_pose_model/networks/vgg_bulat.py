@@ -239,27 +239,55 @@ def _vgg_16_bn_relu(inputs,
                 return a9, end_points
 
 
-def vgg_bulat_cascade(inputs,
-                      num_classes=16,
-                      is_detector_training=True,
-                      is_regressor_training=True,
-                      scope='vgg_bulat_cascade'):
-    """The cascade of VGG-style networks from the Bulat paper."""
-    detect_logits, detect_endpoints = _vgg_16_bn_relu(inputs=inputs,
-                                                      num_classes=num_classes,
-                                                      is_training=is_detector_training,
-                                                      scope='vgg_16')
-    detect_endpoints['detect_logits'] = detect_logits
+def _vgg_bulat_regression(inputs,
+                          num_classes=16,
+                          is_training=True,
+                          dropout_keep_prob=0.5,
+                          batch_norm_var_collection='moving_vars_vgg_bulat',
+                          scope='vgg_bulat_regression'):
+    """An interpretation of the regression subnetwork from the Bulat paper.
 
-    stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
+    Note that dropout has been added after the two layers of size 1x1, and
+    batch normalization has been added.
+    """
+    batch_norm_params = {
+      'decay': 0.9997,
+      'epsilon': 0.001,
+      'updates_collections': ops.GraphKeys.UPDATE_OPS,
+      'variables_collections':{
+          'beta': None,
+          'gamma': None,
+          'moving_mean': [batch_norm_var_collection],
+          'moving_variance': [batch_norm_var_collection],
+      },
+      'is_training': is_training
+    }
 
-    regression_logits, _ = _vgg_bulat_regression(inputs=stacked_heatmaps,
-                                                 num_classes=num_classes,
-                                                 is_training=is_regressor_training,
-                                                 scope=scope)
+    with tf.variable_scope(None, 'vgg_bulat_regression', [inputs]) as sc:
+        with tf.name_scope(scope):
+            end_points_collection = sc.original_name_scope + '_end_points'
+            with slim.arg_scope([slim.conv2d],
+                                activation_fn=tf.nn.relu,
+                                normalizer_fn=slim.batch_norm,
+                                normalizer_params=batch_norm_params,
+                                outputs_collections=end_points_collection):
+                net = slim.conv2d(inputs=inputs,
+                                  num_outputs=64,
+                                  kernel_size=[9, 9],
+                                  stride=1,
+                                  scope='c1')
 
-    return regression_logits, detect_endpoints
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=64,
+                                  kernel_size=[13, 13],
+                                  stride=2,
+                                  scope='c2')
 
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=128,
+                                  kernel_size=[13, 13],
+                                  stride=2,
+                                  scope='c3')
 
 
 def _vgg_bulat_regression_maxpool_c3c4(inputs,
