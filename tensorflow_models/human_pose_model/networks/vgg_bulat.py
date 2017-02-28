@@ -289,6 +289,50 @@ def _vgg_bulat_regression(inputs,
                                   stride=2,
                                   scope='c3')
 
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=256,
+                                  kernel_size=[15, 15],
+                                  stride=1,
+                                  scope='c4')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=512,
+                                  kernel_size=[1, 1],
+                                  stride=1,
+                                  scope='c5')
+
+                net = slim.dropout(inputs=net,
+                                   keep_prob=dropout_keep_prob,
+                                   is_training=is_training,
+                                   scope='c5_dropout')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=512,
+                                  kernel_size=[1, 1],
+                                  stride=1,
+                                  scope='c6')
+
+                net = slim.dropout(inputs=net,
+                                   keep_prob=dropout_keep_prob,
+                                   is_training=is_training,
+                                   scope='c6_dropout')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=16,
+                                  kernel_size=[1, 1],
+                                  stride=1,
+                                  activation_fn=None,
+                                  normalizer_fn=None,
+                                  scope='c7')
+
+                net = tf.image.resize_bilinear(images=net,
+                                               size=inputs.get_shape()[1:3],
+                                               name='c8')
+
+                end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+
+            return net, end_points
+
 
 def _vgg_bulat_regression_maxpool_c3c4(inputs,
                                        num_classes=16,
