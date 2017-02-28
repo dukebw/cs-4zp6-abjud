@@ -214,6 +214,7 @@ def both_nets_regression_loss(logits,
 
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'inception_v3': (inception.inception_v3, inception.inception_v3_arg_scope),
+        'vgg_bulat_cascade': (vgg_bulat.vgg_bulat_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_cascade_maxpool_c3c4': (vgg_bulat.vgg_bulat_cascade_maxpool_c3c4, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_cascade_maxpool_c2c3c4': (vgg_bulat.vgg_bulat_cascade_maxpool_c2c3c4, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_cascade_conv3x3_c2c3c4': (vgg_bulat.vgg_bulat_cascade_conv3x3_c2c3c4, vgg_bulat.vgg_arg_scope),
