@@ -45,7 +45,7 @@
     urlcolor=purple,        % color of external links
     linktoc=page            % only page is linked
 }%
-\def\myversion{0.0 }
+\def\myversion{0.0}
 \date{}
 %\title{%
 
@@ -65,8 +65,6 @@
         \LARGE{Version \myversion}\\
         \vspace{1.4cm}
         Prepared by Brendan Duke, Andrew Kohnen, Udip Patel, David Pitkanen, Jordan Viveiros\\
-        \vspace{1.4cm}
-        Using Volere Template Edition 13\\
         \vspace{1.4cm}
         McMaster Text to Motion Database\\
         \vspace{1.4cm}
@@ -94,24 +92,6 @@
 \newcounter{ConstraintNumber}
 \newcounter{RequirementNumber}
 
-% Requirement template -------------------------------------------------------
-\newcommand{\requirement}[9]{%
-\fbox{\parbox{\textwidth}{%
-\parbox[t]{.333\textwidth}{\raggedright%
-\textbf{Req. \#}: \refstepcounter{RequirementNumber} \arabic{RequirementNumber} \label{#1}}%
-\parbox[t]{.333\textwidth}{\centering%
-\textbf{Req. Type}: #2}%
-\parbox[t]{.333\textwidth}{\raggedleft%
-\textbf{Use Case \#}: \ref{#3}}
-\newline\\
-\textbf{Description}: #4\\\\
-\textbf{Rationale}: #5\\\\
-\textbf{Originator}: #6\\\\
-\textbf{Fit Criterion}: #7\\\\
-\textbf{Priority}: #8 \hfill \textbf{History}: #9\\\\
-}}}
-% End Requirement template ---------------------------------------------------
-
 \section{Legal and Copyright Information}
 
 This program, Text-To-Motion is free software: and you can redistribute it and/or modify
@@ -129,42 +109,101 @@ This program, Text-To-Motion is free software: and you can redistribute it and/o
 
 
 \section{Introduction}
-This is a web application which can be used to extract a low dimensional representation of the human body dynamics present in a video or the static pose of a person that has been captured in a picture.
 
-  This web application will allow a user to upload a video or an image that contains at least one person in it. If the user uploaded an image a static description of the human pose will be extracted from the image and stored in a database.  If the user uploads a video a representation of the human motion present in that video will be stored on the same database.  The motion or pose that the application extracts from the video or image can be displayed by the application.
-  
-  The motion or pose that is captured by the application is represented by thirteen (x,y) coordinates that reference the point pixels where 13 key body parts are located in the frame or picture of interest.  The way these thirteen coordinates change from frame to frame can be used to model human motion.  These points represent the positions of the head, shoulders, knees, wrists, elbows, hips, and feet (a total of 13 points) of the person on the 2D picture/video.
+This is a web application which can be used to extract a low dimensional
+representation of the human body dynamics present in a video or the static pose
+of a person that has been captured in a picture.
 
-	In addition the application offers a search function.  If the media that is inputted includes a description of the motion or pose then other users may query the database.  The database will perform a search for keywords and return motions or poses that match the keywords.
+This web application will allow a user to upload a video or an image that
+contains at least one person in it. If the user uploaded an image a static
+description of the human pose will be extracted from the image and stored in a
+database.  If the user uploads a video a representation of the human motion
+present in that video will be stored on the same database.  The motion or pose
+that the application extracts from the video or image can be displayed by the
+application.
+
+The motion or pose that is captured by the application is represented by
+thirteen (x,y) coordinates that reference the point pixels where 13 key body
+parts are located in the frame or picture of interest.  The way these thirteen
+coordinates change from frame to frame can be used to model human motion.
+These points represent the positions of the head, shoulders, knees, wrists,
+elbows, hips, and feet (a total of 13 points) of the person on the 2D
+picture/video.
+
+In addition the application offers a search function.  If the media that is
+inputted includes a description of the motion or pose then other users may
+query the database.  The database will perform a search for keywords and return
+motions or poses that match the keywords.
 
 \section{Purpose}
-The initial purpose for developing this tool was to generate a data source that would be useful to machine learning researchers and developers.  Machine learning researhers are interested in creating models from labelled data.  A tool that can find the joint positions in images and videos is obviously a good method to generate data that is labelled with with joint positions.  
 
-There are many large data sources(videos and images) which have been annotated with natural language describing the human motion. This motion/joint positions extracting tool could be used to enrich data sources annotated with natural language.  These data sources would contain related natural language  and motion descriptions and so would be good sources that create connections between these different domains.
- 
-However this project can be used as a tool for other applications as well since the task of finding the human motion in a video or pose in a picture is useful in its own right.  
-Since it can keep track of human body positions on a screen it can also be used potentially for training people how to move or as an aid in games where motion needs to be kept tack of.
+The initial purpose for developing this tool was to generate a data source that
+would be useful to machine learning researchers and developers.  Machine
+learning researhers are interested in creating models from labelled data.  A
+tool that can find the joint positions in images and videos is obviously a good
+method to generate data that is labelled with with joint positions.
+
+There are many large data sources(videos and images) which have been annotated
+with natural language describing the human motion. This motion/joint positions
+extracting tool could be used to enrich data sources annotated with natural
+language.  These data sources would contain related natural language  and
+motion descriptions and so would be good sources that create connections
+between these different domains.
+
+However this project can be used as a tool for other applications as well since
+the task of finding the human motion in a video or pose in a picture is useful
+in its own right.
+
+Since it can keep track of human body positions on a screen it can also be used
+potentially for training people how to move or as an aid in games where motion
+needs to be kept tack of.
 
 \subsection{Objective of User Manual}
 
-This document has been written for people wishing to use the Text-To-Motion web application.  The document describes how to get the application to perform its basic functions: such as display videos that have been captioned with joint positions and how to use the search the database for pre-captioned motions and poses.
+This document has been written for people wishing to use the Text-To-Motion web
+application.  The document describes how to get the application to perform its
+basic functions: such as display videos that have been captioned with joint
+positions and how to use the search the database for pre-captioned motions and
+poses.
 
-This manual also provides technical guidance such as installation instructions and troubleshooting advice.
+This manual also provides technical guidance such as installation instructions
+and troubleshooting advice.
 
 \subsubsection{Background Applications}
-Many applications on the market right now implement a similar product to our Text-To-Motion program.  For instance PlayStations Move Motion Controller and the Wii Motion plus.  Both of these products allow users to use play video games by using motion instead of a controller.  In addition motion analysis is common to help improve athletes and help to prevent injury also helps in rehab because calculate forces imposed due to movements commonly studied at universities and there is even an app on the Itunes store called the Sports Motion Analyzer.
+
+Many applications on the market right now implement a similar product to our
+Text-To-Motion program.  For instance PlayStations Move Motion Controller and
+the Wii Motion plus.  Both of these products allow users to use play video
+games by using motion instead of a controller.  In addition motion analysis is
+common to help improve athletes and help to prevent injury also helps in rehab
+because calculate forces imposed due to movements commonly studied at
+universities and there is even an app on the Itunes store called the Sports
+Motion Analyzer.
 
 \section{Roadmap}
 
-This text-to-motion software will have two broad classes of potential users.  The first class will wish to use the web application as it is available on our website.  These users will simply navigate to the site using a browser and take advantage of the framework provided. However the second class will wish to take the software we provide on github and host this software as their own website to collect their own data and provide their own services.
+This text-to-motion software will have two broad classes of potential users.
+The first class will wish to use the web application as it is available on our
+website.  These users will simply navigate to the site using a browser and take
+advantage of the framework provided. However the second class will wish to take
+the software we provide on github and host this software as their own website
+to collect their own data and provide their own services.
 
-Both of these types of users will have their own challenges.  Of course users who wish to become hosts will themselves have users of their own so the first class of potential users problems will be of interest to the second class.  
+Both of these types of users will have their own challenges.  Of course users
+who wish to become hosts will themselves have users of their own so the first
+class of potential users problems will be of interest to the second class.
 
-We therefore break this section down into two streams.  The first stream shows the challenges that are of interest to users of the web application once it has been installed.  The second stream is for problems that will only be of interest to potential users who wish to get the software running on their own server.
+We therefore break this section down into two streams.  The first stream shows
+the challenges that are of interest to users of the web application once it has
+been installed.  The second stream is for problems that will only be of
+interest to potential users who wish to get the software running on their own
+server.
 
 \subsection{Roadmap: Web clients}
 
-The web application we provide will have many pages that have different functionalities.  The navigational structure of the application is shown in Figure \ref{fig:navStruct}.
+The web application we provide will have many pages that have different
+functionalities.  The navigational structure of the application is shown in
+Figure \ref{fig:navStruct}.
 
 \begin{figure}
   \includegraphics[width=\linewidth]{apppicture.png}
@@ -172,18 +211,33 @@ The web application we provide will have many pages that have different function
   \label{fig:navStruct}
 \end{figure}
 
-The navigational structure of our site is very simple.  If the navigation starts at the Home page then any other page may be reached using a link from this page.  The possible links are ImagePoseDraw, Login, Register, Contact and About.
+The navigational structure of our site is very simple.  If the navigation
+starts at the Home page then any other page may be reached using a link from
+this page.  The possible links are ImagePoseDraw, Login, Register, Contact and
+About.
 
-In Figure \ref{fig:navStruct} end point on this graph represents a functionality that the application offers: create, search, details, contact, about, login, register, search and search results.
+In Figure \ref{fig:navStruct} end point on this graph represents a
+functionality that the application offers: create, search, details, contact,
+about, login, register, search and search results.
 
-The details, contact and about sections describe are actually pages that display imporant data.  The contact page/function displays contact information to get in contact with the creators of the software.  The about page/functionality displays the information that describes motivation for the web site.
+The details, contact and about sections describe are actually pages that
+display imporant data.  The contact page/function displays contact information
+to get in contact with the creators of the software.  The about
+page/functionality displays the information that describes motivation for the
+web site.
 
-For our site it is necessary to create a user profile to perform certain tasks.  The login and register functions allow users to create profiles and login to their accounts.
+For our site it is necessary to create a user profile to perform certain tasks.
+The login and register functions allow users to create profiles and login to
+their accounts.
 
-Finally the search and search results allow users to search the data that is stored by the web application and to display the results of their searches.
+Finally the search and search results allow users to search the data that is
+stored by the web application and to display the results of their searches.
 
 \subsubsection{Browser Requirements}
-Currently our website is hosted at the address address 159.203.10.112:80. By typing this address into a browser the Home page of our site should appear. The specific page that should be seen in figure \ref{fig:homePage}
+
+Currently our website is hosted at the address address 159.203.10.112:80. By
+typing this address into a browser the Home page of our site should appear. The
+specific page that should be seen in figure \ref{fig:homePage}
 
 \begin{figure}
   \includegraphics[width=\linewidth]{HomePage.png}
@@ -191,11 +245,16 @@ Currently our website is hosted at the address address 159.203.10.112:80. By typ
   \label{fig:homePage}
 \end{figure}
 
-
-This website can be accessed by any browser that supporst the HTML5.  Any version of Internet Explorer more recent than version 6 should work and updated verisons of Chrome and Firefox will work as well.
+This website can be accessed by any browser that supporst the HTML5.  Any
+version of Internet Explorer more recent than version 6 should work and updated
+verisons of Chrome and Firefox will work as well.
 
 \subsubsection{Log In/Sign Up}
-To use all of the features offered by the Text-To-Motion site users must create a profile.  Without creating a profile data that is on the database may be searched and displayed however to enter new data a user must have a profile and be logged in.
+
+To use all of the features offered by the Text-To-Motion site users must create
+a profile.  Without creating a profile data that is on the database may be
+searched and displayed however to enter new data a user must have a profile and
+be logged in.
 
 \begin{figure}
   \includegraphics[width=\linewidth]{Register.png}
@@ -203,15 +262,24 @@ To use all of the features offered by the Text-To-Motion site users must create 
   \label{fig:regPage}
 \end{figure}
 
-To register as a user we can start at the home page and then click on the register link.  Once this link has been clicked on the register page will appear.  To register only an email address and password are neccessary. 
-The password needs to be verified as can be seen in Figure \ref{fig:regPage}. Once these fields are filled out and the register button is clicked a user account will be created.  Note that each user account must have a unique email address.
+To register as a user we can start at the home page and then click on the
+register link.  Once this link has been clicked on the register page will
+appear.  To register only an email address and password are necessary.
+
+The password needs to be verified as can be seen in Figure \ref{fig:regPage}.
+Once these fields are filled out and the register button is clicked a user
+account will be created.  Note that each user account must have a unique email
+address.
 
 \subsubsection{Data Input}
 
+The central feature of our application is in collecting and displaying data.
+To navigate to the page that performs data input and displays already collected
+data navigate to the home page and then click on the ImagePoseDraw link.
 
-The central feature of our application is in collecting and displaying data.  To navigate to the page that performs data input and displays already collected data navigate to the home page and then click on the ImagePoseDraw link. 
-
-From this page data can be searched and inputted if the user is logged in.  To input data simply click on the green button labelled "Add New Image" as shown in Figure \ref{fig:uploadPage}. 
+From this page data can be searched and inputted if the user is logged in.  To
+input data simply click on the green button labelled "Add New Image" as shown
+in Figure \ref{fig:uploadPage}.
 
 \begin{figure}
   \includegraphics[width=\linewidth]{uploadPage.png}
@@ -219,7 +287,13 @@ From this page data can be searched and inputted if the user is logged in.  To i
   \label{fig:uploadPage}
 \end{figure}
 
-After this button is clicked a new screen will appear that has 3 fields that need to be filled out: filename, filepath and description.  The filepath is entered by clicking on a new button that opens a user interface for a file explorer which allows users to navigate the directories on their computer to the location of the file they wish to upload.  Once the submit button is pushed the appropriate file will be uploaded to our database and the file will be labelled with the pixel locations that correspond to the joint positions.  
+After this button is clicked a new screen will appear that has 3 fields that
+need to be filled out: filename, filepath and description.  The filepath is
+entered by clicking on a new button that opens a user interface for a file
+explorer which allows users to navigate the directories on their computer to
+the location of the file they wish to upload.  Once the submit button is pushed
+the appropriate file will be uploaded to our database and the file will be
+labelled with the pixel locations that correspond to the joint positions.
 
 \begin{figure}
   \includegraphics[width=\linewidth]{greenButtonPage.png}
@@ -227,9 +301,13 @@ After this button is clicked a new screen will appear that has 3 fields that nee
   \label{fig:uploadPage}
 \end{figure}
 
-Data restrictions are that the images file format must be in jpeg and peg formats.  Also the website is set up for downloading large data samples but a limit of 2 minutes is set on the upload time.  Because of this the sample will depend on the upload speed.
+Data restrictions are that the images file format must be in jpeg and peg
+formats.  Also the website is set up for downloading large data samples but a
+limit of 2 minutes is set on the upload time.  Because of this the sample will
+depend on the upload speed.
 
-As an example of what the application can do we enter this image into the URL shown in Figure \ref{fig:uploadPage}.
+As an example of what the application can do we enter this image into the URL
+shown in Figure \ref{fig:uploadPage}.
 
 \begin{figure}
   \includegraphics[width=\linewidth]{tbrady.jpg}
@@ -239,7 +317,6 @@ As an example of what the application can do we enter this image into the URL sh
 
 Then the results are obtained:
 
-
 \begin{figure}
   \includegraphics[width=\linewidth]{tbrady.jpg}
   \caption{Tom Brady Labelled}
@@ -248,28 +325,46 @@ Then the results are obtained:
 
 
 \subsubsection{Data Search}
-Should show an example of data searh. (NOT IMPLEMENTED)
+
+Should show an example of data search. (NOT IMPLEMENTED)
 
 
 \subsubsection{Troubleshooting}
 
-Note that errors may result when images are uploaded.  The images must have a jpeg or peg format.  In addition large files that take more than 2 minutes to upload will cause a timeout error.
+Note that errors may result when images are uploaded.  The images must have a
+jpeg or peg format.  In addition large files that take more than 2 minutes to
+upload will cause a timeout error.
 
-For entering usernames and passwords we require that passwords have at least one number, one letter, one capital and one non-alphanumeric characer.  Uploading large files will only be allowed to take 2 minutes so that to upload larger files will have to be broken up into smaller segments.
+For entering usernames and passwords we require that passwords have at least
+one number, one letter, one capital and one non-alphanumeric characer.
+Uploading large files will only be allowed to take 2 minutes so that to upload
+larger files will have to be broken up into smaller segments.
 
 
 \subsection{Errors or overwriting Data}
 
-For users each user must create a unique username.  If a user uses a username that is already in use a error message will be shown to the user and they will be asked to enter a new name.  Multiple users can share the same password however.
+For users each user must create a unique username.  If a user uses a username
+that is already in use a error message will be shown to the user and they will
+be asked to enter a new name.  Multiple users can share the same password
+however.
 
-For entering and videos no limit or restrictions are set for duplications.  So the same image or video may be uploaded many times without causing overwriting to occur.  However if the user wishes to avoid duplication they can search the database for specific pictures or videos using the search function.
+For entering and videos no limit or restrictions are set for duplications.  So
+the same image or video may be uploaded many times without causing overwriting
+to occur.  However if the user wishes to avoid duplication they can search the
+database for specific pictures or videos using the search function.
 
 
 \section{Roadmap: Service Providers}
 
-As previously mentioned the software is for a  web application which runs a computationally expensive image/video analysis on its backend. To store the large amounts of data a database server is needed for hosting.  In addtion we wish to query the database so a search library is also needed. Then to perform the calculation a machine learning library is used and finally to host a web framework is needed. All of these components need to be installed separately.
+As previously mentioned the software is for a  web application which runs a
+computationally expensive image/video analysis on its backend. To store the
+large amounts of data a database server is needed for hosting.  In addtion we
+wish to query the database so a search library is also needed. Then to perform
+the calculation a machine learning library is used and finally to host a web
+framework is needed. All of these components need to be installed separately.
 
-The specific software tools, packages and libraries that need to be available to the system to run our softwar are:
+The specific software tools, packages and libraries that need to be available
+to the system to run our software are:
 
 \begin{itemize}
   \item Python version 3.x
@@ -283,11 +378,16 @@ The specific software tools, packages and libraries that need to be available to
 
 
 \subsection{Installation}
-The software project we have developed is available on github: https://github.com/dukebw/mcmaster-text-to-motion-database and can be downloaded by cloning our repository.
+
+The software project we have developed is available on github:
+https://github.com/dukebw/mcmaster-text-to-motion-database and can be
+downloaded by cloning our repository.
 
 Instructions on using github are available at this address:
 
-However if the user is running a linux system the repository can be downloaded by typing in the clone command from the terminal screen:
+However if the user is running a linux system the repository can be downloaded
+by typing in the clone command from the terminal screen:
+
 \begin{lstlisting}
 
 git clone --recursive https://github.com/dukebw/
@@ -295,7 +395,11 @@ mcmaster-text-to-motion-database
 
 \end{lstlisting}
 
-However the software we have developed has several dependencies which fall under the three categories we have decomposed the project into: database, machine learning libraries, and the web framework.  Python is a central language used in our project is in nearly all of these modules.  We assume python version 3.5 or higher is installed.
+However the software we have developed has several dependencies which fall
+under the three categories we have decomposed the project into: database,
+machine learning libraries, and the web framework.  Python is a central
+language used in our project is in nearly all of these modules.  We assume
+python version 3.5 or higher is installed.
 
 
 \subsection{System Requirements}
@@ -313,7 +417,7 @@ However the software we have developed has several dependencies which fall under
 
 Question 1: How can I improve the fit given by the program?
 
-Answer 1 : One improvement would be to try and use pictures that have only a single person in them. 
+Answer 1 : One improvement would be to try and use pictures that have only a single person in them.
 
 Question 2: How can I upload large files?
 
@@ -329,9 +433,9 @@ Answer 4:
 
 \begin{thebibliography}{9}
 
-\bibitem{latexcompanion} 
-Bulat, Adrian, Tzimiropoulos, Georgios. 
-\textit{Human pose estimation via Convulutional Part Heatmap Regression}. 
+\bibitem{latexcompanion}
+Bulat, Adrian, Tzimiropoulos, Georgios.
+\textit{Human pose estimation via Convulutional Part Heatmap Regression}.
 eprint arXiv: 1609.01743.
 
 \end{thebibliography}
