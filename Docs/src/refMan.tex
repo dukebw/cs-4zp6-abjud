@@ -74,6 +74,9 @@
     \end{bfseries}
 \end{flushright}
 
+\listoffigures
+
+
 \tableofcontents
 
 \chapter*{Revision History}
@@ -111,12 +114,19 @@
 
 \section{Legal and Copyright Information}
 
-Here we don't have anything copyrighted alhough we should 
-mention the GNU.  Legal concerns are that we are taking 
-up peoples photos so they might be wondering what we are 
-doing with their photos.
+This program, Text-To-Motion is free software: and you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-\subsection{Need List of tables and figures}
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see http://www.gnu.org/licenses/.
+
 
 \section{Introduction}
 This is a web application which can be used to extract a low dimensional representation of the human body dynamics present in a video or the static pose of a person that has been captured in a picture.
@@ -127,7 +137,7 @@ This is a web application which can be used to extract a low dimensional represe
 
 	In addition the application offers a search function.  If the media that is inputted includes a description of the motion or pose then other users may query the database.  The database will perform a search for keywords and return motions or poses that match the keywords.
 
-\subsection{Purpose}
+\section{Purpose}
 The initial purpose for developing this tool was to generate a data source that would be useful to machine learning researchers and developers.  Machine learning researhers are interested in creating models from labelled data.  A tool that can find the joint positions in images and videos is obviously a good method to generate data that is labelled with with joint positions.  
 
 There are many large data sources(videos and images) which have been annotated with natural language describing the human motion. This motion/joint positions extracting tool could be used to enrich data sources annotated with natural language.  These data sources would contain related natural language  and motion descriptions and so would be good sources that create connections between these different domains.
@@ -135,9 +145,14 @@ There are many large data sources(videos and images) which have been annotated w
 However this project can be used as a tool for other applications as well since the task of finding the human motion in a video or pose in a picture is useful in its own right.  
 Since it can keep track of human body positions on a screen it can also be used potentially for training people how to move or as an aid in games where motion needs to be kept tack of.
 
+\subsection{Objective of User Manual}
+
+This document has been written for people wishing to use the Text-To-Motion web application.  The document describes how to get the application to perform its basic functions: such as display videos that have been captioned with joint positions and how to use the search the database for pre-captioned motions and poses.
+
+This manual also provides technical guidance such as installation instructions and troubleshooting advice.
 
 \subsubsection{Background Applications}
-Many applications use Microsoft human motion and video games such as the oui.
+Many applications on the market right now implement a similar product to our Text-To-Motion program.  For instance PlayStations Move Motion Controller and the Wii Motion plus.  Both of these products allow users to use play video games by using motion instead of a controller.  In addition motion analysis is common to help improve athletes and help to prevent injury also helps in rehab because calculate forces imposed due to movements commonly studied at universities and there is even an app on the Itunes store called the Sports Motion Analyzer.
 
 \section{Roadmap}
 
@@ -157,12 +172,9 @@ The web application we provide will have many pages that have different function
   \label{fig:navStruct}
 \end{figure}
 
-The navigational structure of our site is very simple.  The navigation starts at the Home page then any other page may be reached by clicking on a link on this page.  The possible links are ImagePoseDraw, Login and Register.
+The navigational structure of our site is very simple.  If the navigation starts at the Home page then any other page may be reached using a link from this page.  The possible links are ImagePoseDraw, Login, Register, Contact and About.
 
- Each end point on this graph represents a functionality that the application offers: create, search, details, contact, about, login, register, search and search results.
-To navigate to this functionality the navigational chart can be used in figure \ref{fig:homePage}.  A node for a page lower in the structure can be reached from a node that is one level higher.  To perform the navigation go to the more highly ranked page and then clck on a link that is labelled with the lower nodes label.
-
-For instance to get to the TextToMotion page start at the home page and then click on the link labelled TextToMotion.
+In Figure \ref{fig:navStruct} end point on this graph represents a functionality that the application offers: create, search, details, contact, about, login, register, search and search results.
 
 The details, contact and about sections describe are actually pages that display imporant data.  The contact page/function displays contact information to get in contact with the creators of the software.  The about page/functionality displays the information that describes motivation for the web site.
 
@@ -185,33 +197,73 @@ This website can be accessed by any browser that supporst the HTML5.  Any versio
 \subsubsection{Log In/Sign Up}
 To use all of the features offered by the Text-To-Motion site users must create a profile.  Without creating a profile data that is on the database may be searched and displayed however to enter new data a user must have a profile and be logged in.
 
-To register as a user we can start at the home page and then click on the register link.  Once this link has been clicked on the register page will appear.  To register only an email address and password are neccessary.  Once these fields are filled out and the register button is clicked a user account will be created.  Note that each user account must have a unique email address.
+\begin{figure}
+  \includegraphics[width=\linewidth]{Register.png}
+  \caption{Page Registration}
+  \label{fig:regPage}
+\end{figure}
+
+To register as a user we can start at the home page and then click on the register link.  Once this link has been clicked on the register page will appear.  To register only an email address and password are neccessary. 
+The password needs to be verified as can be seen in Figure \ref{fig:regPage}. Once these fields are filled out and the register button is clicked a user account will be created.  Note that each user account must have a unique email address.
 
 \subsubsection{Data Input}
+
+
 The central feature of our application is in collecting and displaying data.  To navigate to the page that performs data input and displays already collected data navigate to the home page and then click on the ImagePoseDraw link. 
 
-From this page data can be searched and inputted if the user is logged in.  To input data simply click on the green button labelled "Add New Image". 
+From this page data can be searched and inputted if the user is logged in.  To input data simply click on the green button labelled "Add New Image" as shown in Figure \ref{fig:uploadPage}. 
+
+\begin{figure}
+  \includegraphics[width=\linewidth]{uploadPage.png}
+  \caption{Uploading Image}
+  \label{fig:uploadPage}
+\end{figure}
 
 After this button is clicked a new screen will appear that has 3 fields that need to be filled out: filename, filepath and description.  The filepath is entered by clicking on a new button that opens a user interface for a file explorer which allows users to navigate the directories on their computer to the location of the file they wish to upload.  Once the submit button is pushed the appropriate file will be uploaded to our database and the file will be labelled with the pixel locations that correspond to the joint positions.  
 
+\begin{figure}
+  \includegraphics[width=\linewidth]{greenButtonPage.png}
+  \caption{Entering Upload Data}
+  \label{fig:uploadPage}
+\end{figure}
+
 Data restrictions are that the images file format must be in jpeg and peg formats.  Also the website is set up for downloading large data samples but a limit of 2 minutes is set on the upload time.  Because of this the sample will depend on the upload speed.
 
-\subsubsection{Data Search}
+As an example of what the application can do we enter this image into the URL shown in Figure \ref{fig:uploadPage}.
 
+\begin{figure}
+  \includegraphics[width=\linewidth]{tbrady.jpg}
+  \caption{Tom Brady}
+  \label{fig:tomBrady}
+\end{figure}
+
+Then the results are obtained:
+
+
+\begin{figure}
+  \includegraphics[width=\linewidth]{tbrady.jpg}
+  \caption{Tom Brady Labelled}
+  \label{fig:labelledBrady}
+\end{figure}
+
+
+\subsubsection{Data Search}
+Should show an example of data searh. (NOT IMPLEMENTED)
 
 
 \subsubsection{Troubleshooting}
-One problem since the application provides a labelling service is that the labels may be assigned to the inputted data poorly.  To improve on the data can anything be done pre-processing or what kinds of data does the application work best on?
 
-The second type is the more technical in nature of problems of username, lost data and searching.  Not returning the results that you want? How  to best implement a searh using this?
+Note that errors may result when images are uploaded.  The images must have a jpeg or peg format.  In addition large files that take more than 2 minutes to upload will cause a timeout error.
 
-For entering usernames and passwords we require that passwords have at least 1 number, 1 letter, 1 capital and one non-alphanumeric characer.  Uploading large files will only be allowed to take 2 minutes so that to upload larger files will have to be broken up into smaller segments.
+For entering usernames and passwords we require that passwords have at least one number, one letter, one capital and one non-alphanumeric characer.  Uploading large files will only be allowed to take 2 minutes so that to upload larger files will have to be broken up into smaller segments.
+
 
 \subsection{Errors or overwriting Data}
 
 For users each user must create a unique username.  If a user uses a username that is already in use a error message will be shown to the user and they will be asked to enter a new name.  Multiple users can share the same password however.
 
 For entering and videos no limit or restrictions are set for duplications.  So the same image or video may be uploaded many times without causing overwriting to occur.  However if the user wishes to avoid duplication they can search the database for specific pictures or videos using the search function.
+
 
 \section{Roadmap: Service Providers}
 
@@ -229,47 +281,59 @@ The specific software tools, packages and libraries that need to be available to
 \end{itemize}
 
 
+
 \subsection{Installation}
 The software project we have developed is available on github: https://github.com/dukebw/mcmaster-text-to-motion-database and can be downloaded by cloning our repository.
 
 Instructions on using github are available at this address:
 
 However if the user is running a linux system the repository can be downloaded by typing in the clone command from the terminal screen:
+\begin{lstlisting}
 
-git clone --recursive https://github.com/dukebw/mcmaster-text-to-motion-database
+git clone --recursive https://github.com/dukebw/
+mcmaster-text-to-motion-database
+
+\end{lstlisting}
 
 However the software we have developed has several dependencies which fall under the three categories we have decomposed the project into: database, machine learning libraries, and the web framework.  Python is a central language used in our project is in nearly all of these modules.  We assume python version 3.5 or higher is installed.
 
 
-\subsection{Installation of Dependencies}
-\subsubsection{Database Installation: MySQL and Sphinx}
+\subsection{System Requirements}
 
-\subsubsection{Machine Learnign Libraries Installation: TensorFlow and Caffe}
-
-Unfortunately for Caffe as a high level and efficient image analysis tool so it itself has other dependencies. The instrutions for installing Caffe can be found here: http://caffe.berkeleyvision.org/install_apt.html
-
-As can be seen at this website in order to run caffe CUDA, BLAS and python are required.  Instructions for installing CUDA and BLAS are shown at the website mentioned above.  Within the ubuntu console these packages can be installed with the following commands:
-
-sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler
-sudo apt-get install --no-install-recommends libboost-all-dev
-
-
-Tensorflow is also used in are framework.  This library can run both on python and C++ and in our program we use the python accessible version.  To install Tensorflow again: https://www.tensorflow.org/install/.  The install instructions are too numerous to mention here but it is available for all environments: linux, Mac OS and Windows.
-
-
-
-\subsubsection{Web Framework: ASP.NET MVC and Python}
-The web framework we are create has two separate modules that communicate with one another.  To run them both Python and ASP.NET need to be installed.  The python componen relies on socket library that is in the standard python library so no new installations are required for python.
-
-To run ASP.NET the 
+\begin{itemize}
+\item GHz or faster processor
+\item 512 MB of RAM
+\item Ubuntu 16.04 with basic configuration (e.g. port 80 opened, packages updated)
+\end{itemize}
 
 
 \subsection{Troubleshooting}
-Things they should look out for an possible errors? 
 
-Formats of files that they upload.  Size capacity. Expected speed.
+\section{Frequently asked Questions}
 
-\bibliographystyle{IEEEtran}
-\bibliography{IEEEabrv,SoftwareRequirementsSpecification}
+Question 1: How can I improve the fit given by the program?
+
+Answer 1 : One improvement would be to try and use pictures that have only a single person in them. 
+
+Question 2: How can I upload large files?
+
+Answer 2: We are currently working on a web feature for large uploads.
+
+Question 3: What algorithms are used by the program?
+
+Answer 3: The algorithms that were used are outlined in [1].
+
+Question 4:
+
+Answer 4:
+
+\begin{thebibliography}{9}
+
+\bibitem{latexcompanion} 
+Bulat, Adrian, Tzimiropoulos, Georgios. 
+\textit{Human pose estimation via Convulutional Part Heatmap Regression}. 
+eprint arXiv: 1609.01743.
+
+\end{thebibliography}
 
 \end{document}
