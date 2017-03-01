@@ -6,6 +6,7 @@ from pose_utils.sparse_to_dense import sparse_joints_to_dense_single_example
 from dataset.mpii_datatypes import Person
 
 EXAMPLES_PER_SHARD = 256
+LEFT_RIGHT_FLIPPED_INDICES = [5, 4, 3, 2, 1, 0, 6, 7, 8, 9, 15, 14, 13, 12, 11, 10]
 
 class EvalBatch(object):
     """Contains an evaluation batch of images along with corresponding
@@ -188,6 +189,32 @@ def _decode_binary_maps(binary_maps, image_dim):
     return tf.cast(binary_maps, tf.float32)
 
 
+def _flip_with_left_right_permutation(maps):
+    """Flips ground truth maps, accounting for the fact that when mirrored the
+    images' left and right have also been swapped.
+
+    TODO(brendan): Apparently `tf.transpose` is slow.
+    Replace with `tf.reshape` -> replace gather column indices with a list of
+    individual element indices?
+    """
+    maps = tf.image.flip_left_right(image=maps)
+
+    maps = tf.transpose(a=maps, perm=[2, 0, 1])
+    maps = tf.gather(params=maps,
+                     indices=LEFT_RIGHT_FLIPPED_INDICES)
+
+    return tf.transpose(a=maps, perm=[1, 2, 0])
+
+
+def _maybe_flip_maps(maps, should_flip):
+    """Conditionally flip ground truth maps left-right (i.e. left becomes right
+    and vice versa).
+    """
+    return tf.cond(pred=should_flip,
+                   fn1=lambda: _flip_with_left_right_permutation(maps),
+                   fn2=lambda: maps)
+
+
 def _randomly_flip(image, binary_maps, heatmaps):
     """Randomly flips an image and set of joint-maps left or right, and returns
     the (possibly) flipped results.
@@ -201,17 +228,10 @@ def _randomly_flip(image, binary_maps, heatmaps):
         fn1=lambda: tf.image.flip_left_right(image=image),
         fn2=lambda: image)
 
-    flipped_binary_maps = tf.cond(
-        pred=should_flip,
-        fn1=lambda: tf.image.flip_left_right(image=binary_maps),
-        fn2=lambda: binary_maps)
+    flipped_binary_maps = _maybe_flip_maps(binary_maps, should_flip)
+    flipped_heatmaps = _maybe_flip_maps(heatmaps, should_flip)
 
-    flipped_heatmaps = tf.cond(
-        pred=should_flip,
-        fn1=lambda: tf.image.flip_left_right(image=heatmaps),
-        fn2=lambda: heatmaps)
-
-    return flipped_image, flipped_binary_maps, flipped_heatmaps
+    return flipped_image, flipped_binary_maps, flipped_heatmaps, should_flip
 
 
 def _randomly_rotate(image, binary_maps, heatmaps, max_rotation_angle):
@@ -261,7 +281,7 @@ def _distort_image(decoded_image,
                                  shape=[image_dim, image_dim, 3])
     binary_maps = _decode_binary_maps(binary_maps, image_dim)
 
-    flipped_image, flipped_binary_maps, flipped_heatmaps = _randomly_flip(
+    flipped_image, flipped_binary_maps, flipped_heatmaps, should_flip = _randomly_flip(
         decoded_image, binary_maps, heatmaps)
 
     distorted_image = _distort_colour(flipped_image, thread_id)
@@ -272,7 +292,7 @@ def _distort_image(decoded_image,
     distorted_image = tf.subtract(x=distorted_image, y=0.5)
     distorted_image = tf.multiply(x=distorted_image, y=2.0)
 
-    return distorted_image, distorted_binary_maps, distorted_heatmaps
+    return distorted_image, distorted_binary_maps, distorted_heatmaps, should_flip
 
 
 def _parse_and_preprocess_example_eval(heatmap_stddev_pixels,
@@ -395,6 +415,13 @@ def _get_is_visible_weights(sparse_joint_indices, is_visible_list, weights):
     return tf.multiply(weights, tf.cast(is_visible_dense, tf.float32))
 
 
+def _maybe_flip_weights(weights, should_flip):
+    """Conditionally permutes weights left-right (i.e. left becomes right)."""
+    return tf.cond(pred=should_flip,
+                   fn1=lambda: tf.gather(params=weights, indices=LEFT_RIGHT_FLIPPED_INDICES),
+                   fn2=lambda: weights)
+
+
 def _parse_and_preprocess_example_train(example_serialized,
                                         num_preprocess_threads,
                                         image_dim,
@@ -442,12 +469,16 @@ def _parse_and_preprocess_example_train(example_serialized,
                                        x_dense_joints,
                                        y_dense_joints)
 
-        distorted_image, binary_maps, heatmaps = _distort_image(parsed_example['image'],
-                                                                parsed_example['binary_maps'],
-                                                                heatmaps,
-                                                                image_dim,
-                                                                thread_id,
-                                                                max_rotation_angle)
+        distorted_image, binary_maps, heatmaps, should_flip = _distort_image(
+            parsed_example['image'],
+            parsed_example['binary_maps'],
+            heatmaps,
+            image_dim,
+            thread_id,
+            max_rotation_angle)
+
+        weights = _maybe_flip_weights(weights, should_flip)
+        is_visible_weights = _maybe_flip_weights(is_visible_weights, should_flip)
 
         images_and_joint_maps.append([distorted_image,
                                       binary_maps,
