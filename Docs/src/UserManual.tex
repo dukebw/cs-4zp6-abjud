@@ -89,9 +89,6 @@
     \end{tabular}
 \end{center}
 
-\newcounter{ConstraintNumber}
-\newcounter{RequirementNumber}
-
 \section{Legal and Copyright Information}
 
 This program, Text-To-Motion is free software: and you can redistribute it and/or modify
@@ -139,7 +136,7 @@ motions or poses that match the keywords.
 
 The initial purpose for developing this tool was to generate a data source that
 would be useful to machine learning researchers and developers.  Machine
-learning researhers are interested in creating models from labelled data.  A
+learning researchers are interested in creating models from labelled data.  A
 tool that can find the joint positions in images and videos is obviously a good
 method to generate data that is labelled with with joint positions.
 
@@ -177,7 +174,7 @@ the Wii Motion plus.  Both of these products allow users to use play video
 games by using motion instead of a controller.  In addition motion analysis is
 common to help improve athletes and help to prevent injury also helps in rehab
 because calculate forces imposed due to movements commonly studied at
-universities and there is even an app on the Itunes store called the Sports
+universities and there is even an app on the iTunes store called the Sports
 Motion Analyzer.
 
 \section{Roadmap}
@@ -186,7 +183,7 @@ This text-to-motion software will have two broad classes of potential users.
 The first class will wish to use the web application as it is available on our
 website.  These users will simply navigate to the site using a browser and take
 advantage of the framework provided. However the second class will wish to take
-the software we provide on github and host this software as their own website
+the software we provide on GitHub and host this software as their own website
 to collect their own data and provide their own services.
 
 Both of these types of users will have their own challenges.  Of course users
@@ -221,7 +218,7 @@ functionality that the application offers: create, search, details, contact,
 about, login, register, search and search results.
 
 The details, contact and about sections describe are actually pages that
-display imporant data.  The contact page/function displays contact information
+display important data.  The contact page/function displays contact information
 to get in contact with the creators of the software.  The about
 page/functionality displays the information that describes motivation for the
 web site.
@@ -245,7 +242,7 @@ specific page that should be seen in figure \ref{fig:homePage}
   \label{fig:homePage}
 \end{figure}
 
-This website can be accessed by any browser that supporst the HTML5.  Any
+This website can be accessed by any browser that supports HTML5.  Any
 version of Internet Explorer more recent than version 6 should work and updated
 verisons of Chrome and Firefox will work as well.
 
@@ -301,7 +298,7 @@ labelled with the pixel locations that correspond to the joint positions.
   \label{fig:uploadPage}
 \end{figure}
 
-Data restrictions are that the images file format must be in jpeg and peg
+Data restrictions are that the images file format must be in JPEG and PNG
 formats.  Also the website is set up for downloading large data samples but a
 limit of 2 minutes is set on the upload time.  Because of this the sample will
 depend on the upload speed.
@@ -332,11 +329,11 @@ Should show an example of data search. (NOT IMPLEMENTED)
 \subsubsection{Troubleshooting}
 
 Note that errors may result when images are uploaded.  The images must have a
-jpeg or peg format.  In addition large files that take more than 2 minutes to
+JPEG or PNG format.  In addition large files that take more than 2 minutes to
 upload will cause a timeout error.
 
 For entering usernames and passwords we require that passwords have at least
-one number, one letter, one capital and one non-alphanumeric characer.
+one number, one letter, one capital and one non-alphanumeric character.
 Uploading large files will only be allowed to take 2 minutes so that to upload
 larger files will have to be broken up into smaller segments.
 
@@ -358,7 +355,7 @@ database for specific pictures or videos using the search function.
 
 As previously mentioned the software is for a  web application which runs a
 computationally expensive image/video analysis on its backend. To store the
-large amounts of data a database server is needed for hosting.  In addtion we
+large amounts of data a database server is needed for hosting.  In addition we
 wish to query the database so a search library is also needed. Then to perform
 the calculation a machine learning library is used and finally to host a web
 framework is needed. All of these components need to be installed separately.
@@ -372,20 +369,20 @@ to the system to run our software are:
   \item MySQL
   \item Caffe
   \item TensorFlow
-  \item Sphinx searh library
+  \item Sphinx search library
 \end{itemize}
 
 
 
 \subsection{Installation}
 
-The software project we have developed is available on github:
+The software project we have developed is available on GitHub:
 https://github.com/dukebw/mcmaster-text-to-motion-database and can be
 downloaded by cloning our repository.
 
-Instructions on using github are available at this address:
+Instructions on using GitHub are available at this address:
 
-However if the user is running a linux system the repository can be downloaded
+However if the user is running a Linux system the repository can be downloaded
 by typing in the clone command from the terminal screen:
 
 \begin{lstlisting}
