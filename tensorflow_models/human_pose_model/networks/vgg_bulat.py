@@ -706,7 +706,7 @@ def vgg_bulat_cascade_maxpool_c3c4(inputs,
     detect_logits, detect_endpoints = _vgg_16_bn_relu(inputs=inputs,
                                                       num_classes=num_classes,
                                                       is_training=is_detector_training,
-                                                      scope=scope)
+                                                      scope='vgg_16')
     detect_endpoints['detect_logits'] = detect_logits
 
     stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
@@ -728,7 +728,7 @@ def vgg_bulat_cascade_maxpool_c2c3c4(inputs,
     detect_logits, detect_endpoints = _vgg_16_bn_relu(inputs=inputs,
                                                       num_classes=num_classes,
                                                       is_training=is_detector_training,
-                                                      scope=scope)
+                                                      scope='vgg_16')
     detect_endpoints['detect_logits'] = detect_logits
 
     stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
