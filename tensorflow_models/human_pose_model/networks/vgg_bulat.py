@@ -334,6 +334,109 @@ def _vgg_bulat_regression(inputs,
             return net, end_points
 
 
+def _vgg_bulat_regression_maxpool_c2c3(inputs,
+                                       num_classes=16,
+                                       is_training=True,
+                                       dropout_keep_prob=0.5,
+                                       batch_norm_var_collection='moving_vars_vgg_bulat',
+                                       scope='vgg_bulat_regression'):
+    """An interpretation of the regression subnetwork from the Bulat paper.
+
+    Note that dropout has been added after the two layers of size 1x1, and
+    batch normalization has been added.
+    """
+    batch_norm_params = {
+      'decay': 0.9997,
+      'epsilon': 0.001,
+      'updates_collections': ops.GraphKeys.UPDATE_OPS,
+      'variables_collections':{
+          'beta': None,
+          'gamma': None,
+          'moving_mean': [batch_norm_var_collection],
+          'moving_variance': [batch_norm_var_collection],
+      },
+      'is_training': is_training
+    }
+
+    with tf.variable_scope(None, 'vgg_bulat_regression', [inputs]) as sc:
+        with tf.name_scope(scope):
+            end_points_collection = sc.original_name_scope + '_end_points'
+            with slim.arg_scope([slim.conv2d],
+                                activation_fn=tf.nn.relu,
+                                normalizer_fn=slim.batch_norm,
+                                normalizer_params=batch_norm_params,
+                                outputs_collections=end_points_collection):
+                net = slim.conv2d(inputs=inputs,
+                                  num_outputs=64,
+                                  kernel_size=[9, 9],
+                                  stride=1,
+                                  scope='c1')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=64,
+                                  kernel_size=[13, 13],
+                                  stride=1,
+                                  scope='c2')
+
+                net = slim.max_pool2d(inputs=net,
+                                      kernel_size=[2, 2],
+                                      scope='c2_pool')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=128,
+                                  kernel_size=[13, 13],
+                                  stride=1,
+                                  scope='c3')
+
+                net = slim.max_pool2d(inputs=net,
+                                      kernel_size=[2, 2],
+                                      scope='c3_pool')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=256,
+                                  kernel_size=[15, 15],
+                                  stride=1,
+                                  scope='c4')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=512,
+                                  kernel_size=[1, 1],
+                                  stride=1,
+                                  scope='c5')
+
+                net = slim.dropout(inputs=net,
+                                   keep_prob=dropout_keep_prob,
+                                   is_training=is_training,
+                                   scope='c5_dropout')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=512,
+                                  kernel_size=[1, 1],
+                                  stride=1,
+                                  scope='c6')
+
+                net = slim.dropout(inputs=net,
+                                   keep_prob=dropout_keep_prob,
+                                   is_training=is_training,
+                                   scope='c6_dropout')
+
+                net = slim.conv2d(inputs=net,
+                                  num_outputs=16,
+                                  kernel_size=[1, 1],
+                                  stride=1,
+                                  activation_fn=None,
+                                  normalizer_fn=None,
+                                  scope='c7')
+
+                net = tf.image.resize_bilinear(images=net,
+                                               size=inputs.get_shape()[1:3],
+                                               name='c8')
+
+                end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+
+            return net, end_points
+
+
 def _vgg_bulat_regression_maxpool_c3c4(inputs,
                                        num_classes=16,
                                        is_training=True,
@@ -695,6 +798,27 @@ def vgg_bulat_cascade(inputs,
 
     return regression_logits, detect_endpoints
 
+
+def vgg_bulat_cascade_maxpool_c2c3(inputs,
+                                   num_classes=16,
+                                   is_detector_training=True,
+                                   is_regressor_training=True,
+                                   scope='vgg_bulat_cascade'):
+    """The cascade of VGG-style networks from the Bulat paper."""
+    detect_logits, detect_endpoints = _vgg_16_bn_relu(inputs=inputs,
+                                                      num_classes=num_classes,
+                                                      is_training=is_detector_training,
+                                                      scope='vgg_16')
+    detect_endpoints['detect_logits'] = detect_logits
+
+    stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
+
+    regression_logits, _ = _vgg_bulat_regression_maxpool_c2c3(inputs=stacked_heatmaps,
+                                                              num_classes=num_classes,
+                                                              is_training=is_regressor_training,
+                                                              scope=scope)
+
+    return regression_logits, detect_endpoints
 
 
 def vgg_bulat_cascade_maxpool_c3c4(inputs,
