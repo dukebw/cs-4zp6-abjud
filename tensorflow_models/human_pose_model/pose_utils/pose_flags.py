@@ -94,3 +94,6 @@ tf.app.flags.DEFINE_boolean('is_detector_training', True,
 tf.app.flags.DEFINE_boolean('restore_global_step', True,
                             """Set to True if restoring a training run that is
                             part-way complete.""")
+
+tf.app.flags.DEFINE_string('optimizer', None,
+                           """optimizer to use. None for RMSProp 'adam' for adam optimizer""")

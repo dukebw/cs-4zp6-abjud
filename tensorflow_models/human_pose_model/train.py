@@ -17,6 +17,20 @@ RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
 RMSPROP_EPSILON = 1.0
 
+
+def _setup_adam_optimizer():
+    global_step = tf.get_variable(
+        name='global_step',
+        shape=[],
+        dtype=tf.int64,
+        initializer=tf.constant_initializer(0),
+        trainable=False)
+
+    optimizer = tf.train.AdamOptimizer()
+
+    return global_step, optimizer
+
+# Legacy?
 def _setup_optimizer(batches_per_epoch,
                      num_epochs_per_decay,
                      initial_learning_rate,
@@ -286,7 +300,11 @@ def _setup_training(FLAGS):
         FLAGS, train_data_filenames)
 
     num_batches_per_epoch = int(num_training_examples / FLAGS.batch_size)
-    global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
+
+    if FLAGS.optimizer == 'adam':
+        global_step, optimizer = _setup_adam_optimizer()
+    else:
+        global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
                                               FLAGS.num_epochs_per_decay,
                                               FLAGS.initial_learning_rate,
                                               FLAGS.learning_rate_decay_factor)

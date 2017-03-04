@@ -77,11 +77,9 @@ def vgg_16_base(inputs, num_classes, dropout_keep_prob, is_training):
 
     # Use conv2d instead of fully_connected layers.
     a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
-    a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training,
-                      scope='dropout6')
+    a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training, scope='dropout6')
     a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
-    a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training,
-                      scope='dropout7')
+    a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training, scope='dropout7')
 
     a8  = slim.conv2d(a7, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
 
