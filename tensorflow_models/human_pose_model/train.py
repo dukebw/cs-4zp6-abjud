@@ -178,19 +178,22 @@ def _setup_training_op(images,
     return apply_gradient_op, total_loss
 
 
-def _restore_checkpoint_variables(session, global_step):
+def _restore_checkpoint_variables(session,
+                                  global_step,
+                                  checkpoint_path,
+                                  checkpoint_exclude_scopes):
     """Initializes the model in the graph of a passed session with the
-    variables in the file found in `FLAGS.checkpoint_path`, except those
-    excluded by `FLAGS.checkpoint_exclude_scopes`.
+    variables in the file found in `checkpoint_path`, except those excluded by
+    `checkpoint_exclude_scopes`.
     """
-    if FLAGS.checkpoint_path is None:
+    if checkpoint_path is None:
         return
 
-    if FLAGS.checkpoint_exclude_scopes is None:
+    if checkpoint_exclude_scopes is None:
         variables_to_restore = tf.global_variables()
     else:
         exclusions = [scope.strip()
-                      for scope in FLAGS.checkpoint_exclude_scopes.split(',')]
+                      for scope in checkpoint_exclude_scopes.split(',')]
 
         variables_to_restore = []
         for var in slim.get_model_variables():
@@ -206,7 +209,7 @@ def _restore_checkpoint_variables(session, global_step):
         variables_to_restore.append(global_step)
 
     restorer = tf.train.Saver(var_list=variables_to_restore)
-    restorer.restore(sess=session, save_path=FLAGS.checkpoint_path)
+    restorer.restore(sess=session, save_path=checkpoint_path)
 
 
 def _train_single_epoch(session,
@@ -326,7 +329,16 @@ def train():
             session.run(tf.global_variables_initializer())
             session.run(tf.local_variables_initializer())
 
-            _restore_checkpoint_variables(session, global_step)
+            _restore_checkpoint_variables(session,
+                                          global_step,
+                                          FLAGS.checkpoint_path,
+                                          FLAGS.checkpoint_exclude_scopes)
+
+            if FLAGS.second_checkpoint_path is not None:
+                _restore_checkpoint_variables(session,
+                                              global_step,
+                                              FLAGS.second_checkpoint_path,
+                                              FLAGS.second_checkpoint_exclude_scopes)
 
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
