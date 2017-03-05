@@ -16,5 +16,12 @@ namespace TextToMotionWeb.Controllers
             ViewData["Query"] = Query;   
             return View();
         }
+
+        [HttpPost]
+        public action Search()
+        {
+            string searchQuery = Request.Form["Search"];
+
+        }
     }
 }

@@ -16,7 +16,13 @@ def draw_binary_maps(image_tensor, binary_map_tensor, num_to_draw):
                                              binary_map_tensor])
 
             for joint_index in range(binary_map.shape[-1]):
-                colour_index = joint_index % 3
+                if joint_index in [6, 7, 8, 9]:
+                    colour_index = 2
+                if joint_index in [0, 1, 2, 10, 11, 12]:
+                    colour_index = 1
+                else:
+                    colour_index = 0
+
                 image[..., colour_index] = np.clip(
                     image[..., colour_index] + 4*255*binary_map[..., joint_index],
                     0,
