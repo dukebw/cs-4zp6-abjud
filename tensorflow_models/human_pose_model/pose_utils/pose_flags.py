@@ -29,14 +29,25 @@ tf.app.flags.DEFINE_string('log_filename', 'train_log',
                            to.""")
 
 tf.app.flags.DEFINE_string('checkpoint_path',
-                           'logs/resnet/exp0/model.ckpt-22992',
+                           None,
                            """Path to take checkpoint file (e.g.
                            inception_v3.ckpt) from.""")
 
+tf.app.flags.DEFINE_string('second_checkpoint_path',
+                           None,
+                           """Regression subnetwork path to take checkpoint
+                           file (e.g.  inception_v3.ckpt) from.""")
+
 tf.app.flags.DEFINE_string('checkpoint_exclude_scopes',
-                           'block3b,logits,b7_deconv,biases',
+                           None,
                            """Comma-separated list of scopes to exclude when
                            restoring from a checkpoint.""")
+
+tf.app.flags.DEFINE_string('second_checkpoint_exclude_scopes',
+                           None,
+                           """Comma-separated list of scopes to exclude when
+                           restoring the regression subnetwork from a
+                           checkpoint.""")
 
 tf.app.flags.DEFINE_string('trainable_scopes', None,
                            """Comma-separated list of scopes to train.""")
@@ -94,3 +105,7 @@ tf.app.flags.DEFINE_boolean('is_detector_training', True,
 tf.app.flags.DEFINE_boolean('restore_global_step', True,
                             """Set to True if restoring a training run that is
                             part-way complete.""")
+
+tf.app.flags.DEFINE_boolean('is_regression_subnetwork_pretrained', False,
+                            """Set to True if restoring ILSVRC pre-trained
+                            weights to the regression subnetwork.""")
