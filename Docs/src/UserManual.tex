@@ -30,6 +30,7 @@
 \usepackage{graphics}
 \usepackage{longtable}
 \usepackage{booktabs}
+\usepackage{placeins}
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \hypersetup{
@@ -177,10 +178,10 @@ needs to be kept tack of.
 \subsection{Objective of User Manual}
 
 This document has been written for people wishing to use the Text-To-Motion web
-application and software suite.  The document describes how to get the
-application to perform its basic functions, such as display videos that have
-been captioned with joint positions and how to search the database for
-pre-captioned motions and poses.
+application and software suite.  The document describes how to use the web GUI
+interface to get the application to perform its basic functions, such as
+display videos that have been captioned with joint positions and how to search
+the database for pre-captioned motions and poses.
 
 This manual also provides technical guidance such as installation instructions
 and troubleshooting advice.
@@ -253,7 +254,7 @@ stored by the web application and to display the results of their searches.
 
 Currently our website is hosted at the address address 159.203.10.112:80. By
 typing this address into a browser the Home page of our site should appear. The
-specific page that should be seen in figure \ref{fig:homePage}
+specific page that should be seen in Figure \ref{fig:homePage}
 
 \begin{figure}
   \includegraphics[width=\linewidth]{HomePage.png}
@@ -278,6 +279,8 @@ be logged in.
   \label{fig:regPage}
 \end{figure}
 
+\FloatBarrier
+
 To register as a user we can start at the home page and then click on the
 register link.  Once this link has been clicked on the register page will
 appear.  To register only an email address and password are necessary.
@@ -294,14 +297,16 @@ To navigate to the page that performs data input and displays already collected
 data navigate to the home page and then click on the ImagePoseDraw link.
 
 From this page data can be searched and inputted if the user is logged in.  To
-input data simply click on the green button labelled "Add New Image" as shown
-in Figure \ref{fig:uploadPage}.
+input data simply click on the green button labelled ``Add New Image'' as shown
+in Figure \ref{fig:uploadImage}.
 
 \begin{figure}
   \includegraphics[width=\linewidth]{uploadPage.png}
   \caption{Uploading Image}
-  \label{fig:uploadPage}
+  \label{fig:uploadImage}
 \end{figure}
+
+\FloatBarrier
 
 After this button is clicked a new screen will appear that has 3 fields that
 need to be filled out: filename, filepath and description.  The filepath is
@@ -322,8 +327,8 @@ formats.  Also the website is set up for downloading large data samples but a
 limit of 2 minutes is set on the upload time.  Because of this the sample will
 depend on the upload speed.
 
-As an example of what the application can do we enter this image into the URL
-shown in Figure \ref{fig:uploadPage}.
+As an example of what the application can do we enter the image in Figure
+\ref{fig:tomBrady} into the URL, as shown in Figure \ref{fig:uploadPage}.
 
 \begin{figure}
   \includegraphics[width=\linewidth]{tbrady.jpg}
@@ -331,20 +336,34 @@ shown in Figure \ref{fig:uploadPage}.
   \label{fig:tomBrady}
 \end{figure}
 
-Then the results are obtained:
+After submitting the image of Tom Brady to the web server, the results are
+obtained and returned, as displayed in Figure \ref{fig:labelledBrady}.
 
 \begin{figure}
-  \includegraphics[width=\linewidth]{tbrady.jpg}
+        \includegraphics[width=\linewidth]{tbradylabelled.jpg}
   \caption{Tom Brady Labelled}
   \label{fig:labelledBrady}
 \end{figure}
 
+\FloatBarrier
 
 \subsubsection{Data Search}
 
-In addition to the key feature of collecting and displaying the data the application will allow users to search and view previous entries. In order to use this function the user must navigate to the page by clicking TextToMotion located on the left side of the header.
+In addition to the key feature of collecting and displaying the data the
+application will allow users to search and view previous entries. In order to
+use this function the user must navigate to the page by clicking TextToMotion
+located on the left side of the header.
 
-Once on the page they will be greeted by a large search bar with two buttons, one displaying a magnifying glass labelled search and the other labelled  options. Below the search bar there is currently a under construction image as it has not been fully implemented yet but will display an example of the pose estimation done when fully complete. Searching through the database of images and videos will be determined by the text that is input within the search bar. In order to execute the search the user will have to click the button with the magnifying glass or press the ''Enter'' key. This will take the users to a new page where each entry that matches the input text will be displayed through links that take the user to the individual entry.
+Once on the page they will be greeted by a large search bar with two buttons,
+one displaying a magnifying glass labelled search and the other labelled
+options. Below the search bar there is currently a under construction image as
+it has not been fully implemented yet but will display an example of the pose
+estimation done when fully complete. Searching through the database of images
+and videos will be determined by the text that is input within the search bar.
+In order to execute the search the user will have to click the button with the
+magnifying glass or press the ''Enter'' key. This will take the users to a new
+page where each entry that matches the input text will be displayed through
+links that take the user to the individual entry.
 
 \subsubsection{Troubleshooting}
 
@@ -397,32 +416,49 @@ to the system to run our software are:
 \subsection{Installation}
 
 The software project we have developed is available on GitHub:
-https://github.com/dukebw/mcmaster-text-to-motion-database and can be
+\url{https://github.com/dukebw/mcmaster-text-to-motion-database} and can be
 downloaded by cloning our repository.
 
 Instructions on using GitHub are available at this address:
+\url{https://help.github.com/articles/set-up-git/}.
 
-However if the user is running a Linux system the repository can be downloaded
-by typing in the clone command from the terminal screen:
+In particular, if the user is running a Linux system the repository can be
+downloaded by typing in the clone command from the terminal screen:
 
-\begin{lstlisting}
+\begin{verbatim}
+git clone --recursive https://github.com/dukebw/mcmaster-text-to-motion-database.git
+\end{verbatim}
 
-git clone --recursive https://github.com/dukebw/
-mcmaster-text-to-motion-database
+The software we have developed has several dependencies which fall under the
+three categories we have decomposed the project into: database, machine
+learning libraries, and the web framework.
 
-\end{lstlisting}
+Python is a central language used in our project is in nearly all of these
+modules.  We assume python version 3.5 or higher is installed. Furthermore,
+TensorFlow r1.0 and NumPy are required to run the deep learning pose estimation
+algorithm.  Dotnet Core 1.1 is required to run the web server itself.
 
-However the software we have developed has several dependencies which fall
-under the three categories we have decomposed the project into: database,
-machine learning libraries, and the web framework.  Python is a central
-language used in our project is in nearly all of these modules.  We assume
-python version 3.5 or higher is installed.
+The TensorFlow HTTP server backend can be opened on some port X using the
+command \verb|python3 -m tf_http_server X| from the \verb|tf-http-server|
+folder.
 
+After the TensorFlow backend HTTP server is running, the Dotnet Core web server
+can be run using the following steps, after installing Dotnet Core.
+
+\begin{enumerate}
+        \item \verb|cd TextToMotionWeb|
+        \item \verb|dotnet restore|
+        \item \verb|sudo dotnet ef database update|
+        \item \verb|sudo APSNETCORE_URLS=http://*:80 TF_HTTP_PORT=X dotnet run|
+\end{enumerate}
+
+The web server can then be accessed by visiting your local IP address using any
+of the supported web browsers.
 
 \subsection{System Requirements}
 
 \begin{itemize}
-\item GHz or faster processor
+\item 3 GHz or faster processor
 \item 512 MB of RAM
 \item Ubuntu 16.04 with basic configuration (e.g. port 80 opened, packages updated)
 \end{itemize}
@@ -432,21 +468,19 @@ python version 3.5 or higher is installed.
 
 \section{Frequently asked Questions}
 
-Question 1: How can I improve the fit given by the program?
+\begin{enumerate}
+        \item[\textbf{Q1}] How can I improve the fit given by the program?
 
-Answer 1 : One improvement would be to try and use pictures that have only a single person in them.
+        \item[\textbf{A1}] One improvement would be to try and use pictures that have only a single person in them.
 
-Question 2: How can I upload large files?
+        \item[\textbf{Q2}] How can I upload large files?
 
-Answer 2: We are currently working on a web feature for large uploads.
+        \item[\textbf{A2}] We are currently working on a web feature for large uploads.
 
-Question 3: What algorithms are used by the program?
+        \item[\textbf{Q3}] What algorithms are used by the program?
 
-Answer 3: The algorithms that were used are outlined in [1].
-
-Question 4:
-
-Answer 4:
+        \item[\textbf{A3}] The algorithms that were used are outlined in [1].
+\end{enumerate}
 
 \begin{thebibliography}{9}
 
