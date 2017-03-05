@@ -112,9 +112,9 @@ representation of the human body dynamics present in a video or the static pose
 of a person that has been captured in a picture.
 
 This web application will allow a user to upload a video or an image that
-contains at least one person in it. If the user uploaded an image a static
+contains at least one person in it. If the user uploaded an image, a static
 description of the human pose will be extracted from the image and stored in a
-database.  If the user uploads a video a representation of the human motion
+database. If the user uploads a video a representation of the human motion
 present in that video will be stored on the same database.  The motion or pose
 that the application extracts from the video or image can be displayed by the
 application.
@@ -323,8 +323,23 @@ Then the results are obtained:
 
 \subsubsection{Data Search}
 
-Should show an example of data search. (NOT IMPLEMENTED)
+In addition to collecting and displaying data the application will allow users
+to search through previous entries. From this page the user can search through
+the database by inputting text on the bar that is located at the top of the
+page. Once input, the entered text will be searched once the ``Enter'' key is hit
+or the search button to the right is clicked. After the search has been
+executed, the next page will display the results to the user with the text they
+entered and the selected entries that match the description.
 
+At this time the search function has not finished being implemented into the
+application and will only display the text that was entered on the search page
+as seen below.
+
+\begin{figure}
+  \includegraphics[width=\linewidth]{searchMan.jpg}
+  \caption{Search Page (Revision 0)}
+  \label{fig:searchPage}
+\end{figure}
 
 \subsubsection{Troubleshooting}
 
