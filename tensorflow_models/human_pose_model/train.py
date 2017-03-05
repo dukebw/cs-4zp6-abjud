@@ -181,7 +181,8 @@ def _setup_training_op(images,
 def _restore_checkpoint_variables(session,
                                   global_step,
                                   checkpoint_path,
-                                  checkpoint_exclude_scopes):
+                                  checkpoint_exclude_scopes,
+                                  is_regression_subnetwork_pretrained):
     """Initializes the model in the graph of a passed session with the
     variables in the file found in `checkpoint_path`, except those excluded by
     `checkpoint_exclude_scopes`.
@@ -207,6 +208,9 @@ def _restore_checkpoint_variables(session,
 
     if FLAGS.restore_global_step:
         variables_to_restore.append(global_step)
+
+    if is_regression_subnetwork_pretrained:
+        variables_to_restore = {var.op.name.replace('vgg_16_regression', 'vgg_16'): var for var in variables_to_restore}
 
     restorer = tf.train.Saver(var_list=variables_to_restore)
     restorer.restore(sess=session, save_path=checkpoint_path)
@@ -306,6 +310,29 @@ def _setup_training(FLAGS):
     return num_batches_per_epoch, train_op, train_loss, global_step
 
 
+def _init_regression_subnetwork_first_layer(session, second_checkpoint_path):
+    """Initializes a subset of the weights of the first layer of the regression
+    subnetwork (assumed to start with vgg_16_regression) with the pre-trained
+    ILSVRC weights.
+    
+    The rest of the first layer gets zero-initialized.
+
+    I.e. subnetwork[:, :, 0:3, :] <- ILSVRC weights
+         subnetwork[:, :, 3:16, :] <- Zeros
+    """
+    first_layer_vgg16 = tf.Variable(initial_value=tf.zeros([3, 3, 3, 64]))
+
+    first_layer_restorer = tf.train.Saver(var_list={'vgg_16/conv1/conv1_1/weights': first_layer_vgg16})
+    first_layer_restorer.restore(sess=session, save_path=second_checkpoint_path)
+
+    conv1_initializer = tf.concat(values=[first_layer_vgg16, tf.zeros(shape=[3, 3, 16, 64])],
+                                  axis=2)
+    regression_subnet_conv1 = next(var for var in tf.global_variables()
+                                   if 'vgg_16_regression/conv1/conv1_1/weights' in var.op.name)
+    session.run(
+        tf.assign(ref=regression_subnet_conv1, value=conv1_initializer))
+
+
 def train():
     """Trains a human pose estimation network to detect and/or regress binary
     maps and/or confidence maps of joint co-ordinates (NUM_JOINTS sets of (x,
@@ -329,16 +356,22 @@ def train():
             session.run(tf.global_variables_initializer())
             session.run(tf.local_variables_initializer())
 
+            if FLAGS.is_regression_subnetwork_pretrained:
+                _init_regression_subnetwork_first_layer(session,
+                                                        FLAGS.second_checkpoint_path)
+
             _restore_checkpoint_variables(session,
                                           global_step,
                                           FLAGS.checkpoint_path,
-                                          FLAGS.checkpoint_exclude_scopes)
+                                          FLAGS.checkpoint_exclude_scopes,
+                                          FLAGS.is_regression_subnetwork_pretrained)
 
             if FLAGS.second_checkpoint_path is not None:
                 _restore_checkpoint_variables(session,
                                               global_step,
                                               FLAGS.second_checkpoint_path,
-                                              FLAGS.second_checkpoint_exclude_scopes)
+                                              FLAGS.second_checkpoint_exclude_scopes,
+                                              FLAGS.is_regression_subnetwork_pretrained)
 
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=session, coord=coord)
