@@ -234,6 +234,7 @@ def vae_detector_loss(logits,
                       is_visible_weights):
     """ Trains the detector as a variational autoencoder
     """
+    print(endpoints)
     _KullbackLeibler(endpoints['z_mu'], endpoints['z_log_sigma'], weights)
 
     _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
@@ -260,16 +261,16 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'vgg_bulat_cascade_conv3x3_c2c3c4': (vgg_bulat.vgg_bulat_cascade_conv3x3_c2c3c4, vgg_bulat.vgg_arg_scope),
         'two_vgg_16s_cascade': (vgg_bulat.two_vgg_16s_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
-        'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)
-        'vgg_vae': (vgg_vae.vgg_detector, vgg_vae.vgg_arg_scope)}
+        'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
+        'vgg_vae': (vgg_vae.vgg_vae_v0, vgg_vae.vgg_vae_arg_scope)}
 
 
 NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
             'detector_only_xentropy': detector_only_xentropy_loss,
             'both_nets_regression': both_nets_regression_loss,
             'both_nets_xentropy_regression': both_nets_xentropy_regression_loss,
-            'inception_v3_loss': inception_v3_loss
-            'vae_detector_loss': vae_detector_loss
-            'vae_regressor_loss': vae_regrossor_loss}
+            'inception_v3_loss': inception_v3_loss,
+            'vae_detector_loss': vae_detector_loss,
+            'vae_regressor_loss': vae_regressor_loss}
 
 

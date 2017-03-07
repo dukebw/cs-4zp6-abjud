@@ -10,7 +10,7 @@ from tensorflow.python.framework import ops
 slim = tf.contrib.slim
 
 
-def vgg_arg_scope(weight_decay=0.0005):
+def vgg_vae_arg_scope(weight_decay=0.0005):
     """Defines the VGG arg scope.
 
     Args:
@@ -27,7 +27,7 @@ def vgg_arg_scope(weight_decay=0.0005):
             return arg_sc
 
 
-def vgg_encode(inputs, num_classes, dropout_keep_prob, is_training):
+def vgg_encode(inputs, num_classes=16, dropout_keep_prob=0.5, is_training=True):
     """Base of the VGG-16 network (fully convolutional).
 
     Note that this function only constructs the network, and needs to be called
@@ -53,7 +53,7 @@ def vgg_encode(inputs, num_classes, dropout_keep_prob, is_training):
     return a3, a4, a7
 
 
-def vgg_decode(a3, a4, z):
+def vgg_decode(a3, a4, z, num_classes, input_resolution):
     a8 = tf.image.resize_bilinear(images=z, size=a4.get_shape()[1:3])
     skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
                           activation_fn=None,
@@ -70,7 +70,7 @@ def vgg_decode(a3, a4, z):
                           scope='skip_a3')
     a8 = a8 + skip_a3
 
-    a8 = tf.image.resize_bilinear(images=a8, size=inputs.get_shape()[1:3])
+    a8 = tf.image.resize_bilinear(images=a8, size=input_resolution)
 
 
     return a8
@@ -84,12 +84,13 @@ def sampleGaussian(mu, log_sigma):
         return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
 
 
-def vgg_vae(inputs,
-            num_classes=16,
-            is_training=True,
-            dropout_keep_prob=0.5,
-            batch_norm_var_collection='moving_vars',
-            scope='vgg_16'):
+def vgg_vae_v0(inputs,
+              num_classes=16,
+              is_detector_training=True,
+              is_regressor_training=False,
+              dropout_keep_prob=0.5,
+              batch_norm_var_collection='moving_vars',
+              scope='vgg_16'):
 
     batch_norm_params = {
       # Decay for moving averages
@@ -105,7 +106,7 @@ def vgg_vae(inputs,
           'moving_mean': [batch_norm_var_collection],
           'moving_variance': [batch_norm_var_collection],
       },
-      'is_training': is_training
+      'is_training': is_detector_training
     }
 
     with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
@@ -120,7 +121,7 @@ def vgg_vae(inputs,
                                     normalizer_fn=slim.batch_norm,
                                     normalizer_params=batch_norm_params):
 
-                    a3, a4, a7 = encode(inputs)
+                    a3, a4, hidden_enc = vgg_encode(inputs, num_classes, dropout_keep_prob, is_detector_training)
                     # latent distribution parameterized by hidden encoding
                     # z ~ N(z_mean, np.exp(z_log_sigma)**2)
                     z_mu = slim.conv2d(hidden_enc,
@@ -138,7 +139,7 @@ def vgg_vae(inputs,
                                               scope='z_log_sigma')
 
                     z = sampleGaussian(z_mu, z_log_sigma)
-                    a8 = decode(z)
+                    a8 = vgg_decode(a3, a4, z, num_classes, inputs.get_shape()[1:3])
                     # Convert end_points_collection into a end_point dict.
                     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
