@@ -11,7 +11,8 @@ import tensorflow.contrib.slim as slim
 from dataset.mpii_datatypes import Person
 from networks import vgg_bulat
 from networks import resnet_bulat
-from autoencoders import vanilla, VAE, DCGAN
+# TODO NOT DONE
+#from autoencoders import vanilla, VAE, DCGAN
 
 
 def _summarize_loss(total_loss, gpu_index):
@@ -86,84 +87,6 @@ def inference(images,
     return total_loss, logits
 
 
-def inference_autoencoder(images,
-                          binary_maps,
-                          heatmaps,
-                          weights,
-                          is_visible_weights,
-                          gpu_index,
-                          model_name,
-                          loss_name,
-                          is_detector_training,
-                          is_regressor_training,
-                          scope):
-    """Sets up a human pose inference model, computes predictions on input
-    images and calculates loss on those predictions based on an input dense
-    vector of joint location confidence maps and binary maps (the ground truth
-    vector).
-
-    TF-slim's `arg_scope` is used to keep variables (`slim.model_variable`) in
-    CPU memory. See the training procedure block diagram in the TF Inception
-    [README](https://github.com/tensorflow/models/tree/master/inception).
-
-    Args:
-        images: Mini-batch of preprocessed examples dequeued from the input
-            pipeline.
-        heatmaps: Confidence maps of ground truth joints.
-        weights: Weights of heatmaps (tensors of all 1s if joint present, all
-            0s if not present).
-        is_visible_weights: Weights of heatmaps/binary maps, with occluded
-            joints zero'ed out.
-        gpu_index: Index of GPU calculating the current loss.
-        scope: Name scope for ops, which is different for each tower (tower_N).
-
-    Returns:
-        Tensor giving the total loss (combined loss from auxiliary and primary
-        logits, added to regularization losses).
-    """
-    Model = AutoEncoders[model_name][0]
-    net_arg_scope = AutoEncoders[model_name][1]
-    net_loss = NET_LOSS[loss_name]
-    with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-        with slim.arg_scope(net_arg_scope()):
-            with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
-                # encoding / "recognition" : q(z | x)
-                hidden_representation, encoder_points = Model.encode(inputs=images,
-                                                                     num_classes=Person.NUM_JOINTS,
-                                                                     is_detector_training=is_detector_training,
-                                                                     is_regressor_training=is_regressor_training,
-                                                                     scope=scope)
-
-                Model.reparametrize(hidden_representation)
-                # latent distribution parameterized by hidden encoding
-                # z ~ N(z_mean, np.exp(z_log_sigma)**2)
-                z_mean = Dense("z_mean", self.architecture[-1], dropout)(h_encoded)
-                z_log_sigma = Dense("z_log_sigma", self.architecture[-1], dropout)(h_encoded)
-
-                # kingma & welling: only 1 draw necessary as long as minibatch large enough (>100)
-                z = self.sampleGaussian(z_mean, z_log_sigma)
-                
-                
-                logits, decoder_points = Model.decode(inputs=hidden_representation,
-                                                      num_classes=Perons.NUM_JOINTS,
-                                                      is_detector_training=is_detector_training,
-                                                      is_regressor_training=is_regressor_training,
-                                                      scope=scope)
-
-                net_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
-
-            losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
-
-            regularization_losses = tf.get_collection(
-                key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
-
-            total_loss = tf.add_n(inputs=losses + regularization_losses,
-                                  name='total_loss')
-            total_loss = _summarize_loss(total_loss, gpu_index)
-
-    return total_loss, logits
-
-
 def inception_v3_loss(logits, endpoints, dense_joints, weights):
     """The Inception architecture calculates loss on both the Auxiliary Logits
     and the final layer Logits.
@@ -232,6 +155,13 @@ def _mean_squared_error_loss(logits, heatmaps, weights):
     _add_weighted_loss_to_collection(losses, weights)
 
 
+def _KullbackLeibler(mu, log_sigma, weights):
+    """(Gaussian) Kullback-Leibler divergence KL(q||p), per training example"""
+    # (tf.Tensor, tf.Tensor) -> tf.Tensor
+    losses =  -0.5 * tf.reduce_sum(1 + 2 * log_sigma - mu**2 - tf.exp(2 * log_sigma), 1)
+    _add_weighted_loss_to_collection(losses, weights)
+
+
 def detector_only_xentropy_loss(logits,
                                 endpoints,
                                 heatmaps,
@@ -290,24 +220,6 @@ def both_nets_regression_loss(logits,
                              is_visible_weights)
 
     _mean_squared_error_loss(logits, heatmaps, weights)
-
-
-# An autoencoder is a framework from unsupervised learning
-def get_AutoEncoder(network_name):
-
-    AutoEncoders = {'vanilla': (vanilla(network_name).encoder,
-                                vanilla(network_name).decoder,
-                                vanilla(network_name).arg_scope
-                               ),
-                    'VAE': (VAE(network_name).encoder,
-                            VAE(network_name).decoder,
-                            VAE(network_name).arg_scope
-                           ),
-                    'DCGAN':(DCGAN(network_name).encoder,
-                             DCGAN(network_name).decoder,
-                             DCGAN(network_name).arg_scope
-                            ),
-                   }
 
 
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
