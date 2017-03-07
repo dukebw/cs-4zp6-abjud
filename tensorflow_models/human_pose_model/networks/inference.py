@@ -12,6 +12,7 @@ from dataset.mpii_datatypes import Person
 from networks import vgg_bulat
 from networks import resnet_bulat
 from networks import vgg_vae
+import pdb
 
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
@@ -160,11 +161,16 @@ def _KullbackLeibler(mu, log_sigma, weights):
     see Kingma et al Autoencoding Variational Bayes.
     (thor) Let me first get this running and then I'll explain.
     """
-    # (tf.Tensor, tf.Tensor) -> tf.Tensor
-    losses =  -0.5 * tf.reduce_sum(1 + 2 * log_sigma - mu**2 - tf.exp(2 * log_sigma), 1)
+    # yields a batch of shape [?, width, height, num_classes]
+    reparam = 1 + 2*log_sigma - mu**2 - tf.exp(2*log_sigma)
+    # Transpose so we get the trace of each channel with tf.trace
+    reparam_t = tf.transpose(reparam, perm=[0,3,1,2])
+    # take the trace of each channels and reduce the mean across the 16 channels
+    KL_loss =  -0.5 * tf.reduce_mean(tf.trace(reparam_t),1)
+    # reduce the mean across the batch dimension
+    KL_loss = tf.reduce_mean(KL_loss)
 
-    _add_weighted_loss_to_collection(losses, weights)
-
+    tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_loss)
 
 def detector_only_xentropy_loss(logits,
                                 endpoints,
@@ -234,7 +240,6 @@ def vae_detector_loss(logits,
                       is_visible_weights):
     """ Trains the detector as a variational autoencoder
     """
-    print(endpoints)
     _KullbackLeibler(endpoints['z_mu'], endpoints['z_log_sigma'], weights)
 
     _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
