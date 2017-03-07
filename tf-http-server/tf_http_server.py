@@ -6,10 +6,10 @@ import http.server
 class TFHttpRequestHandler(http.server.BaseHTTPRequestHandler):
     """Defines handlers for specific HTTP request codes."""
     def do_GET(self):
-        print('GET!')
-
-    def do_POST(self):
-        print('POST!')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write('{"response": "Hello!"}'.encode('utf8'))
 
 
 def run():
