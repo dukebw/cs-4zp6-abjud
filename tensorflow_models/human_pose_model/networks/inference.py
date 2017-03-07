@@ -11,9 +11,7 @@ import tensorflow.contrib.slim as slim
 from dataset.mpii_datatypes import Person
 from networks import vgg_bulat
 from networks import resnet_bulat
-# TODO NOT DONE
-#from autoencoders import vanilla, VAE, DCGAN
-
+from networks import vgg_vae
 
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
@@ -155,10 +153,16 @@ def _mean_squared_error_loss(logits, heatmaps, weights):
     _add_weighted_loss_to_collection(losses, weights)
 
 
+# These are great mathematicians so their names are written with capital letters ^^
 def _KullbackLeibler(mu, log_sigma, weights):
-    """(Gaussian) Kullback-Leibler divergence KL(q||p), per training example"""
+    """(Gaussian) Kullback-Leibler divergence KL(q||p), per training example
+    This function can be derived with basic knowledge of Bayesian variational inference,
+    see Kingma et al Autoencoding Variational Bayes.
+    (thor) Let me first get this running and then I'll explain.
+    """
     # (tf.Tensor, tf.Tensor) -> tf.Tensor
     losses =  -0.5 * tf.reduce_sum(1 + 2 * log_sigma - mu**2 - tf.exp(2 * log_sigma), 1)
+
     _add_weighted_loss_to_collection(losses, weights)
 
 
@@ -222,6 +226,32 @@ def both_nets_regression_loss(logits,
     _mean_squared_error_loss(logits, heatmaps, weights)
 
 
+def vae_detector_loss(logits,
+                      endpoints,
+                      heatmaps,
+                      binary_maps,
+                      weights,
+                      is_visible_weights):
+    """ Trains the detector as a variational autoencoder
+    """
+    _KullbackLeibler(endpoints['z_mu'], endpoints['z_log_sigma'], weights)
+
+    _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
+
+
+def vae_regressor_loss(logits,
+                       endpoints,
+                       heatmaps,
+                       binary_maps,
+                       weights,
+                       is_visible_weights):
+    """ Trains the detector as a variational autoencoder
+    """
+    _KullbackLeibler(endpoints['regressor_mu'], endpoints['regressor_log_sigma'], weights)
+
+    _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
+
+
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'inception_v3': (inception.inception_v3, inception.inception_v3_arg_scope),
         'vgg_bulat_cascade': (vgg_bulat.vgg_bulat_cascade, vgg_bulat.vgg_arg_scope),
@@ -230,11 +260,16 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'vgg_bulat_cascade_conv3x3_c2c3c4': (vgg_bulat.vgg_bulat_cascade_conv3x3_c2c3c4, vgg_bulat.vgg_arg_scope),
         'two_vgg_16s_cascade': (vgg_bulat.two_vgg_16s_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
-        'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)}
+        'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope)
+        'vgg_vae': (vgg_vae.vgg_detector, vgg_vae.vgg_arg_scope)}
 
 
 NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
             'detector_only_xentropy': detector_only_xentropy_loss,
             'both_nets_regression': both_nets_regression_loss,
             'both_nets_xentropy_regression': both_nets_xentropy_regression_loss,
-            'inception_v3_loss': inception_v3_loss}
+            'inception_v3_loss': inception_v3_loss
+            'vae_detector_loss': vae_detector_loss
+            'vae_regressor_loss': vae_regrossor_loss}
+
+

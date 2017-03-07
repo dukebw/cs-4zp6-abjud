@@ -9,36 +9,71 @@ from tensorflow.python.framework import ops
 
 slim = tf.contrib.slim
 
-import vgg_bulat
+
+def vgg_arg_scope(weight_decay=0.0005):
+    """Defines the VGG arg scope.
+
+    Args:
+      weight_decay: The l2 regularization coefficient.
+
+    Returns:
+      An arg_scope.
+    """
+    with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                         activation_fn=tf.nn.relu,
+                         weights_regularizer=slim.l2_regularizer(weight_decay),
+                         biases_initializer=tf.zeros_initializer()):
+        with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
+            return arg_sc
 
 
-def encode(inputs):
-    return vgg_bulat._vgg_16_bn_relu(inputs)
+def vgg_encode(inputs, num_classes, dropout_keep_prob, is_training):
+    """Base of the VGG-16 network (fully convolutional).
+
+    Note that this function only constructs the network, and needs to be called
+    with the correct variable scopes and tf.slim arg scopes.
+    """
+    a1 = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+    a1 = slim.max_pool2d(a1, [2, 2], scope='pool1')
+    a2 = slim.repeat(a1, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+    a2 = slim.max_pool2d(a2, [2, 2], scope='pool2')
+    a3 = slim.repeat(a2, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+    a3 = slim.max_pool2d(a3, [2, 2], scope='pool3')
+    a4 = slim.repeat(a3, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+    a4 = slim.max_pool2d(a4, [2, 2], scope='pool4')
+    a5 = slim.repeat(a4, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+    a5 = slim.max_pool2d(a5, [2, 2], scope='pool5')
+
+    # Use conv2d instead of fully_connected layers.
+    a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
+    a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training, scope='dropout6')
+    a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
+    a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training, scope='dropout7')
+
+    return a3, a4, a7
 
 
-def decode(a3, a4, a8):
-    a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
+def vgg_decode(a3, a4, z):
+    a8 = tf.image.resize_bilinear(images=z, size=a4.get_shape()[1:3])
     skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
                           activation_fn=None,
                           normalizer_fn=None,
                           weights_initializer=tf.zeros_initializer(),
                           scope='skip_a4')
-    a9 = a9 + skip_a4
+    a8 = a8 + skip_a4
 
-    a9 = tf.image.resize_bilinear(images=a9, size=a3.get_shape()[1:3])
+    a8 = tf.image.resize_bilinear(images=a8, size=a3.get_shape()[1:3])
     skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
                           activation_fn=None,
                           normalizer_fn=None,
                           weights_initializer=tf.zeros_initializer(),
                           scope='skip_a3')
-    a9 = a9 + skip_a3
+    a8 = a8 + skip_a3
 
-    a9 = tf.image.resize_bilinear(images=a9, size=inputs.get_shape()[1:3])
+    a8 = tf.image.resize_bilinear(images=a8, size=inputs.get_shape()[1:3])
 
-    # Convert end_points_collection into a end_point dict.
-    end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
-    return a9, end_points
+    return a8
 
 
 def sampleGaussian(mu, log_sigma):
@@ -49,22 +84,12 @@ def sampleGaussian(mu, log_sigma):
         return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
 
 
-def reparametrize(hidden_representation)
-    # latent distribution parameterized by hidden encoding
-    # z ~ N(z_mean, np.exp(z_log_sigma)**2)
-    z_mean = slim.fully_connected(hidden_representation, num_latent_dim)
-    z_log_sigma = slim.fully_connected(hidden_representation, num_latent_dim)
-
-    # kingma & welling: only 1 draw necessary as long as minibatch large enough (>100)
-    return sampleGaussian(z_mean, z_log_sigma)
-
-
-def vae(inputs,
-        num_classes=16,
-        is_training=True,
-        dropout_keep_prob=0.5,
-        batch_norm_var_collection='moving_vars',
-        scope='vgg_16'):
+def vgg_vae(inputs,
+            num_classes=16,
+            is_training=True,
+            dropout_keep_prob=0.5,
+            batch_norm_var_collection='moving_vars',
+            scope='vgg_16'):
 
     batch_norm_params = {
       # Decay for moving averages
@@ -94,7 +119,27 @@ def vae(inputs,
                                     activation_fn=tf.nn.relu,
                                     normalizer_fn=slim.batch_norm,
                                     normalizer_params=batch_norm_params):
-                    hidden_var = encode(inputs)
-                    z = reparametrize(hidden_var)
-                    decode(z)
 
+                    a3, a4, a7 = encode(inputs)
+                    # latent distribution parameterized by hidden encoding
+                    # z ~ N(z_mean, np.exp(z_log_sigma)**2)
+                    z_mu = slim.conv2d(hidden_enc,
+                                         num_classes,
+                                         [1, 1],
+                                         activation_fn=None,
+                                         normalizer_fn=None,
+                                         scope='z_mu')
+
+                    z_log_sigma = slim.conv2d(hidden_enc,
+                                              num_classes,
+                                              [1, 1],
+                                              activation_fn=None,
+                                              normalizer_fn=None,
+                                              scope='z_log_sigma')
+
+                    z = sampleGaussian(z_mu, z_log_sigma)
+                    a8 = decode(z)
+                    # Convert end_points_collection into a end_point dict.
+                    end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+
+                    return a8, end_points
