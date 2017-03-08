@@ -1,6 +1,9 @@
 """This module implements the TensorFlow HTTP server, which is a standalone
 server that is able to handle HTTP requests to do TensorFlow operations.
 """
+# @debug
+from human_pose_model.pose_utils.img_utils import draw_logits
+
 import re
 import urllib
 import http.server
@@ -8,13 +11,10 @@ import requests
 import tensorflow as tf
 from human_pose_model.networks.vgg_bulat import two_vgg_16s_cascade
 
-# @debug
-from human_pose_model.pose_utils.img_utils import draw_logits
-
 RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentropy_regression/23'
 IMAGE_DIM = 380
 
-def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resized_image):
+def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, images_tensor):
     class TFHttpRequestHandler(http.server.BaseHTTPRequestHandler):
         """Defines handlers for specific HTTP request codes."""
         def __init__(self, *args, **kwargs):
@@ -36,8 +36,10 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
             logits = session.run(fetches=logits_tensor, feed_dict=feed_dict)
 
             # @debug
-            image = session.run(tf.image.convert_image_dtype(image=resized_image, dtype=tf.uint8), feed_dict=feed_dict)
-            draw_logits(image, logits)
+            image_batch = tf.divide(x=images_tensor, y=2.0)
+            image_batch = tf.add(x=image_batch, y=0.5)
+            image_batch = session.run(tf.image.convert_image_dtype(image=image_batch, dtype=tf.uint8), feed_dict=feed_dict)
+            draw_logits(image_batch, logits)
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -92,7 +94,7 @@ def run():
         request_handler = TFHttpRequestHandlerFactory(session,
                                                       image_bytes_feed,
                                                       logits,
-                                                      resized_image)
+                                                      normalized_image)
         server_address = ('localhost', 8765)
         httpd = http.server.HTTPServer(server_address, request_handler)
         httpd.serve_forever()
