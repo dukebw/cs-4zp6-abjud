@@ -1,5 +1,6 @@
 """This module tests the interfaces exposed by `tf_http_server`."""
 import requests
+import urllib
 
 def run_tests():
     """Runs all TF HTTP server unit tests."""

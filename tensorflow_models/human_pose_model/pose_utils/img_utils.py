@@ -33,3 +33,23 @@ def draw_binary_maps(image_tensor, binary_map_tensor, num_to_draw):
 
         coord.request_stop()
         coord.join(threads=threads)
+
+
+def draw_logits(image, logits):
+    """
+    """
+    for joint_index in range(logits.shape[-1]):
+        if joint_index in [6, 7, 8, 9]:
+            colour_index = 2
+        if joint_index in [0, 1, 2, 10, 11, 12]:
+            colour_index = 1
+        else:
+            colour_index = 0
+
+        image[..., colour_index] = np.clip(
+            image[..., colour_index] + 4*255*logits[..., joint_index]/np.max(logits[..., joint_index]),
+            0,
+            255)
+
+    pil_image = Image.fromarray(image)
+    pil_image.show()
