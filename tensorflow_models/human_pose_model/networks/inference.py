@@ -72,7 +72,6 @@ def inference(images,
                                                     is_detector_training=is_detector_training,
                                                     is_regressor_training=is_regressor_training,
                                                     scope=scope)
-
                 net_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
@@ -267,7 +266,8 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'two_vgg_16s_cascade': (vgg_bulat.two_vgg_16s_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
-        'vgg_vae': (vgg_vae.vgg_vae_v0, vgg_vae.vgg_vae_arg_scope)}
+        'vgg_vae': (vgg_vae.vgg_vae_v0, vgg_vae.vgg_vae_arg_scope),
+        'vgg_debug': (vgg_vae.vgg_16_bn_relu, vgg_vae.vgg_vae_arg_scope)}
 
 
 NET_LOSS = {'detector_only_regression': detector_only_regression_loss,

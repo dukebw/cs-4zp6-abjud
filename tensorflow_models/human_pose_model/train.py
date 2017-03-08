@@ -174,7 +174,7 @@ def _setup_training_op(images,
 
                 grads = optimizer.compute_gradients(
                     loss=total_loss, var_list=_get_variables_to_train())
-
+                print(grads)
                 tower_grads.append(grads)
 
     avg_grad_and_vars = _average_gradients(tower_grads)
@@ -305,9 +305,9 @@ def _setup_training(FLAGS):
         global_step, optimizer = _setup_adam_optimizer()
     else:
         global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
-                                              FLAGS.num_epochs_per_decay,
-                                              FLAGS.initial_learning_rate,
-                                              FLAGS.learning_rate_decay_factor)
+                                                  FLAGS.num_epochs_per_decay,
+                                                  FLAGS.initial_learning_rate,
+                                                  FLAGS.learning_rate_decay_factor)
 
     train_op, train_loss = _setup_training_op(images,
                                               binary_maps,
