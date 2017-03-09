@@ -1,20 +1,35 @@
 """This module implements the TensorFlow HTTP server, which is a standalone
 server that is able to handle HTTP requests to do TensorFlow operations.
 """
-# @debug
-from human_pose_model.pose_utils.img_utils import draw_logits
-
 import re
 import urllib
 import http.server
 import requests
+import numpy as np
 import tensorflow as tf
 from human_pose_model.networks.vgg_bulat import two_vgg_16s_cascade
+
+JOINT_NAMES_NO_SPACE = ['r_ankle',
+                        'r_knee',
+                        'r_hip',
+                        'l_hip',
+                        'l_knee',
+                        'l_ankle',
+                        'pelvis',
+                        'thorax',
+                        'upper_neck',
+                        'head_top',
+                        'r_wrist',
+                        'r_elbow',
+                        'r_shoulder',
+                        'l_shoulder',
+                        'l_elbow',
+                        'l_wrist']
 
 RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentropy_regression/23'
 IMAGE_DIM = 380
 
-def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, images_tensor):
+def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
     class TFHttpRequestHandler(http.server.BaseHTTPRequestHandler):
         """Defines handlers for specific HTTP request codes."""
         def __init__(self, *args, **kwargs):
@@ -35,16 +50,42 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, images
             }
             logits = session.run(fetches=logits_tensor, feed_dict=feed_dict)
 
-            # @debug
-            image_batch = tf.divide(x=images_tensor, y=2.0)
-            image_batch = tf.add(x=image_batch, y=0.5)
-            image_batch = session.run(tf.image.convert_image_dtype(image=image_batch, dtype=tf.uint8), feed_dict=feed_dict)
-            draw_logits(image_batch, logits)
+            batch_size = logits.shape[0]
+            num_joints = logits.shape[-1]
+            x_predicted_joints = np.empty((batch_size, num_joints))
+            y_predicted_joints = np.empty((batch_size, num_joints))
+
+            # {["r_ankle": [0.5, 0.5], "r_knee": [1.0, 2.0], ...],
+            #  ["r_ankle": [0.25, 0.2], "r_knee": [0.1, 0.5], ...]}
+            joint_predictions_json = '{'
+            for batch_index in range(batch_size):
+                joint_predictions_json += '['
+                for joint_index in range(num_joints):
+                    joint_heatmap = logits[batch_index, ..., joint_index]
+                    xy_max_confidence = np.unravel_index(
+                        joint_heatmap.argmax(), joint_heatmap.shape)
+
+                    y_joint = xy_max_confidence[0]/IMAGE_DIM - 0.5
+                    x_joint = xy_max_confidence[1]/IMAGE_DIM - 0.5
+
+                    y_predicted_joints[batch_index, joint_index] = y_joint
+                    x_predicted_joints[batch_index, joint_index] = x_joint
+
+                    joint_predictions_json += ('"{}": [{}, {}]'
+                                               .format(JOINT_NAMES_NO_SPACE[joint_index], str(x_joint), str(y_joint)))
+                    if joint_index < (num_joints - 1):
+                        joint_predictions_json += ', '
+
+                joint_predictions_json += ']'
+                if batch_index < (batch_size - 1):
+                    joint_predictions_json += ', '
+            joint_predictions_json += '}'
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.end_headers()
-            self.wfile.write('{"response": "Hello!"}'.encode('utf8'))
+
+            self.wfile.write(joint_predictions_json.encode('utf8'))
 
     return TFHttpRequestHandler
 
@@ -93,8 +134,7 @@ def run():
 
         request_handler = TFHttpRequestHandlerFactory(session,
                                                       image_bytes_feed,
-                                                      logits,
-                                                      normalized_image)
+                                                      logits)
         server_address = ('localhost', 8765)
         httpd = http.server.HTTPServer(server_address, request_handler)
         httpd.serve_forever()
