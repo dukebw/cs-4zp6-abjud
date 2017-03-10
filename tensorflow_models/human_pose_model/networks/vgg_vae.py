@@ -8,7 +8,7 @@ from tensorflow.python.framework import ops
 
 slim = tf.contrib.slim
 add_arg_scope = tf.contrib.framework.add_arg_scope
-
+NUM_CLASSES = 16
 
 def vgg_vae_arg_scope(weight_decay=0.0005):
     """Defines the VGG arg scope.
@@ -27,52 +27,6 @@ def vgg_vae_arg_scope(weight_decay=0.0005):
             return arg_sc
 
 
-def vgg_encode(inputs, num_classes, dropout_keep_prob=0.5, is_training=True):
-    """ Uses the base of the VGG-16 network (fully convolutional)
-    for the encoder in the VAE
-    """
-    a1 = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
-    a1 = slim.max_pool2d(a1, [2, 2], scope='pool1')
-    a2 = slim.repeat(a1, 2, slim.conv2d, 128, [3, 3], scope='conv2')
-    a2 = slim.max_pool2d(a2, [2, 2], scope='pool2')
-    a3 = slim.repeat(a2, 3, slim.conv2d, 256, [3, 3], scope='conv3')
-    a3 = slim.max_pool2d(a3, [2, 2], scope='pool3')
-    a4 = slim.repeat(a3, 3, slim.conv2d, 512, [3, 3], scope='conv4')
-    a4 = slim.max_pool2d(a4, [2, 2], scope='pool4')
-    a5 = slim.repeat(a4, 3, slim.conv2d, 512, [3, 3], scope='conv5')
-    a5 = slim.max_pool2d(a5, [2, 2], scope='pool5')
-
-    # Use conv2d instead of fully_connected layers.
-    a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
-    a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training, scope='dropout6')
-    a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
-    a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training, scope='dropout7')
-
-    return a3, a4, a7
-
-
-def vgg_decode(a3, a4, z, input_resolution, num_classes):
-    ''' Upsamples'''
-    a8 = tf.image.resize_bilinear(images=z, size=a4.get_shape()[1:3])
-    skip_a4 = slim.conv2d(a4, num_classes, [1, 1],
-                          activation_fn=None,
-                          normalizer_fn=None,
-                          weights_initializer=tf.random_normal_initializer(),
-                          scope='skip_a4')
-    a8 = a8 + skip_a4
-
-    a8 = tf.image.resize_bilinear(images=a8, size=a3.get_shape()[1:3])
-    skip_a3 = slim.conv2d(a3, num_classes, [1, 1],
-                          activation_fn=None,
-                          normalizer_fn=None,
-                          weights_initializer=tf.random_normal_initializer(),
-                          scope='skip_a3')
-    a8 = a8 + skip_a3
-
-    a8 = tf.image.resize_bilinear(images=a8, size=input_resolution)
-
-
-    return a8
 
 
 def sampleGaussian(mu, log_sigma):
@@ -83,18 +37,18 @@ def sampleGaussian(mu, log_sigma):
         return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
 
 
-def _get_reparametrization(hidden_enc, num_classes):
+def _get_reparametrization(hidden_enc):
     # latent distribution parameterized by hidden encoding
     # z ~ N(z_mean, np.exp(z_log_sigma)**2)
     z_mu = slim.conv2d(hidden_enc,
-                         num_classes,
-                         [1, 1],
-                         activation_fn=None,
-                         normalizer_fn=None,
-                         scope='z_mu')
+                       NUM_CLASSES,
+                       [1, 1],
+                       activation_fn=None,
+                       normalizer_fn=None,
+                       scope='z_mu')
 
     z_log_sigma = slim.conv2d(hidden_enc,
-                              num_classes,
+                              NUM_CLASSES,
                               [1, 1],
                               activation_fn=None,
                               normalizer_fn=None,
@@ -103,94 +57,67 @@ def _get_reparametrization(hidden_enc, num_classes):
     return sampleGaussian(z_mu, z_log_sigma), z_mu, z_log_sigma
 
 
-def vgg_vae_v0(inputs,
-              num_classes=16,
-              is_detector_training=True,
-              is_regressor_training=False,
-              dropout_keep_prob=0.5,
-              batch_norm_var_collection='moving_vars',
-              scope='vgg_16'):
-
-    batch_norm_params = {
-      # Decay for moving averages
-      'decay': 0.9997,
-      # epsilon to prevent 0s in variance
-      'epsilon': 0.001,
-      # Collection containing update_ops
-      'updates_collections': ops.GraphKeys.UPDATE_OPS,
-      # Collection containing the moving mean and moving variance.
-      'variables_collections':{
-          'beta': None,
-          'gamma': None,
-          'moving_mean': [batch_norm_var_collection],
-          'moving_variance': [batch_norm_var_collection],
-      },
-      'is_training': is_detector_training
-    }
-    with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
-        with tf.name_scope(scope):
-            end_points_collection = sc.original_name_scope + '_end_points'
-            # Collect outputs for conv2d, fully_connected and max_pool2d.
-            with slim.arg_scope([slim.conv2d, slim.max_pool2d],
-                                outputs_collections=end_points_collection):
-                # nested argscope because we don't apply activations and normalization to maxpool
-                with slim.arg_scope([slim.conv2d],
-                                    activation_fn=tf.nn.relu,
-                                    normalizer_fn=slim.batch_norm,
-                                    normalizer_params=batch_norm_params):
-
-                    a3, a4, hidden_enc = vgg_encode(inputs,
-                                                    num_classes,
-                                                    dropout_keep_prob,
-                                                    is_detector_training)
-
-                    z, z_mu, z_log_sigma = _get_reparametrization(hidden_enc, num_classes)
-
-
-                    a8 = vgg_decode(a3, a4, z, inputs.get_shape()[1:3], num_classes)
-
-                    # Convert end_points_collection into a end_point dict.
-                    end_points = slim.utils.convert_collection_to_dict(end_points_collection)
-                    # For calculating the KL loss
-                    end_points['z_mu'] = z_mu
-                    end_points['z_log_sigma'] = z_log_sigma
-
-    return a8, end_points
-
-
-def vgg_16_base(inputs, num_classes, dropout_keep_prob, is_training):
+def vgg_16_base(inputs, dropout_keep_prob, is_training):
     """Base of the VGG-16 network (fully convolutional).
 
     Note that this function only constructs the network, and needs to be called
     with the correct variable scopes and tf.slim arg scopes.
     """
     a1 = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+    print(a1.get_shape())
     a1 = slim.max_pool2d(a1, [2, 2], scope='pool1')
+    print(a1.get_shape())
     a2 = slim.repeat(a1, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+    print(a2.get_shape())
     a2 = slim.max_pool2d(a2, [2, 2], scope='pool2')
+    print(a2.get_shape())
     a3 = slim.repeat(a2, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+    print(a2.get_shape())
     a3 = slim.max_pool2d(a3, [2, 2], scope='pool3')
+    print(a3.get_shape())
     a4 = slim.repeat(a3, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+    print(a3.get_shape())
     a4 = slim.max_pool2d(a4, [2, 2], scope='pool4')
+    print(a4.get_shape())
     a5 = slim.repeat(a4, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+    print(a5.get_shape())
     a5 = slim.max_pool2d(a5, [2, 2], scope='pool5')
+    print(a5.get_shape())
 
     # Use conv2d instead of fully_connected layers.
     a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
+    print(a5.get_shape())
     a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training, scope='dropout6')
+    print(a6.get_shape())
     a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
+    print(a6.get_shape())
     a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training, scope='dropout7')
+    print(a7.get_shape())
+
+    a8  = slim.conv2d(a7, NUM_CLASSES, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
+    print(a8.get_shape())
+
+    return a3, a4, a8
 
 
-    return a3, a4, a7
+def _get_pose_logits(a3,a4,a8,resolution):
+    a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
+    skip_a4 = slim.conv2d(a4, NUM_CLASSES, [1, 1], scope='skip_a4')
+    a9 = a9 + skip_a4
+
+    a9 = tf.image.resize_bilinear(images=a9, size=a3.get_shape()[1:3])
+    skip_a3 = slim.conv2d(a3, NUM_CLASSES, [1, 1], scope='skip_a3')
+    a9 = a9 + skip_a3
+
+    a9 = tf.image.resize_bilinear(images=a9, size=resolution)
+    return a9
 
 
-def _vgg_16_bn_relu(inputs,
-                    num_classes=16,
-                    is_training=True,
-                    dropout_keep_prob=0.5,
-                    batch_norm_var_collection='moving_vars',
-                    scope='vgg_16'):
+def _vgg_16_vae_v0(inputs,
+                   is_training=True,
+                   dropout_keep_prob=0.5,
+                   batch_norm_var_collection='moving_vars',
+                   scope='vgg_16'):
     """Oxford Net VGG 16-Layers version D Example.
 
     Note: All the fully_connected layers have been transformed to conv2d layers.
@@ -200,7 +127,7 @@ def _vgg_16_bn_relu(inputs,
 
     Args:
       inputs: a tensor of size [batch_size, height, width, channels].
-      num_classes: number of predicted classes (joints).
+      NUM_CLASSES: number of predicted classes (joints).
       is_training: whether or not the model is being trained.
       dropout_keep_prob: the probability that activations are kept in the dropout
         layers during training.
@@ -239,34 +166,25 @@ def _vgg_16_bn_relu(inputs,
                                     normalizer_fn=slim.batch_norm,
                                     normalizer_params=batch_norm_params):
 
-                    a3, a4, a7 = vgg_16_base(inputs,
-                                             num_classes,
+                    a3, a4, a8 = vgg_16_base(inputs,
                                              dropout_keep_prob,
                                              is_training)
 
-                    z, z_mu, z_log_sigma = _get_reparametrization(a7, num_classes)
-                    a8  = slim.conv2d(z, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
-                    a9 = tf.image.resize_bilinear(images=a8, size=a4.get_shape()[1:3])
-                    skip_a4 = slim.conv2d(a4, num_classes, [1, 1], scope='skip_a4')
-                    a9 = a9 + skip_a4
-
-                    a9 = tf.image.resize_bilinear(images=a9, size=a3.get_shape()[1:3])
-                    skip_a3 = slim.conv2d(a3, num_classes, [1, 1], scope='skip_a3')
-                    a9 = a9 + skip_a3
-
-                    a9 = tf.image.resize_bilinear(images=a9, size=inputs.get_shape()[1:3])
+                    #z = a8
+                    pose_logits = _get_pose_logits(a3,a4,a8, inputs.get_shape()[1:3])
+                    #img = _get_img_reconstruction(a8)
+                    #z, z_mu, z_log_sigma = _get_reparametrization(a8, NUM_CLASSES)
 
                     # Convert end_points_collection into a end_point dict.
                     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
                     # For calculating the KL loss
-                    end_points['z_mu'] = z_mu
-                    end_points['z_log_sigma'] = z_log_sigma
+                    #end_points['z_mu'] = z_mu
+                    #end_points['z_log_sigma'] = z_log_sigma
 
-                return a9, end_points
+                return pose_logits, end_points
 
 
-def vgg_16_bn_relu(inputs,
-                   num_classes=16,
+def vgg_16_vae_v0(inputs,
                    is_detector_training=True,
                    is_regressor_training=True,
                    dropout_keep_prob=0.5,
@@ -276,7 +194,8 @@ def vgg_16_bn_relu(inputs,
     want to run VGG-16 with batchnorm and RELU as a single network pose
     estimator (i.e. just the detector).
     """
-    return _vgg_16_bn_relu(inputs=inputs,
-                           num_classes=num_classes,
+    return _vgg_16_vae_v0(inputs=inputs,
                            is_training=is_detector_training,
                            scope='vgg_16')
+
+

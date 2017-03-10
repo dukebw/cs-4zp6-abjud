@@ -68,7 +68,6 @@ def inference(images,
         with slim.arg_scope(net_arg_scope()):
             with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 logits, endpoints = part_detect_net(inputs=images,
-                                                    num_classes=Person.NUM_JOINTS,
                                                     is_detector_training=is_detector_training,
                                                     is_regressor_training=is_regressor_training,
                                                     scope=scope)
@@ -155,7 +154,8 @@ def _mean_squared_error_loss(logits, heatmaps, weights):
 
 # These are great mathematicians so their names are written with capital letters ^^
 def _KullbackLeibler(mu, log_sigma, weights):
-    """(Gaussian) Kullback-Leibler divergence KL(q||p), per training example
+    """
+    (Gaussian) Kullback-Leibler divergence KL(q||p), per training example
     This function can be derived with basic knowledge of Bayesian variational inference,
     see Kingma et al Autoencoding Variational Bayes.
     (thor) Let me first get this running and then I'll explain.
@@ -165,7 +165,7 @@ def _KullbackLeibler(mu, log_sigma, weights):
     # Transpose so we get the trace of each channel with tf.trace
     reparam_t = tf.transpose(reparam, perm=[0,3,1,2])
     # take the trace of each channels and reduce the mean across the 16 channels
-    KL_loss =  -0.5 * tf.reduce_mean(tf.trace(reparam_t),1)
+    KL_loss = -0.5 * tf.reduce_mean(tf.trace(reparam_t),1)
     # reduce the mean across the batch dimension
     KL_loss = tf.reduce_mean(KL_loss)
 
@@ -266,8 +266,8 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'two_vgg_16s_cascade': (vgg_bulat.two_vgg_16s_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
-        'vgg_vae': (vgg_vae.vgg_vae_v0, vgg_vae.vgg_vae_arg_scope),
-        'vgg_debug': (vgg_vae.vgg_16_bn_relu, vgg_vae.vgg_vae_arg_scope)}
+        'vgg_vae': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope),
+        'vgg_debug': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope)}
 
 
 NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
