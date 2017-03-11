@@ -9,6 +9,8 @@ from tensorflow.python.framework import ops
 slim = tf.contrib.slim
 add_arg_scope = tf.contrib.framework.add_arg_scope
 NUM_CLASSES = 16
+LATENT_DIM = 16
+
 
 def vgg_vae_arg_scope(weight_decay=0.0005):
     """Defines the VGG arg scope.
@@ -25,36 +27,6 @@ def vgg_vae_arg_scope(weight_decay=0.0005):
                          biases_initializer=tf.zeros_initializer()):
         with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
             return arg_sc
-
-
-
-
-def sampleGaussian(mu, log_sigma):
-    """(Differentiably!) draw sample from Gaussian with given shape, subject to random noise epsilon"""
-    with tf.name_scope("sample_gaussian"):
-        # reparameterization trick
-        epsilon = tf.random_normal(tf.shape(log_sigma), name="epsilon")
-        return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
-
-
-def _get_reparametrization(hidden_enc):
-    # latent distribution parameterized by hidden encoding
-    # z ~ N(z_mean, np.exp(z_log_sigma)**2)
-    z_mu = slim.conv2d(hidden_enc,
-                       NUM_CLASSES,
-                       [1, 1],
-                       activation_fn=None,
-                       normalizer_fn=None,
-                       scope='z_mu')
-
-    z_log_sigma = slim.conv2d(hidden_enc,
-                              NUM_CLASSES,
-                              [1, 1],
-                              activation_fn=None,
-                              normalizer_fn=None,
-                              scope='z_log_sigma')
-
-    return sampleGaussian(z_mu, z_log_sigma), z_mu, z_log_sigma
 
 
 def vgg_16_base(inputs, dropout_keep_prob, is_training):
@@ -113,6 +85,48 @@ def _get_pose_logits(a3,a4,a8,resolution):
     return a9
 
 
+def sampleGaussian(mu, log_sigma):
+    """(Differentiably!) draw sample from Gaussian with given shape, subject to random noise epsilon"""
+    with tf.name_scope("sample_gaussian"):
+        # reparameterization trick
+        epsilon = tf.random_normal(tf.shape(log_sigma), name="epsilon")
+        return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
+
+# For some reason this yields None when taking the gradients?!?!
+def _get_reparameterization(hidden_enc):
+    # latent distribution parameterized by hidden encoding
+    # z ~ N(z_mean, np.exp(z_log_sigma)**2)
+    z_mu = slim.fully_connected(hidden_enc,
+                                NUM_CLASSES,
+                                activation_fn=None,
+                                normalizer_fn=None,
+                                scope='z_mu')
+
+    z_log_sigma = slim.fully_connected(hidden_enc,
+                                       NUM_CLASSES,
+                                       activation_fn=None,
+                                       normalizer_fn=None,
+                                       scope='z_log_sigma')
+
+    return sampleGaussian(z_mu, z_log_sigma), z_mu, z_log_sigma
+
+
+def _get_img_reconstruction(a8,z,batch_norm_params):
+    shape = z.get_shape().as_list()
+    size = shape[1]*shape[1]
+    d1 = slim.fully_connected(z,
+                              size,
+                              activation_fn=tf.nn.relu,
+                              normalizer_fn=slim.batch_norm,
+                              normalizer_params=batch_norm_params)
+
+    d1 = tf.reshape(d1, [9, LATENT_DIM, LATENT_DIM,1])
+    d2 = slim.conv2d_transpose(d1,1,2,2)
+    d3 = slim.conv2d_transpose(d2,1,2,2)
+    img = slim.conv2d_transpose(d3,3,2,2)
+    return img
+
+
 def _vgg_16_vae_v0(inputs,
                    is_training=True,
                    dropout_keep_prob=0.5,
@@ -158,10 +172,10 @@ def _vgg_16_vae_v0(inputs,
         with tf.name_scope(scope):
             end_points_collection = sc.original_name_scope + '_end_points'
             # Collect outputs for conv2d, fully_connected and max_pool2d.
-            with slim.arg_scope([slim.conv2d, slim.max_pool2d],
+            with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.conv2d_transpose],
                                 outputs_collections=end_points_collection):
                 # nested argscope because we don't apply activations and normalization to maxpool
-                with slim.arg_scope([slim.conv2d],
+                with slim.arg_scope([slim.conv2d, slim.conv2d_transpose],
                                     activation_fn=tf.nn.relu,
                                     normalizer_fn=slim.batch_norm,
                                     normalizer_params=batch_norm_params):
@@ -172,16 +186,44 @@ def _vgg_16_vae_v0(inputs,
 
                     #z = a8
                     pose_logits = _get_pose_logits(a3,a4,a8, inputs.get_shape()[1:3])
-                    #img = _get_img_reconstruction(a8)
-                    #z, z_mu, z_log_sigma = _get_reparametrization(a8, NUM_CLASSES)
+                    hidden_enc = slim.flatten(a8)
+                    z_mu = slim.fully_connected(hidden_enc,
+                                                NUM_CLASSES,
+                                                activation_fn=None,
+                                                normalizer_fn=None,
+                                                scope='z_mu')
+
+                    z_log_sigma = slim.fully_connected(hidden_enc,
+                                                       NUM_CLASSES,
+                                                       activation_fn=None,
+                                                       normalizer_fn=None,
+                                                       scope='z_log_sigma')
+
+                    #epsilon = tf.random_normal(tf.shape(z_log_sigma), name="epsilon")
+                    z = z_mu + 1 * tf.exp(z_log_sigma) # N(mu, I * sigma**2)
+                    #z = sampleGaussian(z_mu, z_log_sigma)
+                    shape = z.get_shape().as_list()
+                    size = shape[1]*shape[1]
+                    d1 = slim.fully_connected(z,
+                                              size,
+                                                activation_fn=tf.nn.relu,
+                                              normalizer_fn=slim.batch_norm,
+                                              normalizer_params=batch_norm_params)
+
+                    d1 = tf.reshape(d1, [9, LATENT_DIM, LATENT_DIM,1])
+                    d2 = slim.conv2d_transpose(d1,1,2,2)
+                    d3 = slim.conv2d_transpose(d2,1,2,2)
+                    gen_img = slim.conv2d_transpose(d3,3,2,2)
+                    #gen_img = _get_img_reconstruction(a8,z,batch_norm_params)
 
                     # Convert end_points_collection into a end_point dict.
                     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
                     # For calculating the KL loss
-                    #end_points['z_mu'] = z_mu
-                    #end_points['z_log_sigma'] = z_log_sigma
+                    end_points['z_mu'] = z_mu
+                    end_points['z_log_sigma'] = z_log_sigma
+                    end_points['gen_img'] = gen_img
 
-                return pose_logits, end_points
+                    return pose_logits, end_points
 
 
 def vgg_16_vae_v0(inputs,
@@ -197,5 +239,3 @@ def vgg_16_vae_v0(inputs,
     return _vgg_16_vae_v0(inputs=inputs,
                            is_training=is_detector_training,
                            scope='vgg_16')
-
-
