@@ -57,9 +57,9 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
 
             # {["r_ankle": [0.5, 0.5], "r_knee": [1.0, 2.0], ...],
             #  ["r_ankle": [0.25, 0.2], "r_knee": [0.1, 0.5], ...]}
-            joint_predictions_json = '{'
+            joint_predictions_json = '['
             for batch_index in range(batch_size):
-                joint_predictions_json += '['
+                joint_predictions_json += '{'
                 for joint_index in range(num_joints):
                     joint_heatmap = logits[batch_index, ..., joint_index]
                     xy_max_confidence = np.unravel_index(
@@ -76,13 +76,14 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
                     if joint_index < (num_joints - 1):
                         joint_predictions_json += ', '
 
-                joint_predictions_json += ']'
+                joint_predictions_json += '}'
                 if batch_index < (batch_size - 1):
                     joint_predictions_json += ', '
-            joint_predictions_json += '}'
+            joint_predictions_json += ']'
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', 'http://localhost:5000')
             self.end_headers()
 
             self.wfile.write(joint_predictions_json.encode('utf8'))
