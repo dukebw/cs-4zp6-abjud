@@ -172,7 +172,7 @@ def _vgg_16_vae_v0(inputs,
         with tf.name_scope(scope):
             end_points_collection = sc.original_name_scope + '_end_points'
             # Collect outputs for conv2d, fully_connected and max_pool2d.
-            with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.conv2d_transpose],
+            with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.conv2d_transpose, slim.fully_connected, slim.flatten],
                                 outputs_collections=end_points_collection):
                 # nested argscope because we don't apply activations and normalization to maxpool
                 with slim.arg_scope([slim.conv2d, slim.conv2d_transpose],
@@ -184,44 +184,46 @@ def _vgg_16_vae_v0(inputs,
                                              dropout_keep_prob,
                                              is_training)
 
-                    #z = a8
-                    pose_logits = _get_pose_logits(a3,a4,a8, inputs.get_shape()[1:3])
-                    hidden_enc = slim.flatten(a8)
-                    z_mu = slim.fully_connected(hidden_enc,
-                                                NUM_CLASSES,
-                                                activation_fn=None,
-                                                normalizer_fn=None,
-                                                scope='z_mu')
+                    latent_var = slim.flatten(a8)
 
-                    z_log_sigma = slim.fully_connected(hidden_enc,
-                                                       NUM_CLASSES,
-                                                       activation_fn=None,
-                                                       normalizer_fn=None,
-                                                       scope='z_log_sigma')
+                    X = slim.fully_connected(latent_var,
+                                             NUM_CLASSES,
+                                             activation_fn=None,
+                                             normalizer_fn=None,
+                                             scope='z_mu')
+
+                    pose_logits = _get_pose_logits(a3,a4,a8, inputs.get_shape()[1:3])
+                    end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+                    #z_log_sigma = slim.fully_connected(latent_var,
+                    #                                   NUM_CLASSES,
+                    #                                   activation_fn=None,
+                    #                                   normalizer_fn=None,
+                    #                                   scope='z_log_sigma')
+
 
                     #epsilon = tf.random_normal(tf.shape(z_log_sigma), name="epsilon")
-                    z = z_mu + 1 * tf.exp(z_log_sigma) # N(mu, I * sigma**2)
+                    #z = z_mu + 1 * tf.exp(z_log_sigma) # N(mu, I * sigma**2)
                     #z = sampleGaussian(z_mu, z_log_sigma)
-                    shape = z.get_shape().as_list()
-                    size = shape[1]*shape[1]
-                    d1 = slim.fully_connected(z,
-                                              size,
-                                                activation_fn=tf.nn.relu,
-                                              normalizer_fn=slim.batch_norm,
-                                              normalizer_params=batch_norm_params)
+                    #shape = z.get_shape().as_list()
+                    #size = shape[1]*shape[1]
+                    #print(size)
+                    #d1 = slim.fully_connected(z,
+                    #                          256,
+                    #                          activation_fn=tf.nn.relu,
+                    #                          normalizer_fn=slim.batch_norm,
+                    #                          normalizer_params=batch_norm_params)
 
-                    d1 = tf.reshape(d1, [9, LATENT_DIM, LATENT_DIM,1])
-                    d2 = slim.conv2d_transpose(d1,1,2,2)
-                    d3 = slim.conv2d_transpose(d2,1,2,2)
-                    gen_img = slim.conv2d_transpose(d3,3,2,2)
+                    #d1 = tf.reshape(d1, [9, LATENT_DIM, LATENT_DIM,1])
+                    #d2 = slim.conv2d_transpose(d1,1,2,2)
+                    #d3 = slim.conv2d_transpose(d2,1,2,2)
+                    #gen_img = slim.conv2d_transpose(d3,3,2,2)
                     #gen_img = _get_img_reconstruction(a8,z,batch_norm_params)
 
                     # Convert end_points_collection into a end_point dict.
-                    end_points = slim.utils.convert_collection_to_dict(end_points_collection)
                     # For calculating the KL loss
-                    end_points['z_mu'] = z_mu
-                    end_points['z_log_sigma'] = z_log_sigma
-                    end_points['gen_img'] = gen_img
+                    #end_points['z_mu'] = z_mu
+                    #end_points['z_log_sigma'] = z_log_sigma
+                    #end_points['gen_img'] = 0
 
                     return pose_logits, end_points
 
