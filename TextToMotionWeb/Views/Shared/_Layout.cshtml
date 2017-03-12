@@ -11,7 +11,6 @@
         <link rel="stylesheet" href="~/css/site.css" />
         <link rel="stylesheet" href="~/css/custom.css" />
         <link rel="stylesheet" href="~/css/datatables.min.css" />
-        <link rel="stylesheet" href="~/lib/material-design-lite/material.css" />
     </environment>
     <environment names="Staging,Production">
         <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.6/css/bootstrap.min.css"
@@ -20,7 +19,6 @@
         <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/datatables.min.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/custom.css" />
-        <link rel="stylesheet" href="~/lib/material-design-lite/material.css" />
     </environment>
 </head>
 <body>
@@ -35,6 +33,7 @@
                 </button>
                 <a asp-controller="TextToMotion" asp-action="Index" class="navbar-brand"><b>TextToMotion</b></a>
                 <a asp-controller="ImagePoseDraw" asp-action="Index" class="navbar-brand"><b>ImagePoseDraw</b></a>
+                <a asp-controller="Demo" asp-action="Index" class="navbar-brand"><b>Demo</b></a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
@@ -54,9 +53,7 @@
         <script src="~/lib/jquery/dist/jquery.js"></script>
         <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
         <script src="~/js/site.js" asp-append-version="true"></script>
-        <!--**********NEWLY ADDED FOR DATATABLES**********-->
         <script src="~/js/datatables.min.js" asp-append-version="true"></script>
-        <script src="~/lib/material-design-lite/material.js"></script>
     </environment>
     <environment names="Staging,Production">
         <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.2.3.min.js"
@@ -70,7 +67,7 @@
         <script src="~/js/site.min.js" asp-append-version="true"></script>
         <script src="~/js/custom.js" asp-append-version="true"></script>
         <script src="~/js/datatables.min.js" asp-append-version="true"></script>
-        <script src="~/lib/material-design-lite/material.js"></script>
+        <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     </environment>
 
     @RenderSection("scripts", required: false)

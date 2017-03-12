@@ -85,3 +85,12 @@ textarea {
 .not {
     display: none;
 }
+
+video {
+    max-width: 100%;
+    width: 640px;
+}
+
+div + div {
+    margin-bottom: 5px;
+}
