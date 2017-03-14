@@ -223,7 +223,7 @@ def _vgg_16_vae_v0(inputs,
                     # For calculating the KL loss
                     #end_points['z_mu'] = z_mu
                     #end_points['z_log_sigma'] = z_log_sigma
-                    #end_points['gen_img'] = 0
+                    end_points['gen_img'] = X
 
                     return pose_logits, end_points
 

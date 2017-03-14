@@ -153,7 +153,7 @@ def _mean_squared_error_loss(logits, heatmaps, weights):
 
 
 # These are great mathematicians so their names are written with capital letters ^^
-def _KullbackLeibler(mu, log_sigma, weights):
+def _KullbackLeibler(X, weights):
     """
     (Gaussian) Kullback-Leibler divergence KL(q||p), per training example
     This function can be derived with basic knowledge of Bayesian variational inference,
@@ -161,14 +161,14 @@ def _KullbackLeibler(mu, log_sigma, weights):
     (thor) Let me first get this running and then I'll explain.
     """
     # yields a batch of shape [?, width, height, num_classes]
-    reparam = 1 + 2*log_sigma - mu**2 - tf.exp(2*log_sigma)
+    #reparam = 1 + 2*log_sigma - mu**2 - tf.exp(2*log_sigma)
     # Transpose so we get the trace of each channel with tf.trace
-    reparam_t = tf.transpose(reparam, perm=[0,3,1,2])
+    #reparam_t = tf.transpose(reparam, perm=[0,3,1,2])
     # take the trace of each channels and reduce the mean across the 16 channels
-    KL_loss = -0.5 * tf.reduce_mean(tf.trace(reparam_t),1)
+    #KL_loss = -0.5 * tf.reduce_mean(tf.trace(reparam_t),1)
     # reduce the mean across the batch dimension
-    KL_loss = tf.reduce_mean(KL_loss)
-
+    #KL_loss = tf.reduce_mean(KL_loss)
+    KL_loss = tf.reduce_mean(2*X)
     tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_loss)
 
 def detector_only_xentropy_loss(logits,
@@ -239,7 +239,7 @@ def vae_detector_loss(logits,
                       is_visible_weights):
     """ Trains the detector as a variational autoencoder
     """
-    _KullbackLeibler(endpoints['z_mu'], endpoints['z_log_sigma'], weights)
+    _KullbackLeibler(endpoints['gen_img'], weights)
 
     _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
 

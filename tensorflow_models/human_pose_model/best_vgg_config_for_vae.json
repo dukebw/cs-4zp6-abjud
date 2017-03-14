@@ -1,6 +1,6 @@
 {
   "network_name": "vgg_debug",
-  "loss_name": "detector_only_xentropy",
+  "loss_name": "vae_detector_loss",
   "train_data_dir": "/mnt/data/datasets/MPII_HumanPose/train_80_shards_w_binmap",
   "validation_data_dir": "/mnt/data/datasets/MPII_HumanPose/valid_80_shards_w_binmap",
   "log_dir": "test_vae",
