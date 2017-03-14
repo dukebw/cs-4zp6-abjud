@@ -35,7 +35,7 @@
                 var canvasContext = canvas.getContext('2d');
                 canvasContext.drawImage(video, 0, 0, video.clientWidth, video.clientHeight);
 
-                var serverUrl = 'http://localhost:8765/';
+                var serverUrl = 'https://brendanduke.ca:8765/';
                 var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
 
                 $.post(serverUrl,
