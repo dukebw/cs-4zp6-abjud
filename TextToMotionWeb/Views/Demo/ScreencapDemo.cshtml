@@ -44,8 +44,8 @@
                                $.each(jointCoords[0],
                                       function(propertyName, value) {
                                               var maxDim = Math.max(canvas.width, canvas.height);
-                                              var x = maxDim*value[0] + maxDim/2;
-                                              var y = maxDim*value[1] + maxDim/2;
+                                              var x = maxDim*value[0] + canvas.width/2;
+                                              var y = maxDim*value[1] + canvas.height/2;
 
                                               canvasContext.beginPath();
                                               var circle = canvasContext.arc(x, y, 10, 0, 2*Math.PI);
