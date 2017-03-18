@@ -1,98 +1,66 @@
-@{
-    ViewData["Title"] = "Home Page";
-}
-
-@* I removed the carousel for now becuase I wasn't sure what we wanted there 
-<div id="myCarousel" class="carousel slide" data-ride="carousel" data-interval="6000">
-    <ol class="carousel-indicators">
-        <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
-        <li data-target="#myCarousel" data-slide-to="1"></li>
-        <li data-target="#myCarousel" data-slide-to="2"></li>
-        <li data-target="#myCarousel" data-slide-to="3"></li>
-    </ol>
-    <div class="carousel-inner" role="listbox">
-        <div class="item active">
-            <img src="~/images/banner1.svg" alt="ASP.NET" class="img-responsive" />
-            <div class="carousel-caption" role="option">
-                <p>
-                    Learn how to build ASP.NET apps that can run anywhere.
-                    <a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkID=525028&clcid=0x409">
-                        Learn More
-                    </a>
-                </p>
-            </div>
-        </div>
-        <div class="item">
-            <img src="~/images/banner2.svg" alt="Visual Studio" class="img-responsive" />
-            <div class="carousel-caption" role="option">
-                <p>
-                    There are powerful new features in Visual Studio for building modern web apps.
-                    <a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkID=525030&clcid=0x409">
-                        Learn More
-                    </a>
-                </p>
-            </div>
-        </div>
-        <div class="item">
-            <img src="~/images/banner3.svg" alt="Package Management" class="img-responsive" />
-            <div class="carousel-caption" role="option">
-                <p>
-                    Bring in libraries from NuGet, Bower, and npm, and automate tasks using Grunt or Gulp.
-                    <a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkID=525029&clcid=0x409">
-                        Learn More
-                    </a>
-                </p>
-            </div>
-        </div>
-        <div class="item">
-            <img src="~/images/banner4.svg" alt="Microsoft Azure" class="img-responsive" />
-            <div class="carousel-caption" role="option">
-                <p>
-                    Learn how Microsoft's Azure cloud platform allows you to build, deploy, and scale web apps.
-                    <a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkID=525027&clcid=0x409">
-                        Learn More
-                    </a>
-                </p>
-            </div>
-        </div>
-    </div>
-    <a class="left carousel-control" href="#myCarousel" role="button" data-slide="prev">
-        <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
-        <span class="sr-only">Previous</span>
-    </a>
-    <a class="right carousel-control" href="#myCarousel" role="button" data-slide="next">
-        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
-        <span class="sr-only">Next</span>
-    </a>
-</div> *@
 
 <div class="row">
-    <div class="col-md-3">
-        <h2>Application Description</h2>
-        <ul>
-            <li> Collection of data to be used in order to perform Text to Motion</li>
-            <li> As new images are uploaded pose estimation is executed finding the upper half of a single human in frame</li>
-            <li> Once uploaded the images can be found with the tag that they were labeled with at the time of uploading</li>
-        </ul>
-    </div>
-
-    <div class="col-md-3">
-        <h2>Resources</h2>
-        <ul>
-            <li> <a href="http://caffe.berkeleyvision.org/">Caffe</a> Deep Learning Framework</li>
-            <li> <a href="https://www.asp.net/">ASP.Net</a></li>
-            <li> Flowing Convolutional Neural Network for Human Pose Estimation in Videos</li>
-        </ul>
-    </div>
-
-    <div class="col-md-3">
-        <h2>Instructions</h2>
-        <ul>
-            <li> "Contact" contains group information with external and internal supervisors</li>
-            <li> "About" contains the initial problem statement and some additional information about the project</li>
-            <li> "ImagePoseDraw" contains the core functionality of the
-            project. This gives you the ability to upload images, delete images
-            or see any details added about the image.</li>
-        </ul>
+    <div class="custom-banner">
+        <br /><br /><br />
+        <h1 class="geoFont text-center noMargins white-txt" >Text To Motion</h1>
     </div>
 </div>
+<div class="row banner-transition"></div>
+<br /><br />
+<div class="row">
+    <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="mdl-card mdl-shadow--6dp fullWidth">
+                <span>
+                    <h4 class="text-center mdl-card--border">Application Description</h4>
+                </span>
+                <div class="mdl-card__supporting-text">
+                    <ul>
+                        <li>This app should act as a 'databank' for visual and text-based motion data captured from images and videos</li>
+                        <br />
+                        <li> As of now, the pose estimation algorithm can find the joint positions of the upper half of a single human</li>
+                        <li> Once uploaded the images can be found with the tag that they were labeled with on creation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="mdl-card mdl-shadow--6dp fullWidth">
+                <span>
+                    <h4 class="text-center mdl-card--border">Resources</h4>
+                </span>
+                <div class="mdl-card__supporting-text">
+                    <ul>
+                        <li> <a href="http://caffe.berkeleyvision.org/">Caffe</a> Deep Learning Framework</li>
+                        <li> <a href="https://www.asp.net/">ASP.Net</a></li>
+                        <li> Flowing Convolutional Neural Network for Human Pose Estimation in Videos</li>
+                        <li> Looking into adding tensorflow </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="mdl-card mdl-shadow--6dp fullWidth">
+                <span>
+                    <h4 class="text-center mdl-card--border">Instructions</h4>
+                </span>
+                <div class="mdl-card__supporting-text">
+                    <ul>
+                        <li>Upload images and videos to be processed <ul><li>from the <b>ImagePoseDraw</b> page</li></ul></li>
+                        <li>Search through the images and videos uploaded to the site (by all users)<ul><li>from the <b>TextToMotion</b> page</li></ul></li>
+                    </ul>
+                </div>
+                <div class="mdl-card__actions mdl-card--border text-center">
+                    <a href="/Account/Login" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
+                        Sign In
+                    </a>
+                    <a href="/Account/Register"class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
+                        Sign Up
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<br />

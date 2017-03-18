@@ -1,0 +1,21 @@
+{
+  "network_name": "resnet_bulat",
+  "train_data_dir": "/mnt/data/datasets/MPII_HumanPose/train_80_shards_w_binmap",
+  "validation_data_dir": "/mnt/data/datasets/MPII_HumanPose/valid_80_shards_w_binmap",
+  "log_dir": "./log/test",
+  "log_filename": "train_log",
+  "checkpoint_path": "checkpoints/resnet_v1_152.ckpt",
+  "checkpoint_exclude_scopes": "resnet_v1_152/block3b,resnet_v1_152/logits,resnet_v1_152/b7_deconv",
+  "image_dim": 256,
+  "num_preprocess_threads": 4,
+  "num_readers": 4,
+  "num_gpus": 3,
+  "batch_size": 3,
+  "input_queue_memory_factor": 16,
+  "max_epochs": 30,
+  "heatmap_stddev_pixels": 5,
+  "initial_learning_rate": 0.001,
+  "learning_rate_decay_factor": 0.16,
+  "num_epochs_per_decay": 30.0,
+  "restore_global_step": false
+}

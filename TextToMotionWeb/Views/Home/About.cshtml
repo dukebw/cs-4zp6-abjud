@@ -1,34 +1,74 @@
-@{
-    ViewData["Title"] = "About";
-}
-
-@{ 
-    ViewData["Message"] = "McMaster Text to Motion Database";
-}
-<h2>@ViewData["Title"].</h2>
-<h3>@ViewData["Message"]</h3>
-
-<h2>Project Overview</h2>
-<p>This is part of a larger project that is being undertaken by Dr.Taylor and
-is a subcomponent of a larger collaboration between his own university -- the
-University of Guelph, SRI (a non-profit research organization in the US), and
-other institutions. This aforementioned collaboration was established with the
-goal of producing a Computational Storytelling system.</p>
-
-<h2>Problem Statement</h2>
-<p>
-The problem that we seek to overcome in this project is that in order to
-implement the overall Computational Storytelling, there is no good existing
-database linking videos, rich text annotations, and descriptions of motions
-(e.g. human pose estimations via joint positions).
-</p>
-
-<h2>This Website's Function</h2>
-<p>
-As our team's contribution to the overall Computational Storytelling project,
-we propose to use video as an intermediate modality in order to harvest motion
-data with rich text annotations since large video databases do exist (with
-dialogue, script, or closed-captioning annotations). We will use one (or
-several) of such databases, in concert with off-the-shelf pose estimation and
-tracking methods to capture a large database of text-motion pairs.
-</p>
+<div class="row">
+    <div class="card page-heading col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1">
+        <h2 class="text-center"><b>About</b></h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="card card-inverse">
+                <div class="card-content">
+                    <h3 class="text-center">Project Overview</h3>
+                    <br />
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+            <div class="card">
+                <p class="geoFont md-font card-content-extra-padding">
+                    This website is part of a larger project that is being undertaken by Dr.Taylor,
+                    which is also subcomponent of a larger collaboration between his own university -- the
+                    University of Guelph, SRI (a non-profit research organization in the US), and
+                    other institutions. This aforementioned collaboration was established with the
+                    goal of producing a Computational Storytelling system.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="card card-inverse">
+                <div class="card-content">
+                    <h3 class="text-center">Problem Statement</h3>
+                    <br />
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+            <div class="card">
+                <p class="geoFont md-font card-content-extra-padding">
+                    In order to implement the overall Computational Storytelling, there must be a way to dynamically 'simulate' or 'render'
+                    the appropriate body language given a set of actions or dialogue. There is a need
+                    for a database that can link videos and images with rich text annotations that describe
+                    the motion that is observed in the image or video,
+                    along with visual motion data as well (e.g. human pose estimation describing the movement of joints)
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
+        <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="card card-inverse">
+                <div class="card-content">
+                    <h3 class="text-center">Ideal Functionality</h3>
+                    <br />
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+            <div class="card">
+                <p class="geoFont md-font card-content-extra-padding">
+                    As our team's contribution to the overall Computational Storytelling project
+                    , This website can be used to upload large amounts of images+videos and harvest motion
+                    data with rich annotations describing the actions observed in the images or videos.
+                    We will use deep learning algorithms with Caffe/Tensorflow to capture the motion data.
+                    This website can also provide each user with some basic analytics about their uploaded images
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

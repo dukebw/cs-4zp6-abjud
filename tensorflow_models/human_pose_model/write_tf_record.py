@@ -1,41 +1,39 @@
+import os
 import threading
+import math
 import numpy as np
 import tensorflow as tf
-from mpii_read import mpii_read
-from timethis import timethis
+from pose_utils import pose_util
+from dataset.mpii_read import mpii_read
+from dataset.mpii_datatypes import Person
+from pose_utils.timethis import timethis
+from dataset.shapes import Point, Rectangle
+from pose_utils.sparse_to_dense import sparse_joints_to_dense_single_example
 
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string(
     'mpii_filepath',
-    '/mnt/data/datasets/MPII_HumanPose/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat',
+    '/mnt/data/datasets/MPII_HumanPose/raw_data/mpii_human_pose_v1_u12_2/mpii_human_pose_v1_u12_1.mat',
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
+
+tf.app.flags.DEFINE_string('train_dir', '/mnt/data/datasets/MPII_HumanPose/train_80_shards_w_binmap',
+                            """Path in which to write the TFRecord files.""")
+
 tf.app.flags.DEFINE_boolean('is_train', True,
                             """Write training (True) or test (False)
                             TFRecords?""")
+
 tf.app.flags.DEFINE_integer('num_threads', 4,
                             """Number of threads to use to write TF Records""")
-tf.app.flags.DEFINE_integer('image_dim', 299,
+
+tf.app.flags.DEFINE_integer('train_shards', 80,
+                            """Number of output shards (TFRecord files
+                            containing training examples) to create.""")
+
+tf.app.flags.DEFINE_integer('image_dim', 256,
                             """Dimension of the square image to output.""")
-
-class Point(object):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-
-class Rectangle(object):
-    def __init__(self, rect):
-        self.top_left = Point(rect[0], rect[1])
-        self.bottom_right = Point(rect[2], rect[3])
-
-    def get_height(self):
-        return self.bottom_right.y - self.top_left.y
-
-    def get_width(self):
-        return self.bottom_right.x - self.top_left.x
-
 
 class ImageCoder(object):
     """A class that holds a session, passed using dependency injection during
@@ -82,6 +80,24 @@ class ImageCoder(object):
             tf.uint8)
 
         self._scaled_image_jpeg = tf.image.encode_jpeg(image=self._scaled_image_tensor)
+
+        self._x_joints = tf.placeholder(dtype=tf.float32)
+        self._y_joints = tf.placeholder(dtype=tf.float32)
+        self._joint_indices = tf.placeholder(dtype=tf.int64)
+        self._joints_shape = tf.placeholder(dtype=tf.int64)
+        sparse_x_joints = tf.SparseTensor(indices=self._joint_indices,
+                                          values=self._x_joints,
+                                          dense_shape=self._joints_shape)
+        sparse_y_joints = tf.SparseTensor(indices=self._joint_indices,
+                                          values=self._y_joints,
+                                          dense_shape=self._joints_shape)
+        sparse_joint_indices = tf.SparseTensor(indices=self._joint_indices,
+                                               values=self._joint_indices,
+                                               dense_shape=self._joints_shape)
+        x_dense_joints, y_dense_joints, _, _ = sparse_joints_to_dense_single_example(
+            sparse_x_joints, sparse_y_joints, sparse_joint_indices, Person.NUM_JOINTS)
+
+        self._binary_maps = _get_binary_maps(FLAGS.image_dim, x_dense_joints, y_dense_joints)
 
     def decode_jpeg(self, image_data):
         """Returns the shape of an input JPEG image.
@@ -132,10 +148,22 @@ class ImageCoder(object):
             self._padded_img_dim: padded_dim
         }
 
-        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg,
-                                         feed_dict=feed_dict)
+        scaled_img_jpeg = self._sess.run(fetches=self._scaled_image_jpeg, feed_dict=feed_dict)
 
         return scaled_img_jpeg
+
+    def get_binary_maps(self, x_joints, y_joints, joint_indices, joints_shape):
+        """Runs the binary-map generation part of the graph stored in this
+        ImageCoder instance.
+        """
+        feed_dict = {
+            self._x_joints: x_joints,
+            self._y_joints: y_joints,
+            self._joint_indices: joint_indices,
+            self._joints_shape: joints_shape
+        }
+
+        return self._sess.run(fetches=self._binary_maps, feed_dict=feed_dict)
 
 
 def _clamp_range(value, min_val, max_val):
@@ -194,7 +222,7 @@ def _int64_feature(value):
 
 def _append_scaled_joint(joints, joint_dim, max_joint_dim, image_center):
     """Appends to joints the value of joint_dim, scaled down to be in the range
-    [-1.0, 1.0].
+    [-0.5, 0.5].
 
     Args:
         joints: List of joints, in the order [x0, y0, x1, y1, ...]
@@ -203,12 +231,12 @@ def _append_scaled_joint(joints, joint_dim, max_joint_dim, image_center):
             appears, e.g. height of 1080 in a 1920x1080 image.
     """
     scaled_joint = _clamp_range(
-        (joint_dim - image_center)/max_joint_dim, -1, 1)
+        (joint_dim - image_center)/max_joint_dim, -0.5, 0.5)
     joints.append(scaled_joint)
 
 
-def _extract_labeled_joints(person,
-                            image_shape,
+def _extract_labeled_joints(person_joints,
+                            cropped_img_shape,
                             padding,
                             offsets):
     """Extracts all of the joints for a single person in image, and puts them
@@ -216,72 +244,71 @@ def _extract_labeled_joints(person,
 
     Not all joints are labeled for each person, so this function also returns a
     sparse list of indices for person, where each index indicates which joint
-    is labeled. The x coordinates have even sparse indices, while y coordinates
-    have odd sparse indices.
+    is labeled. The indices correspond to two sparse lists of joint
+    coordinates, one for x and one for y.
 
     Args:
-        person: Person in the image to get joints for.
-        image_shape: The shape of the given image, in the format
-            Point(cols, rows).
+        person_joints: Joints of person in the image.
+        cropped_img_shape: The shape of the given image post-cropping, in the
+            format Point(cols, rows).
         padding: Pixels of padding in Point(width, height) dimensions.
-        offsets: The Point(width, height) offsets of this cropped image in the
-            original image. This is needed to translate the joint labels.
+        offsets: The Point(width, height) offsets of the top left corner of
+            this cropped image in the original image. This is needed to
+            translate the joint labels.
 
     Returns:
-        (sparse_joints, sparse_joint_indices tuple, where `sparse_joints` is a
-        list of joint coordinates, and sparse_joint_indices is a list of
-        indices indicate which joints are which.
+        (x_sparse_joints, y_sparse_joints, sparse_joint_indices) tuple, where
+        `*_sparse_joints` are lists of x and y joint coordinates, and
+        sparse_joint_indices is a list of indices indicate which joints are
+        which.
 
-        Visually: `sparse_joints` [x0, y0, x1, y1, x2, y2]
-                  `sparse_joint_indices` [0, 1, 2, 3, 6, 7]
+        Visually: `x_sparse_joints` [x0, x1, x2]
+                  `y_sparse_joints` [y0, y1, y2]
+                  `sparse_joint_indices` [0, 1, 3]
 
                   The above corresponds to a person for whom (x0, y0), (x1, y1)
                   and (x2, y2) are joints 0, 1 and 3 (indexed 0-15 in (x, y)
                   pairs as in the MPII dataset) for `person`, respectively.
     """
-    sparse_joints = []
+    x_sparse_joints = []
+    y_sparse_joints = []
     sparse_joint_indices = []
-    max_image_dim = max(image_shape.x, image_shape.y)
-    image_center = int(max_image_dim/2)
+    is_visible_list = []
+    max_cropped_img_dim = max(cropped_img_shape.x, cropped_img_shape.y)
+    abs_image_center = Point(offsets.x + cropped_img_shape.x/2,
+                             offsets.y + cropped_img_shape.y/2)
 
-    for joint_index in range(len(person.joints)):
-        joint = person.joints[joint_index]
+    for joint_index in range(len(person_joints)):
+        joint = person_joints[joint_index]
         if joint is not None:
-            joint = Point(joint[0], joint[1])
-            if ((offsets.x <= joint.x <= (offsets.x + image_shape.x)) and
-                (offsets.y <= joint.y <= (offsets.y + image_shape.y))):
-                joint.x -= offsets.x
-                joint.y -= offsets.y
-                _append_scaled_joint(sparse_joints,
-                                     joint.x + padding.x,
-                                     max_image_dim,
-                                     image_center)
-                _append_scaled_joint(sparse_joints,
-                                     joint.y + padding.y,
-                                     max_image_dim,
-                                     image_center)
+            if ((offsets.x <= joint.x <= (offsets.x + cropped_img_shape.x)) and
+                (offsets.y <= joint.y <= (offsets.y + cropped_img_shape.y))):
+                _append_scaled_joint(x_sparse_joints,
+                                     joint.x,
+                                     max_cropped_img_dim,
+                                     abs_image_center.x)
+                _append_scaled_joint(y_sparse_joints,
+                                     joint.y,
+                                     max_cropped_img_dim,
+                                     abs_image_center.y)
 
-                x_sparse_index = 2*joint_index
-                sparse_joint_indices.append(x_sparse_index)
-                sparse_joint_indices.append(x_sparse_index + 1)
+                sparse_joint_indices.append(joint_index)
 
-    return sparse_joints, sparse_joint_indices
+                is_visible_list.append(joint.is_visible)
+
+    return x_sparse_joints, y_sparse_joints, sparse_joint_indices, is_visible_list
 
 
 def _find_person_bounding_box(person, img_shape):
     """Finds an enclosing bounding box for `person` in the image with
     `img_shape` dimensions.
 
-    Currently the bounding box is found by taking a generous multiple of the
-    size of the person's head bounding box, which is encoded in the `Person`
-    object.
+    Currently the bounding box is found by taking the
+    (scale*200px) by (scale*200px) rectangle centered around `objpos`.
 
-    This has the issue of potentially cropping people in weird positions, for
-    example upside-down people.
-
-    One improvement would be to take the bounding box found with the current
-    method, and expand each dimension so that all the labelled joints are
-    contained.
+    One experiment would be to take the bounding box found with the current
+    method, and expand or shrink each dimension to the minimum spanning
+    rectangle such that all the labelled joints are contained.
 
     Args:
         person: Person to find bounding box for.
@@ -290,14 +317,14 @@ def _find_person_bounding_box(person, img_shape):
     Returns:
         A `Rectangle` describing the box bounding `person`.
     """
-    head_rect = Rectangle(person.head_rect)
-    head_width = head_rect.get_width()
-    head_height = head_rect.get_height()
+    x = person.objpos.x
+    y = person.objpos.y
 
-    top_left = Point(head_rect.top_left.x - 4*head_width,
-                     head_rect.top_left.y - head_height)
-    bottom_right = Point(head_rect.top_left.x + 4*head_width,
-                         head_rect.top_left.y + 7*head_height)
+    # NOTE(brendan): The MPII `scale` is with respect to 200px object height,
+    # and `objpos` is at the person's center.
+    person_half_dim = 100*person.scale
+    top_left = Point(x - person_half_dim, y - person_half_dim)
+    bottom_right = Point(x + person_half_dim, y + person_half_dim)
 
     return Rectangle(_clamp_point_to_image(top_left, img_shape) +
                      _clamp_point_to_image(bottom_right, img_shape))
@@ -320,7 +347,7 @@ def _find_padded_person_dim(person_rect):
     """
     person_width = person_rect.get_width()
     person_height = person_rect.get_height()
-    padding = int(abs(person_height - person_width)/2)
+    padding = abs(person_height - person_width)/2
     if person_height > person_width:
         height_pad = 0
         width_pad = padding
@@ -335,10 +362,29 @@ def _find_padded_person_dim(person_rect):
     return padded_img_dim, person_shape_xy, padding_xy
 
 
+def _get_binary_maps(image_dim, x_dense_joints, y_dense_joints):
+    """
+    Creates binary maps of shape [image_dim, image_dim, Person.NUM_JOINTS],
+    that are 10 pixels in radius.
+    """
+    dim_j = complex(0, image_dim)
+    y, x = np.mgrid[-0.5:0.5:dim_j, -0.5:0.5:dim_j]
+    y = y.astype(np.float32)
+    x = x.astype(np.float32)
+    y = tf.expand_dims(input=y, axis=-1)
+    y = tf.tile(input=y, multiples=[1, 1, Person.NUM_JOINTS])
+    x = tf.expand_dims(input=x, axis=-1)
+    x = tf.tile(input=x, multiples=[1, 1, Person.NUM_JOINTS])
+
+    binary_maps = ((y - y_dense_joints)**2 + (x - x_dense_joints)**2 < (10/image_dim)**2)
+
+    return tf.cast(binary_maps, tf.uint8)
+
+
 def _write_example(coder, image_jpeg, people_in_img, writer):
     """Writes an example to the TFRecord file owned by `writer`.
 
-    See `_extract_labeled_joints` for the format of `sparse_joints` and
+    See `_extract_labeled_joints` for the format of `*_sparse_joints` and
     `sparse_joint_indices`.
     """
     img_shape = coder.decode_jpeg(image_jpeg)
@@ -356,20 +402,36 @@ def _write_example(coder, image_jpeg, people_in_img, writer):
             padding_xy,
             padded_img_dim)
 
-        sparse_joints, sparse_joint_indices = _extract_labeled_joints(
-            person,
+        labels = _extract_labeled_joints(
+            person.joints,
             person_shape_xy,
             padding_xy,
             person_rect.top_left)
+
+        x_joints, y_joints, joint_indices, is_visible_list = labels
+
+        joints_shape = len(joint_indices)
+        binary_maps = coder.get_binary_maps(x_joints,
+                                            y_joints,
+                                            np.reshape(joint_indices, [joints_shape, 1]),
+                                            [joints_shape])
+
+        head_rect_width = person.head_rect.get_width()/padded_img_dim
+        head_rect_height = person.head_rect.get_height()/padded_img_dim
+        head_size = 0.6*math.sqrt(head_rect_width**2 + head_rect_height**2)
 
         example = tf.train.Example(
             features=tf.train.Features(
                 feature={
                     'image_jpeg': _bytes_feature(scaled_img_jpeg),
-                    'joint_indices': _int64_feature(sparse_joint_indices),
-                    'joints': _float_feature(sparse_joints)
+                    'binary_maps': _bytes_feature(np.ndarray.tobytes(binary_maps)),
+                    'joint_indices': _int64_feature(joint_indices),
+                    'x_joints': _float_feature(x_joints),
+                    'y_joints': _float_feature(y_joints),
+                    'is_visible_list': _int64_feature(is_visible_list),
+                    'head_size': _float_feature(head_size)
                 }))
-        writer.write(example.SerializeToString())
+        writer.write(tf.compat.as_bytes(example.SerializeToString()))
 
 
 def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset):
@@ -388,16 +450,29 @@ def _process_image_files_single_thread(coder, thread_index, ranges, mpii_dataset
     else:
         base_name = 'test'
 
-    tfrecord_filename = '{}{}.tfrecord'.format(base_name, thread_index)
-    with tf.python_io.TFRecordWriter(path=tfrecord_filename) as writer:
-        for img_index in range(ranges[thread_index][0], ranges[thread_index][1]):
-            with tf.gfile.FastGFile(name=mpii_dataset.img_filenames[img_index], mode='rb') as f:
-                image_jpeg = f.read()
+    shards_per_thread = FLAGS.train_shards/FLAGS.num_threads
+    shard_ranges = pose_util.get_n_ranges(ranges[thread_index][0],
+                                          ranges[thread_index][1],
+                                          shards_per_thread)
 
-            _write_example(coder,
-                           image_jpeg,
-                           mpii_dataset.people_in_imgs[img_index],
-                           writer)
+    for shard_index in range(len(shard_ranges)):
+        tfrecord_index = int(thread_index*shards_per_thread + shard_index)
+        tfrecord_filename = '{}{}.tfrecord'.format(base_name, tfrecord_index)
+        tfrecord_filepath = os.path.join(FLAGS.train_dir, tfrecord_filename)
+
+        options = tf.python_io.TFRecordOptions(
+            compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+        with tf.python_io.TFRecordWriter(path=tfrecord_filepath, options=options) as writer:
+            shard_start = shard_ranges[shard_index][0]
+            shard_end = shard_ranges[shard_index][1]
+            for img_index in range(shard_start, shard_end):
+                with tf.gfile.FastGFile(name=mpii_dataset.img_filenames[img_index], mode='rb') as f:
+                    image_jpeg = f.read()
+
+                _write_example(coder,
+                               image_jpeg,
+                               mpii_dataset.people_in_imgs[img_index],
+                               writer)
 
 
 def _process_image_files(mpii_dataset, num_examples, session):
@@ -409,10 +484,7 @@ def _process_image_files(mpii_dataset, num_examples, session):
 
     num_threads = FLAGS.num_threads
 
-    spacing = np.linspace(0, num_examples, num_threads + 1).astype(np.int)
-    ranges = []
-    for spacing_index in range(len(spacing) - 1):
-        ranges.append([spacing[spacing_index], spacing[spacing_index + 1]])
+    ranges = pose_util.get_n_ranges(0, num_examples, num_threads)
 
     coder = ImageCoder(session)
 
@@ -429,6 +501,11 @@ def _process_image_files(mpii_dataset, num_examples, session):
 @timethis
 def write_tf_record(mpii_dataset, num_examples=None):
     # TODO(brendan): Docstring...
+    assert ((FLAGS.train_shards % FLAGS.num_threads) == 0)
+
+    if not os.path.exists(FLAGS.train_dir):
+        os.mkdir(FLAGS.train_dir)
+
     with tf.Graph().as_default():
         with tf.Session() as session:
             if num_examples == None:

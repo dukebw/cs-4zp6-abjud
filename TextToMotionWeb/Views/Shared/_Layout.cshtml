@@ -1,13 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - TextToMotionWeb</title>
 
+
     <environment names="Development">
         <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
         <link rel="stylesheet" href="~/css/site.css" />
+        <link rel="stylesheet" href="~/css/custom.css" />
         <link rel="stylesheet" href="~/css/datatables.min.css" />
     </environment>
     <environment names="Staging,Production">
@@ -16,11 +18,12 @@
               asp-fallback-test-class="sr-only" asp-fallback-test-property="position" asp-fallback-test-value="absolute" />
         <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/datatables.min.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/custom.css" />
     </environment>
 </head>
 <body>
     <div class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container">
+        <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1 col-sm-offset-0 col-xs-offset-0">
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                     <span class="sr-only">Toggle navigation</span>
@@ -28,7 +31,9 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a asp-controller="ImagePoseDraw" asp-action="Index" class="navbar-brand">ImagePoseDraw</a>
+                <a asp-controller="TextToMotion" asp-action="Index" class="navbar-brand"><b>TextToMotion</b></a>
+                <a asp-controller="ImagePoseDraw" asp-action="Index" class="navbar-brand"><b>ImagePoseDraw</b></a>
+                <a asp-controller="Demo" asp-action="Index" class="navbar-brand"><b>Demo</b></a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
@@ -40,19 +45,14 @@
             </div>
         </div>
     </div>
-    <div class="container body-content">
+    <div class="body-content">
         @RenderBody()
-        <hr />
-        <footer>
-            <p>&copy; 2016 - TextToMotionWeb</p>
-        </footer>
     </div>
 
     <environment names="Development">
         <script src="~/lib/jquery/dist/jquery.js"></script>
         <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
         <script src="~/js/site.js" asp-append-version="true"></script>
-        <!--**********NEWLY ADDED FOR DATATABLES**********-->
         <script src="~/js/datatables.min.js" asp-append-version="true"></script>
     </environment>
     <environment names="Staging,Production">
@@ -65,7 +65,9 @@
                 asp-fallback-test="window.jQuery && window.jQuery.fn && window.jQuery.fn.modal">
         </script>
         <script src="~/js/site.min.js" asp-append-version="true"></script>
+        <script src="~/js/custom.js" asp-append-version="true"></script>
         <script src="~/js/datatables.min.js" asp-append-version="true"></script>
+        <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     </environment>
 
     @RenderSection("scripts", required: false)
