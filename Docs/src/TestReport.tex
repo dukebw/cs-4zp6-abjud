@@ -47,7 +47,6 @@
 \date{\today}
 
 \maketitle
-
 \pagenumbering{roman}
 \tableofcontents
 % \listoftables
@@ -95,11 +94,65 @@ March 14, 2017 & 0.0 & File created\\
 
     Manual Testing
 
-
+%I have added a few examples of what the tables should be.
 \chapter{Testing}
 
 \section{Proof of Concept}
+%An example of non functional requirements. In test cases where we we want an average we add an additional cell in bold
+\subsection{Functional website for pose estimation}
+\subsubsection{Description}
+The user should be able to run pose estimation of a video or image through the website interface
+\subsubsection{Results}
+%Any comments we wish to make or add can be added here should we wish to expand on the results. An overall summary can also be here
+\begin{table}[h!]
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+ \label{table:1}
+\end{table}
 
+%test for functional requirements.
+\section{Solution Constraints Testing}
+\subsection{Standard Data Format Test}
+\subsubsection{Description}
+An automated test that checks if the human pose data used for the project is standard and compatible with existing software libraries.
+\subsubsection{Input Data}
+\begin{table}[h!]
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Intput & Description\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+ \label{table:1}
+\end{table}
+\subsubsection{Results}
+%Results are largely unchanged from nonfunctional requirements, though somtimes we might choose to simply describe the result without a table.
 
+%For tests that require a time use this
+\section{Non-Functional Requirements}
+\subsection{Ease of Use Requirements 1: Upload/Download}
+\subsubsection{Description}
+Through the web interface a user should be able to upload then download a picture within 30 seconds
+\subsubsection{Results}
+Passing conditions are that this process can be completed in 30 seconds
+\begin{table}[h!]
+ \centering
+ \begin{tabular}{||p{1.5cm}|p{1.5cm}|p{1.5cm}||}
+ \hline
+ \bf Test & \bf Time & \bf Result \\
+ \hline\hline
+   &  & \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+ \label{table:1}
+\end{table}
 
 \end{document}
