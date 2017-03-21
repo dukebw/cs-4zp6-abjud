@@ -1,13 +1,24 @@
 \documentclass{scrreprt}
+\usepackage{listings}
+\usepackage{underscore}
 
+\usepackage[bookmarks=true]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{xcolor}
+\usepackage{indentfirst}
+\usepackage[section]{placeins}
+\usepackage{graphicx}
+\usepackage{graphics}
+\usepackage{longtable}
+\usepackage{booktabs}
 \usepackage{xcolor} % for different colour comments
 \usepackage{tabto}
+\usepackage{array}
 \usepackage{mdframed}
 \mdfsetup{nobreak=true}
 \usepackage{xkeyval}
 \usepackage{tabularx}
-\usepackage{booktabs}
-\usepackage{hyperref}
 \hypersetup{
     colorlinks,
     citecolor=black,
@@ -17,7 +28,6 @@
 }
 \usepackage[skip=2pt, labelfont=bf]{caption}
 \usepackage{titlesec}
-\usepackage{graphicx}
 \usepackage[section]{placeins}
 \graphicspath{ {image/} }
 
@@ -47,7 +57,6 @@
 \date{\today}
 
 \maketitle
-\pagenumbering{roman}
 \tableofcontents
 % \listoftables
 % \listoffigures
@@ -104,7 +113,6 @@ March 14, 2017 & 0.0 & File created\\
 The user should be able to run pose estimation of a video or image through the website interface
 \subsubsection{Results}
 %Any comments we wish to make or add can be added here should we wish to expand on the results. An overall summary can also be here
-\begin{table}[h!]
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
  \hline
@@ -113,16 +121,92 @@ The user should be able to run pose estimation of a video or image through the w
    &  \\ %fill in these entries once we have them
  \hline
  \end{tabular}
- \label{table:1}
-\end{table}
+
+\subsection{Databse Website Pairing}
+\subsubsection{Description}
+The database will be paired to the website so that the website provides images or video to the user. A test is consider a pass if the database can be accessed through the web interface
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+
+\subsection{Databse Website Pairing}
+\subsubsection{Description}
+The database will be paired to the website so that the website provides images or video to the user. A test is considered a pass if the database can be accessed through the web interface
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+
+\subsection{Updating the database}
+\subsubsection{Description}
+The database allows users to upload images to the database through the website interface. A test is considered a pass if an image or video can be uploaded, then accessed by user through the web interface
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+
+\subsection{Running Pose Estimation}
+\subsubsection{Description}
+Once a user uploads an image they should be able to run pose estimation on an uploaded image. A test is considered a pass if an image or video can be uploaded, have pose estimation run on it, and have the result be visible to the user.
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+
+\subsection{Search by Tag or Name}
+\subsubsection{Description}
+The database has the ability to search through the database using a video tag or the video name. A test is considered a pass if we can search the dataase using a tag or name and the correct video appears.
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
 
 %test for functional requirements.
 \section{Solution Constraints Testing}
+
+\subsection{Deep Learning Methods Test}
+\subsubsection{Description}
+Our Supervisor Dr. Taylor will check if the Deep Learning Methods used are modern and up-to-date.
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+
 \subsection{Standard Data Format Test}
 \subsubsection{Description}
 An automated test that checks if the human pose data used for the project is standard and compatible with existing software libraries.
 \subsubsection{Input Data}
-\begin{table}[h!]
  \centering
  \begin{tabular}{p{3cm}p{6cm}}
  \hline\hline
@@ -131,10 +215,54 @@ An automated test that checks if the human pose data used for the project is sta
    &  \\ %fill in these entries once we have them
  \hline
  \end{tabular}
- \label{table:1}
-\end{table}
 \subsubsection{Results}
 %Results are largely unchanged from nonfunctional requirements, though somtimes we might choose to simply describe the result without a table.
+
+\subsection{Linux Platform Build and Run Test}
+\subsubsection{Description}
+an automated test that confirms that the pose estimation software can be built correctly on a Linux platform.
+\subsubsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Intput & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+\subsubsection{Results}
+
+\subsection{Python API Hook Testing}
+\subsubsection{Description}
+An automated test that confirms the major interfaces for the project have working python hooks.
+\subsubsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Intput & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+\subsubsection{Results}
+
+\section{Functional Requirements}
+\subsection{Supported Video Encodings Test}
+\subsubsection{Description}
+Tests whether the ReadFrames API is able to decode MP4, MP2 and AAC video files.
+\subsubsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Intput & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+\subsubsection{Results}
 
 %For tests that require a time use this
 \section{Non-Functional Requirements}
@@ -143,7 +271,6 @@ An automated test that checks if the human pose data used for the project is sta
 Through the web interface a user should be able to upload then download a picture within 30 seconds
 \subsubsection{Results}
 Passing conditions are that this process can be completed in 30 seconds
-\begin{table}[h!]
  \centering
  \begin{tabular}{||p{1.5cm}|p{1.5cm}|p{1.5cm}||}
  \hline
@@ -152,7 +279,7 @@ Passing conditions are that this process can be completed in 30 seconds
    &  & \\ %fill in these entries once we have them
  \hline
  \end{tabular}
- \label{table:1}
-\end{table}
+
+\chapter{Changes After testing}
 
 \end{document}
