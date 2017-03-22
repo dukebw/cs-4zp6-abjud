@@ -14,6 +14,7 @@ from networks import resnet_bulat
 from networks import vgg_vae
 import pdb
 
+
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
     loss averages are computed every time the loss is computed.
@@ -153,23 +154,21 @@ def _mean_squared_error_loss(logits, heatmaps, weights):
 
 
 # These are great mathematicians so their names are written with capital letters ^^
-def _KullbackLeibler(X, weights):
+def _KullbackLeibler(mu, log_sigma):
     """
     (Gaussian) Kullback-Leibler divergence KL(q||p), per training example
     This function can be derived with basic knowledge of Bayesian variational inference,
     see Kingma et al Autoencoding Variational Bayes.
     (thor) Let me first get this running and then I'll explain.
     """
-    # yields a batch of shape [?, width, height, num_classes]
-    #reparam = 1 + 2*log_sigma - mu**2 - tf.exp(2*log_sigma)
-    # Transpose so we get the trace of each channel with tf.trace
-    #reparam_t = tf.transpose(reparam, perm=[0,3,1,2])
-    # take the trace of each channels and reduce the mean across the 16 channels
-    #KL_loss = -0.5 * tf.reduce_mean(tf.trace(reparam_t),1)
-    # reduce the mean across the batch dimension
-    #KL_loss = tf.reduce_mean(KL_loss)
-    KL_loss = tf.reduce_mean(2*X)
-    tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_loss)
+    with tf.name_scope("KL_divergence"):
+        KL = 1 + 2*log_sigma - mu**2 - tf.exp(2*log_sigma)
+        # take the trace of each channels and reduce the mean across the 16 channels
+        KL_loss = -0.5 * tf.reduce_sum(tf.trace(reparam_t),1)
+        # reduce the mean across the batch dimension
+        KL_loss = tf.reduce_mean(KL_loss)
+        # There's no way of assuming the weights to retain meaning wrt latent dimensions
+        tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_loss)
 
 def detector_only_xentropy_loss(logits,
                                 endpoints,
@@ -239,7 +238,7 @@ def vae_detector_loss(logits,
                       is_visible_weights):
     """ Trains the detector as a variational autoencoder
     """
-    _KullbackLeibler(endpoints['gen_img'], weights)
+    _KullbackLeibler(endpoints['z_mu'], endpoints['z_log_sigma'])
 
     _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
 

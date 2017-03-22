@@ -1,5 +1,5 @@
 {
-  "network_name": "vgg_debug",
+  "network_name": "vgg_vae",
   "loss_name": "vae_detector_loss",
   "train_data_dir": "/mnt/data/datasets/MPII_HumanPose/train_80_shards_w_binmap",
   "validation_data_dir": "/mnt/data/datasets/MPII_HumanPose/valid_80_shards_w_binmap",
