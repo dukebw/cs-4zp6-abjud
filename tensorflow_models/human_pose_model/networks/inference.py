@@ -164,11 +164,11 @@ def _KullbackLeibler(mu, log_sigma):
     with tf.name_scope("KL_divergence"):
         KL = 1 + 2*log_sigma - mu**2 - tf.exp(2*log_sigma)
         # take the trace of each channels and reduce the mean across the 16 channels
-        KL_loss = -0.5 * tf.reduce_sum(tf.trace(reparam_t),1)
+        KL_loss = -0.5 * tf.reduce_sum(KL,1)
         # reduce the mean across the batch dimension
-        KL_loss = tf.reduce_mean(KL_loss)
+        KL_batch_loss = tf.reduce_mean(KL_loss)
         # There's no way of assuming the weights to retain meaning wrt latent dimensions
-        tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_loss)
+        tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_batch_loss)
 
 def detector_only_xentropy_loss(logits,
                                 endpoints,

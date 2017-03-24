@@ -111,6 +111,18 @@ def _get_reparameterization(hidden_enc):
     return sampleGaussian(z_mu, z_log_sigma), z_mu, z_log_sigma
 
 
+def faster_pixel_cnn(img):
+    if step == 0:
+      # Prediction 1
+
+      # Prediction 2
+
+      # Prediction 3
+
+      # Prediction 4
+    # Step function - should be with a while loop, cond, body, var like in raw_rnn
+
+
 def _get_img_reconstruction(a8,z,batch_norm_params):
     shape = z.get_shape().as_list()
     size = shape[1]*shape[1]
