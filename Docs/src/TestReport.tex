@@ -1,7 +1,7 @@
 \documentclass{scrreprt}
 \usepackage{listings}
 \usepackage{underscore}
-
+\usepackage{ragged2e}
 \usepackage[bookmarks=true]{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
@@ -80,11 +80,6 @@ March 14, 2017 & 0.0 & File created\\
 \chapter{List of Tables}
     tables for a specific tests have been removed to improve readability
 
-\chapter{List of Figures}
-    Figures used in this document.
-
-    Definitions and Acronyms
-
 \chapter{Introduction}
 
 \section{Purpose of Document}
@@ -104,7 +99,7 @@ March 14, 2017 & 0.0 & File created\\
     Manual Testing
 
 %I have added a few examples of what the tables should be.
-\chapter{Testing}
+\chapter{Preliminary Testing}
 
 \section{Proof of Concept}
 %An example of non functional requirements. In test cases where we we want an average we add an additional cell in bold
@@ -125,19 +120,6 @@ The user should be able to run pose estimation of a video or image through the w
 \subsection{Databse Website Pairing}
 \subsubsection{Description}
 The database will be paired to the website so that the website provides images or video to the user. A test is consider a pass if the database can be accessed through the web interface
-\subsubsection{Results}
- \centering
- \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
- \hline
- \bf Test & \bf Result\\
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
-
-\subsection{Databse Website Pairing}
-\subsubsection{Description}
-The database will be paired to the website so that the website provides images or video to the user. A test is considered a pass if the database can be accessed through the web interface
 \subsubsection{Results}
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
@@ -210,7 +192,7 @@ An automated test that checks if the human pose data used for the project is sta
  \centering
  \begin{tabular}{p{3cm}p{6cm}}
  \hline\hline
- Intput & Description\\
+ Input & Description\\
  \hline\hline
    &  \\ %fill in these entries once we have them
  \hline
@@ -225,7 +207,7 @@ an automated test that confirms that the pose estimation software can be built c
  \centering
  \begin{tabular}{p{3cm}p{6cm}}
  \hline\hline
- Intput & Description\\
+ Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
    &  \\ %fill in these entries once we have them
@@ -240,7 +222,7 @@ An automated test that confirms the major interfaces for the project have workin
  \centering
  \begin{tabular}{p{3cm}p{6cm}}
  \hline\hline
- Intput & Description\\
+ Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
    &  \\ %fill in these entries once we have them
@@ -248,29 +230,151 @@ An automated test that confirms the major interfaces for the project have workin
  \end{tabular}
 \subsubsection{Results}
 
-\section{Functional Requirements}
-\subsection{Supported Video Encodings Test}
-\subsubsection{Description}
+\chapter{Functional Requirements}
+\section{Supported Video Encodings Test}
+\subsection{Description}
 Tests whether the ReadFrames API is able to decode MP4, MP2 and AAC video files.
-\subsubsection{Input Data}
+\subsection{Input Data}
  \centering
  \begin{tabular}{p{3cm}p{6cm}}
  \hline\hline
- Intput & Description\\
+ Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
    &  \\ %fill in these entries once we have them
  \hline
  \end{tabular}
-\subsubsection{Results}
+\subsection{Results}
+
+\section{Frame Reading Timestamp Accuracy Test}
+\subsection{Description}
+Tests whether the timestamps on the frames returned by the ReadFrames API match their temporal position in the original video stream.
+\subsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Input & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+\subsection{Results}
+
+\section{Human Pose Estimation Data Quality Test}
+\subsection{Description}
+\begin{flushleft}
+Test to ensure the data quality produced by the human pose estimator component. A set of Charades videos will be processed by the human pose estimator, and skeleton animations corresponding to the generated human pose data will be created (this is a scoped part of the software pipeline). A double-blind test will be ran, where testers will be shown random mixed sets of the skeleton animations produced by McMaster Text to Motion, together with skeletons from actual motion capture data coming from CMU’s motion capture lab. Testers will indicate whether they think the motion capture data came from actual motion capture, or from the pose estimation software.
+\end{flushleft}
+\subsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf Result\\
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+
+\section{Database Output Full Range Coverage Test}
+\subsection{Description}
+\begin{flushleft}
+Tests to be sure all entries in the database can be successfully searched for.
+\end{flushleft}
+\subsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Input & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+\subsection{Results}
+
+\section{Databse No False Positives}
+\subsection{Description}
+\begin{flushleft}
+Tests that the database search does not return any false positives, such as videos or images that do not contains searched words.
+\end{flushleft}
+\subsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Input & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+\subsection{Results}
+
+\section{Full Text Search Order by Relevance Test}
+\subsection{Description}
+\begin{flushleft}
+%TO FILL
+\end{flushleft}
+\subsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Input & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+   &  \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+\subsection{Results}
 
 %For tests that require a time use this
-\section{Non-Functional Requirements}
-\subsection{Ease of Use Requirements 1: Upload/Download}
+\chapter{Non-Functional Requirements}
+
+\section{Look and Feel Requirements}
+\subsection{Description}
+\begin{flushleft}
+A test to see if the color scheme of the website is visually appealing. To determine this we ask users to rank the color scheme on a scale of 1 out of 10. An average of 6 will be enough to satisfy this requirement.
+\subsection{Results}
+\end{flushleft}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf User & \bf Rank\\
+ \hline\hline
+ & \\
+ \hline
+ Average &  \\ %fill in these entries once we have them
+ \hline
+ Pass? & \\
+ \hline
+ \end{tabular}
+
+\section{Style Requirements}
+\section{Description}
+\begin{flushleft}
+The website interface should be minimal and should inform the user of valid actions through visual means. Users will rate the design on a scale of 1 to 10. An average of 5 is required for a pass.
+\subsubsection{Results}
+\end{flushleft}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf User & \bf Rank\\
+ \hline\hline
+ & \\
+ \hline
+ Average &  \\ %fill in these entries once we have them
+ \hline
+ Pass? & \\
+ \hline
+ \end{tabular}
+
+\section{Ease of Use Requirements}
+\subsection{Upload/Download}
 \subsubsection{Description}
+\begin{flushleft}
 Through the web interface a user should be able to upload then download a picture within 30 seconds
 \subsubsection{Results}
-Passing conditions are that this process can be completed in 30 seconds
+\end{flushleft}
  \centering
  \begin{tabular}{||p{1.5cm}|p{1.5cm}|p{1.5cm}||}
  \hline
@@ -280,6 +384,65 @@ Passing conditions are that this process can be completed in 30 seconds
  \hline
  \end{tabular}
 
+\subsection{Text Box Functionality}
+\subsubsection{Description}
+\begin{flushleft}
+The user should be able to input a descriptive word or phrase into a text-box from within the web interface in order to search for a video.
+\subsubsection{Results}
+\end{flushleft}
+ \centering
+ \begin{tabular}{||p{1.5cm}|p{1.5cm}|p{1.5cm}||}
+ \hline
+ \bf Test & \bf Time & \bf Result \\
+ \hline\hline
+   &  & \\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
+
+\section{Learning Requirements}
+\subsection{Usability Tests}
+\subsubsection{Description}
+\begin{flushleft}
+The user should be able to interact with the website without prior knowledge. They will given a minute to explore the website. After that time they are asked to rate the usability on a scale of 1 to 10. An average of 6 is required for a pass.
+\subsubsection{Results}
+\end{flushleft}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf User & \bf Rank\\
+ \hline\hline
+ & \\
+ \hline
+ Average &  \\ %fill in these entries once we have them
+ \hline
+ Pass? & \\
+ \hline
+ \end{tabular}
+
+\subsection{Text to Motion Training }
+\subsubsection{Description}
+\begin{flushleft}
+The user should be able to interact with the website without prior knowledge. They will given a minute to explore the website. After that time they are asked to rate the usability on a scale of 1 to 10. An average of 6 is required for a pass.
+\subsubsection{Results}
+\end{flushleft}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf User & \bf Rank\\
+ \hline\hline
+ & \\
+ \hline
+ Average &  \\ %fill in these entries once we have them
+ \hline
+ Pass? & \\
+ \hline
+ \end{tabular}
+
+\chapter{Other Relavent Testing}
+\section{Presicion and Accuracy}
+\section{Robustness/Fault Tolerance}
+\section{Capacity Requirements}
+\section{}
 \chapter{Changes After testing}
 
 \end{document}
