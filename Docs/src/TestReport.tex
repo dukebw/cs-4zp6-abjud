@@ -387,138 +387,141 @@ Tests that the database search does not return any false positives, such as vide
 
 %For tests that require a time use this
 \chapter{Non-Functional Requirements}
+\section{Usability}
+\begin{flushleft}
+In order to determine the usability of the Text to Motion Database a small sample of users were asked to use the website to preform some predetermined actions and answer questions afterwards. Before the participants were asked to preform any actions they were given a minute to familiarize themselves with the interface but were not given any guidance or tips from the development team. Once the time was up they were asked to upload an image on mobile, or desktop through the camera, URL or file saved within the computer. While preforming the required action the participants time was recorded and used to determine if a requirement had passed or failed. Upon completion of the task the users were asked to rate the style and design of the website on a scale of 1 - 10.
+\end{flushleft}
+
+\section{Results}
+\begin{flushleft}
+The results from the participants can be seen throughout the Non-Functional Requirements along with a pass or fail based on the requirements description.
+\end{flushleft}
 
 \section{Look and Feel Requirements}
-\subsection{Look and Feel Requirements}
-\subsubsection{Description}
+
+\subsection{Description}
 \begin{flushleft}
 A test to see if the color scheme of the website is visually appealing. To determine this we ask users to rank the color scheme on a scale of 1 out of 10. An average of 6 will be enough to satisfy this requirement.
-\subsubsection{Results}
+\subsection{Results}
 \end{flushleft}
+ 
  \centering
- \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \textbf User & \textbf Rank\\
+ \bf User & \bf Rating & \bf Result\\
  \hline\hline
- Nick & 7 \\
+ Nick & 7 & Pass \\
  \hline
- Maddy & 8 \\
+ Maddy & 8 & Pass\\ %fill in these entries once we have them
  \hline
- Sarah & 7 \\
- \hline
- Average &  7.333\\ %fill in these entries once we have them
- \hline
- Pass? & Yes\\
+ Sarah & 7 & Pass \\
  \hline
  \end{tabular}
- \vspace{1cm}
 
 \section{Style Requirements}
-\subsection{Minimalistic Web Design}
-\subsubsection{Description}
+
+\section{Description}
 \begin{flushleft}
 The website interface should be minimal and should inform the user of valid actions through visual means. Users will rate the design on a scale of 1 to 10. An average of 5 is required for a pass.
 \subsubsection{Results}
 \end{flushleft}
+ 
  \centering
- \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \textbf User & \textbf Rank\\
+ \bf User & \bf Rating & \bf Result\\
  \hline\hline
- Nick & 8\\
+ Nick & 9 & Pass \\
  \hline
- Maddy & 9\\
+ Maddy & 8 & Pass\\ %fill in these entries once we have them
  \hline
- Sarah & 8\\
- \hline
- Average &  8.333\\ %fill in these entries once we have them
- \hline
- Pass? & Yes\\
+ Sarah & 8 & Pass \\
  \hline
  \end{tabular}
- \vspace{1cm}
 
 \section{Ease of Use Requirements}
+
 \subsection{Upload/Download}
 \subsubsection{Description}
 \begin{flushleft}
 Through the web interface a user should be able to upload then download a picture within 30 seconds
 \subsubsection{Results}
 \end{flushleft}
- \centering
-  \begin{tabular}{||p{4.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
-\hline
-\textbf Test & \textbf User & \textbf Time & \textbf Result \\
-  \hline\hline
-  Uploading based on URL & Nick & 28 seconds & Pass\\
-\hline
-    Uploading image from a mobile device & Maddy & 22 seconds  & Pass\\
- \hline
-   Uploading file from Desktop &  Sarah & 26 seconds & Pass\\
-  \hline
-  \end{tabular}
-\vspace{1cm}
 
+ \centering
+ \begin{tabular}{||p{4.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
+ \hline
+ \bf Test & \bf User & \bf Time & \bf Result \\
+ \hline\hline
+    Uploading based on URL & Nick & 28 seconds & Pass\\
+ \hline\hline
+    Uploading image from a mobile device & Maddy & 22 seconds  & Pass\\
+ \hline\hline
+    Uploading file from Desktop &  Sarah & 26 seconds & Pass\\
+ \hline
+ \end{tabular}
+ 
 \subsection{Text Box Functionality}
 \subsubsection{Description}
 \begin{flushleft}
 The user should be able to input a descriptive word or phrase into a text-box from within the web interface in order to search for a video.
 \subsubsection{Results}
 \end{flushleft}
+
  \centering
  \begin{tabular}{||p{4.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
-  \hline
- \textbf Test & \textbf User & \textbf Time & \textbf Result \\
-    \hline
+ \hline
+ \bf Test & \bf User & \bf Time & \bf Result \\
+ \hline\hline
    Search for "Woman" & Nick & 3 seconds  & Pass\\ %fill in these entries once we have them
-  \hline
+ \hline\hline
    Search for "f" & Maddy & 2 seconds  & Pass\\
-    \hline
+ \hline\hline
    Search for "the" & Sarah & 3 seconds  & Pass\\
-  \hline
-  \end{tabular}
- \vspace{1cm}
+ \hline
+ \end{tabular}
 
 \section{Learning Requirements}
+
 \subsection{Usability Tests}
 \subsubsection{Description}
 \begin{flushleft}
 The user should be able to interact with the website without prior knowledge. They will given a minute to explore the website. After that time they are asked to rate the usability on a scale of 1 to 10. An average of 6 is required for a pass.
 \subsubsection{Results}
 \end{flushleft}
+
  \centering
- \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \textbf User & \textbf Rank\\
+ \bf User & \bf Rank & \bf Result\\
  \hline\hline
- Nick & 6\\
+ Nick & 6 & Pass \\
  \hline
- Maddy & 8\\
+ Maddy & 8 & Pass \\ 
  \hline
- Sarah & 8\\
- \hline
- Average &  7.333\\ %fill in these entries once we have them
- \hline
- Pass? & Yes\\
+ Sarah & 8 & Pass\\
  \hline
  \end{tabular}
- \vspace{1cm}
 
 \subsection{Text to Motion Training }
 \subsubsection{Description}
 \begin{flushleft}
-The user should be able to start a text to motion event without having any prior training. The process should take less than 30 seconds.
+The user should be able to interact with the website without prior knowledge. They will given a minute to explore the website. After that time they are asked to rate the usability on a scale of 1 to 10. An average of 6 is required for a pass.
 \subsubsection{Results}
 \end{flushleft}
+
  \centering
- \begin{tabular}{||p{1.5cm}|p{1.5cm}|p{1.5cm}||}
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \textbf Test & \textbf Time & \textbf Result \\
+ \bf User & \bf Rank & \bf Result\\
  \hline\hline
-   &  & \\ %fill in these entries once we have them
+ Nick & 7 & Pass \\
+ \hline
+ Maddy & 8 & Pass \\ 
+ \hline
+ Sarah & 6 & Pass\\
  \hline
  \end{tabular}
- \vspace{1cm}
 
  \subsection{Software API}
 \subsubsection{Description}
