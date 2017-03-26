@@ -35,7 +35,31 @@ def _get_image_joint_predictions(image,
                                  session,
                                  image_bytes_feed,
                                  logits_tensor):
-    """
+    """This function does joint position inference on a single image, and
+    returns the resultant joint predictions in a JSON string.
+
+    The returned JSON string has the following format:
+
+        [{"r_ankle": [0.5, 0.5], "r_knee": [1.0, 2.0], ...},
+         {"r_ankle": [0.25, 0.2], "r_knee": [0.1, 0.5], ...}]
+
+    I.e. it is a JSON array of dictionaries, where the keys are names of joints
+    from `JOINT_NAMES_NO_SPACE`, and the values are two-element arrays
+    containing the [x, y] coordinates of the joint prediction.
+    
+    These [x, y] coordinates are in a space where the range [-0.5, 0.5]
+    represent the range, in the padded image, from the far left to the far
+    right in the case of x, and from the top to the bottom in the case of y.
+
+    Args:
+        image: JPEG image in raw bytes format.
+        session: TF session to run inference in.
+        image_bytes_feed: Placeholder tensor to feed image into.
+        logits_tensor: Output logits tensor, corresponding to heatmaps of joint
+            positions inferred by the network.
+
+    Returns:
+        JSON string of joint positions, as described above.
     """
     feed_dict = {
         image_bytes_feed: image
@@ -47,8 +71,6 @@ def _get_image_joint_predictions(image,
     x_predicted_joints = np.empty((batch_size, num_joints))
     y_predicted_joints = np.empty((batch_size, num_joints))
 
-    # {["r_ankle": [0.5, 0.5], "r_knee": [1.0, 2.0], ...],
-    #  ["r_ankle": [0.25, 0.2], "r_knee": [0.1, 0.5], ...]}
     joint_predictions_json = '['
     for batch_index in range(batch_size):
         joint_predictions_json += '{'
@@ -77,13 +99,24 @@ def _get_image_joint_predictions(image,
 
 
 def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
+    """This function returns subclasses of
+    `http.server.BaseHTTPRequestHandler`, using the closure of the function
+    call to allow extra parameters (namely the session to run a computation
+    graph for which `logits_tensor` is the output, and the placeholder to feed
+    that graph) to be "local" to the class.
+
+    This is necessary because the constructor of the subclass of
+    `BaseHTTPRequestHandler` expects a certain function signature.
+    """
     class TFHttpRequestHandler(http.server.BaseHTTPRequestHandler):
         """Defines handlers for specific HTTP request codes."""
         def __init__(self, *args, **kwargs):
             super(TFHttpRequestHandler, self).__init__(*args, **kwargs)
 
         def _respond_with_joints(self, image):
-            """
+            """Takes `image` and does joint inference on it, returning a 200 OK
+            HTTP response with the response data set being a JSON string
+            containing inferred joint positions.
             """
             joint_predictions_json = _get_image_joint_predictions(
                 image,
@@ -99,7 +132,15 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
             self.wfile.write(joint_predictions_json.encode('utf8'))
 
         def do_GET(self):
-            """
+            """This implementation of an HTTP GET request handler will take an
+            image URL (JPEG) passed as an option parameter
+            (image_url=<jpeg-url>) in the request URL, do joint inference on
+            the image and return a JSON string of the estimated joints.
+
+            This function is mainly for debugging, e.g. that the server is up.
+            E.g., the below curl command should return a string of JSON.
+
+            curl -X GET https://brendanduke.ca:8765/?image_url=http://st2.depositphotos.com/1912333/10089/i/950/depositphotos_100892946-stock-photo-sporty-woman-waving-hands.jpg --insecure
             """
             image_url = self.requestline.split()[1]
             image_url = urllib.parse.unquote(image_url)
@@ -113,7 +154,12 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
             self._respond_with_joints(image_request.content)
 
         def do_POST(self):
-            """
+            """HTTP POST requests should contain a JPEG image encoded in base
+            64 as the request data.
+
+            The server will attempt to decode the base 64 image and do
+            joint-position inference, returning a JSON string representing the
+            inferred joint positions.
             """
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -123,39 +169,58 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
     return TFHttpRequestHandler
 
 
+def _get_joint_position_inference_graph(image_bytes_feed):
+    """This function sets up a computation graph that will decode from JPEG the
+    input placeholder image `image_bytes_feed`, pad and resize it to shape
+    [IMAGE_DIM, IMAGE_DIM], then run joint inference on the image using the
+    "Two VGG-16s cascade" model.
+    """
+    decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
+    decoded_image = tf.image.convert_image_dtype(image=decoded_image,
+                                                 dtype=tf.float32)
+
+    image_shape = tf.shape(input=decoded_image)
+    height = image_shape[0]
+    width = image_shape[1]
+    pad_dim = tf.cast(tf.maximum(height, width), tf.int32)
+    offset_height = tf.cast(tf.cast((pad_dim - height), tf.float32)/2.0, tf.int32)
+    offset_width = tf.cast(tf.cast((pad_dim - width), tf.float32)/2.0, tf.int32)
+    padded_image = tf.image.pad_to_bounding_box(image=decoded_image,
+                                                offset_height=offset_height,
+                                                offset_width=offset_width,
+                                                target_height=pad_dim,
+                                                target_width=pad_dim)
+
+    resized_image = tf.image.resize_images(images=padded_image,
+                                           size=[IMAGE_DIM, IMAGE_DIM])
+
+    normalized_image = tf.subtract(x=resized_image, y=0.5)
+    normalized_image = tf.multiply(x=normalized_image, y=2.0)
+
+    normalized_image = tf.reshape(tensor=normalized_image,
+                                  shape=[IMAGE_DIM, IMAGE_DIM, 3])
+
+    normalized_image = tf.expand_dims(input=normalized_image, axis=0)
+
+    logits, _ = two_vgg_16s_cascade(normalized_image, 16, False, False)
+
+    return logits
+
+
 def run():
-    """Starts a server that will handle  HTTP requests to use TensorFlow."""
+    """Starts a server that will handle  HTTP requests to use TensorFlow.
+
+    At server startup, a joint inference computation graph is setup, a session
+    to run the graph in is created, and model weights are restored from
+    `RESTORE_PATH`.
+    
+    The server listens on an SSL-wrapped socket at port 8765 of localhost,
+    using an SSL certificate obtained from https://letsencrypt.org/.
+    """
     with tf.Graph().as_default():
         image_bytes_feed = tf.placeholder(dtype=tf.string)
 
-        decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
-        decoded_image = tf.image.convert_image_dtype(image=decoded_image,
-                                                     dtype=tf.float32)
-
-        image_shape = tf.shape(input=decoded_image)
-        height = image_shape[0]
-        width = image_shape[1]
-        pad_dim = tf.cast(tf.maximum(height, width), tf.int32)
-        offset_height = tf.cast(tf.cast((pad_dim - height), tf.float32)/2.0, tf.int32)
-        offset_width = tf.cast(tf.cast((pad_dim - width), tf.float32)/2.0, tf.int32)
-        padded_image = tf.image.pad_to_bounding_box(image=decoded_image,
-                                                    offset_height=offset_height,
-                                                    offset_width=offset_width,
-                                                    target_height=pad_dim,
-                                                    target_width=pad_dim)
-
-        resized_image = tf.image.resize_images(images=padded_image,
-                                               size=[IMAGE_DIM, IMAGE_DIM])
-
-        normalized_image = tf.subtract(x=resized_image, y=0.5)
-        normalized_image = tf.multiply(x=normalized_image, y=2.0)
-
-        normalized_image = tf.reshape(tensor=normalized_image,
-                                      shape=[IMAGE_DIM, IMAGE_DIM, 3])
-
-        normalized_image = tf.expand_dims(input=normalized_image, axis=0)
-
-        logits, _ = two_vgg_16s_cascade(normalized_image, 16, False, False)
+        logits = _get_joint_position_inference_graph(image_bytes_feed)
 
         session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
@@ -170,7 +235,6 @@ def run():
                                                       logits)
         server_address = ('localhost', 8765)
         httpd = http.server.HTTPServer(server_address, request_handler)
-        # openssl req -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
         httpd.socket = ssl.wrap_socket(httpd.socket,
                                        keyfile='./domain.key',
                                        certfile='./signed.crt',
