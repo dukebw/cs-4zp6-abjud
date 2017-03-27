@@ -68,16 +68,20 @@
 
 \chapter{Preface}
 \section{Revision History}
-\begin{table}[bp]
-\caption*{\textbf Revision History}
+\begin{table}[H]
+\caption{\textbf Revision History}
 \begin{tabularx}{\textwidth}{p{3.5cm}p{2cm}X}
 \toprule {\textbf Date} & {\textbf Version} & {\textbf Notes}\\
 \midrule
 March 14, 2017 & 0.0 & File created\\
-March 23, 2017 & 0.1 & Initial Template Completed \\
+March 23, 2017 & 0.1 & Initial template completed \\
+March 26, 2017 & 0.2 & Completed tables and organized sections\\
 \bottomrule
 \end{tabularx}
 \end{table}
+\section{List of Figures}
+This document does not utilize figures in order to display our results.
+\listoftables
 
 \chapter{Introduction}
 
@@ -552,7 +556,7 @@ The search results returned the correct relative ordering for the videos.
 %For tests that require a time use this
 \chapter{Non-Functional Requirements}
 \section{Usability}
-
+\subsection{Description}
 In order to determine the usability of the Text-to-Motion database, a small
 sample of users were asked to use the website to perform some predetermined
 actions and answer questions afterwards.
@@ -570,13 +574,13 @@ used to determine if a requirement had passed or failed.
 Upon completion of the task the users were asked to rate the style and design
 of the website on a scale from 1 to 10.
 
-\section{Results}
+\subsection{Results}
 
 The results from the participants can be seen throughout the Non-Functional
 Requirements along with a pass or fail based on the requirements description.
 
 \section{Look and Feel Requirements}
-\subsection{colour Scheme}
+\subsection{Colour Scheme}
 \subsubsection{Description}
 
 A test to see if the colour scheme of the website is visually appealing. The
@@ -785,7 +789,7 @@ were executed fast enough for the test to pass.
                 \textbf Test & \textbf Time & \textbf Result \\
                 \hline\hline
                 Uploading the image from a URL & 28 seconds  & Pass\\
-                \hline\hline
+                \hline
                 Uploading an image from desktop & 29 seconds & Pass\\
                 \hline
         \end{tabular}
@@ -798,7 +802,7 @@ were executed fast enough for the test to pass.
 When given a word or phrase the web interface will be able to respond with an
 image or video of a pose or action within a two minutes.
 
-\subsection{Input Data}
+\subsubsection{Input Data}
 
 \begin{table}[H]
         \centering
@@ -881,6 +885,63 @@ performance of our deep learning model on single-person pose estimation.
         \end{tabular}
 \end{table}
 
+\subsection{Deep Learning Model}
+\subsubsection{Description}
+
+The \textbf{PCKh} metric, used by the MPII Human Pose Dataset, defines a joint
+estimate as matching the ground truth if the estimate lies within 50\% of the
+head segment length. The head segment length is
+defined as the diagonal across the annotated head rectangle in the MPII data,
+multiplied by a factor of 0.6. Details can be found by examining the MATLAB
+\href{http://human-pose.mpi-inf.mpg.de/results/mpii_human_pose/evalMPII.zip}{evaluation script}
+provided with the MPII dataset.If our model can achieve 80\% total PCKh then the test is considered a pass.
+
+\subsubsection{Results}
+
+Our model achieves 85\% PCKh, thus this test is a pass.
+\begin{table}[H]
+    \centering
+    \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+        \hline
+        \textbf{Test} & \textbf {PCKh Value}\\
+         \hline\hline
+        r ankle & 68.907\% \\
+        \hline
+        r knee &  77.201\% \\
+        \hline
+        r hip & 83.583\% \\
+        \hline
+        l hip & 84.444\% \\
+        \hline
+        l knee & 77.419\% \\
+        \hline
+        l ankle & 69.055\% \\
+        \hline
+        pelvis & 89.776\% \\
+        \hline
+        thorax & 98.071\% \\
+        \hline
+        upper neck & 97.823\% \\
+        \hline
+        head top & 96.557\% \\
+        \hline
+        r wrist & 81.288\% \\
+        \hline
+        r elbow & 87.205\% \\
+        \hline
+        r shoulder & 92.918\% \\
+        \hline
+        l shoulder & 92.828\% \\
+        \hline
+        l elbow & 85.278\% \\
+        \hline
+        l wrist & 80.719\% \\
+        \hline
+        \textbf {Total PCKh} & \textbf {85.195}\% \\
+        \hline
+    \end{tabular}
+\end{table}
+
 \section{Reliability and Availability Requirements}
 \subsection{Software Availability}
 \subsubsection{Description}
@@ -895,7 +956,7 @@ process a single image at 4 hour intervals, and record the time.
 The software successfully processed the image at the specified 4 hour intervals
 over a period of 2 days.
 
-\subsection{Software Availability}
+\subsection{Website Availability}
 \subsubsection{Description}
 
 The software component of the project should be available at all times with the
@@ -928,7 +989,8 @@ displayed then the test is considered a pass.
                 \hline\hline
                 Scenario 1 &  Try uploading an image while the image storage service (Amazon S3) is not available. \\
                 \hline
-                Scenario 2 & Trying to search an image on the database while the database server is down.
+                Scenario 2 & Trying to search an image on the database while the database server is down. \\
+                \hline
         \end{tabular}
 \end{table}
 
@@ -1027,23 +1089,23 @@ as a base64, meaning it can be converted into any type.
 
 \chapter{Traceability} % FILL THIS IF WE HAVE TIME
 \begin{center}
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.1\textwidth}>{\raggedright\arraybackslash}p{0.3\textwidth}>{\raggedright\arraybackslash}p{0.5\textwidth}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.3\textwidth}>{\raggedright\arraybackslash}p{0.3\textwidth}>{\raggedright\arraybackslash}p{0.4\textwidth}}
 \caption{Traceability Matrix for Test-Requirement Relationships}\label{Table_TestsAndRequirements}
 \\\toprule
-\textbf Test \#  & \textbf Description & \textbf Requirement\\\midrule
-\# 3.2,  2.1.4,  2.2.1
+\textbf Test & \textbf Description & \textbf Requirement\\\midrule
+ 3.2, 4.2, 4.3, 5.8.2
 & Tests which measured performance Accuracy of Deep Learning Algorithm
-&  Req \# 1, 8,  23(Speed and Latency)\\
-\# 2.1.1,  2.1.2, 2.1.3, 2.2.3 & System tests, measuring reliability of the web framework. &
-Req \# 7,  12,  17, 20,  28,  30, 38, 39
+&  Req 1, 8,  23(Speed and Latency)\\
+ 4.1,  5.3.1, 5.7.1, 6.4.2 & System tests, measuring reliability of the web framework. &
+Req 7,  12,  17, 20, 30, 38, 39
 \\
-\# 2.1.5
+4.4-4.6
  & Unit and Systems Tests Grading Database Search Performance & Req \# 9, 10, 11,
  \\
-2.1.3, 2.2.2,  & Security and Data Integrity Tests & Req \# 10, 27, 29 \\
-2.2.2, 2.3.1, 2.3.2 & Proper Formatting Tests & Req \# 2, 7, 23, 29
+4.5, 6.3.1, 6.3.1, 6.4.1 & Security and Data Integrity Tests & Req \# 10, 27, 29 \\
+4.1.1, 5.8.2, 6.4.1 & Proper Formatting Tests & Req \# 7, 23, 29
 \\
-\# 2.2.1, 2.4.1 & User Interface Tests & Req \# 13-21, 24-26
+4.2.1-5.8.1,6.1.1-6.2.2  & User Interface Tests & Req \# 13-21, 24-26
 \\
 \bottomrule
 \end{longtable}
