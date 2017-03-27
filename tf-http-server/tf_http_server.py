@@ -9,7 +9,8 @@ import http.server
 import requests
 import numpy as np
 import tensorflow as tf
-from human_pose_model.networks.vgg_bulat import two_vgg_16s_cascade
+import tensorflow.contrib.slim as slim
+from human_pose_model.networks import vgg_bulat
 
 JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'r_knee',
@@ -202,7 +203,13 @@ def _get_joint_position_inference_graph(image_bytes_feed):
 
     normalized_image = tf.expand_dims(input=normalized_image, axis=0)
 
-    logits, _ = two_vgg_16s_cascade(normalized_image, 16, False, False)
+    with tf.device(device_name_or_function='/gpu:0'):
+        with slim.arg_scope([slim.model_variable], device='/cpu:0'):
+            with slim.arg_scope(vgg_bulat.vgg_arg_scope()):
+                logits, _ = vgg_bulat.two_vgg_16s_cascade(normalized_image,
+                                                          16,
+                                                          False,
+                                                          False)
 
     return logits
 
@@ -213,33 +220,35 @@ def run():
     At server startup, a joint inference computation graph is setup, a session
     to run the graph in is created, and model weights are restored from
     `RESTORE_PATH`.
-    
+
     The server listens on an SSL-wrapped socket at port 8765 of localhost,
     using an SSL certificate obtained from https://letsencrypt.org/.
     """
     with tf.Graph().as_default():
-        image_bytes_feed = tf.placeholder(dtype=tf.string)
+        with tf.device('/cpu:0'):
+            image_bytes_feed = tf.placeholder(dtype=tf.string)
 
-        logits = _get_joint_position_inference_graph(image_bytes_feed)
+            logits = _get_joint_position_inference_graph(image_bytes_feed)
 
-        session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
+                                                       log_device_placement=True))
 
-        latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=RESTORE_PATH)
-        assert latest_checkpoint is not None
+            latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=RESTORE_PATH)
+            assert latest_checkpoint is not None
 
-        restorer = tf.train.Saver(var_list=tf.global_variables())
-        restorer.restore(sess=session, save_path=latest_checkpoint)
+            restorer = tf.train.Saver(var_list=tf.global_variables())
+            restorer.restore(sess=session, save_path=latest_checkpoint)
 
-        request_handler = TFHttpRequestHandlerFactory(session,
-                                                      image_bytes_feed,
-                                                      logits)
-        server_address = ('localhost', 8765)
-        httpd = http.server.HTTPServer(server_address, request_handler)
-        httpd.socket = ssl.wrap_socket(httpd.socket,
-                                       keyfile='./domain.key',
-                                       certfile='./signed.crt',
-                                       server_side=True)
-        httpd.serve_forever()
+            request_handler = TFHttpRequestHandlerFactory(session,
+                                                          image_bytes_feed,
+                                                          logits)
+            server_address = ('localhost', 8765)
+            httpd = http.server.HTTPServer(server_address, request_handler)
+            httpd.socket = ssl.wrap_socket(httpd.socket,
+                                           keyfile='./domain.key',
+                                           certfile='./signed.crt',
+                                           server_side=True)
+            httpd.serve_forever()
 
 
 if __name__ == "__main__":

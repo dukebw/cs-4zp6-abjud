@@ -2,6 +2,7 @@ SRS=SoftwareRequirementsSpecification
 POC=ProofOfConceptPlan
 TEST=TestPlan
 DESIGNDOC=DesignDoc
+TESTREPORT=TestReport
 SYSARCHITECTURE=SystemArchitecture
 USERMANUAL=UserManual
 
@@ -28,6 +29,12 @@ test_plan:
 	xelatex $(TEST).tex
 	$(MAKE) clean
 	mv $(TEST).pdf ..
+
+test_report:
+	xelatex $(TESTREPORT).tex
+	xelatex $(TESTREPORT).tex
+	$(MAKE) clean
+	mv $(TESTREPORT).pdf ..
 
 user_manual:
 	xelatex $(USERMANUAL).tex

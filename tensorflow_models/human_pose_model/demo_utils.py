@@ -42,7 +42,7 @@ RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentr
 IMAGE_DIM = 380
 
 
-def _get_joint_position_inference_graph(image_bytes_feed):
+def get_joint_position_inference_graph(image_bytes_feed):
     """This function sets up a computation graph that will decode from JPEG the
     input placeholder image `image_bytes_feed`, pad and resize it to shape
     [IMAGE_DIM, IMAGE_DIM], then run joint inference on the image using the
@@ -122,7 +122,7 @@ class ImageHandler(object):
         # Note: This function needs to be called after make_graph
         with tf.Graph().as_default():
             self.image_bytes_feed = tf.placeholder(dtype=tf.string)
-            self.logits = _get_joint_position_inference_graph(self.image_bytes_feed)
+            self.logits = get_joint_position_inference_graph(self.image_bytes_feed)
             shape = self.logits.get_shape()
             merged_logits = tf.reshape(tf.reduce_max(self.logits, 3),[1, 380, 380, 1])
             self.pose = tf.cast(merged_logits, tf.float32)

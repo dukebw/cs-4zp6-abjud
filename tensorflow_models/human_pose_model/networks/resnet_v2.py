@@ -243,7 +243,7 @@ def resnet_v2_101(inputs,
                   output_stride=None,
                   reuse=None,
                   scope='resnet_v2_101'):
-  """ResNet-101 model of [1]. See resnet_v2() for arg and return description."""
+  """ResNet-101 modl of [1]. See resnet_v2() for arg and return description."""
   blocks = [
       resnet_utils.Block(
           'block1', bottleneck, [(256, 64, 1)] * 2 + [(256, 64, 2)]),
