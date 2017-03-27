@@ -8,9 +8,14 @@ import urllib
 import http.server
 import requests
 import numpy as np
+import imageio
+import cv2
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from human_pose_model.networks import vgg_bulat
+
+# @debug
+from matplotlib import pylab
 
 JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'r_knee',
@@ -99,7 +104,7 @@ def _get_image_joint_predictions(image,
     return joint_predictions_json
 
 
-def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
+def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resized_image_tensor):
     """This function returns subclasses of
     `http.server.BaseHTTPRequestHandler`, using the closure of the function
     call to allow extra parameters (namely the session to run a computation
@@ -165,7 +170,61 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
 
-            self._respond_with_joints(base64.b64decode(post_data))
+            post_url = self.requestline.split()[1]
+            if re.match('/Video', post_url) is not None:
+                video = imageio.get_reader(base64.b64decode(post_data),
+                                           'ffmpeg')
+
+                fps = video.get_meta_data()['fps']
+                # writer = imageio.get_writer(imageio.RETURN_BYTES,
+                #                             'ffmpeg',
+                #                             codec='vp9',
+                #                             fps=fps)
+                writer = imageio.get_writer('/export/mlrg/soe-bduke/Downloads/out_test.webm',
+                                            'ffmpeg',
+                                            codec='vp9',
+                                            fps=fps)
+
+                # @debug
+                for frame in video:
+                    jpeg_image = session.run(tf.image.encode_jpeg(frame))
+                    logits, resized_image = session.run(fetches=[logits_tensor, resized_image_tensor],
+                                                        feed_dict={image_bytes_feed: jpeg_image})
+
+                    image_index = 0
+                    _, threshold = cv2.threshold(logits[image_index, ...],
+                                                 10,
+                                                 255,
+                                                 cv2.THRESH_BINARY)
+
+                    heatmap_on_image = np.zeros(resized_image.shape, dtype=np.uint8)
+                    for joint_index in range(logits.shape[-1]):
+                        if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
+                            dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
+                                                                   cv2.DIST_L1,
+                                                                   3)
+                            dist_transform = cv2.convertScaleAbs(dist_transform,
+                                                                 dist_transform,
+                                                                 255.0/np.max(dist_transform))
+                            heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
+                            heatmap[..., 0] = 0
+
+                            heatmap_on_image += heatmap
+
+                    heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
+                    alpha = 0.5
+                    heatmap_on_image = cv2.addWeighted(resized_image,
+                                                       alpha,
+                                                       heatmap_on_image,
+                                                       1.0 - alpha,
+                                                       0.0)
+
+                    writer.append_data(heatmap_on_image)
+                writer.close()
+
+                print('Video processing complete!')
+            else:
+                self._respond_with_joints(base64.b64decode(post_data))
 
     return TFHttpRequestHandler
 
@@ -173,8 +232,8 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
 def _get_joint_position_inference_graph(image_bytes_feed):
     """This function sets up a computation graph that will decode from JPEG the
     input placeholder image `image_bytes_feed`, pad and resize it to shape
-    [IMAGE_DIM, IMAGE_DIM], then run joint inference on the image using the
-    "Two VGG-16s cascade" model.
+    [IMAGE_DIM, IMAGE_DIM], then run human pose inference on the image using
+    the "Two VGG-16s cascade" model.
     """
     decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
     decoded_image = tf.image.convert_image_dtype(image=decoded_image,
@@ -211,7 +270,7 @@ def _get_joint_position_inference_graph(image_bytes_feed):
                                                           False,
                                                           False)
 
-    return logits
+    return logits, tf.image.convert_image_dtype(image=resized_image, dtype=tf.uint8)
 
 
 def run():
@@ -228,10 +287,9 @@ def run():
         with tf.device('/cpu:0'):
             image_bytes_feed = tf.placeholder(dtype=tf.string)
 
-            logits = _get_joint_position_inference_graph(image_bytes_feed)
+            logits, resized_image = _get_joint_position_inference_graph(image_bytes_feed)
 
-            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
-                                                       log_device_placement=True))
+            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
             latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=RESTORE_PATH)
             assert latest_checkpoint is not None
@@ -241,7 +299,8 @@ def run():
 
             request_handler = TFHttpRequestHandlerFactory(session,
                                                           image_bytes_feed,
-                                                          logits)
+                                                          logits,
+                                                          resized_image)
             server_address = ('localhost', 8765)
             httpd = http.server.HTTPServer(server_address, request_handler)
             httpd.socket = ssl.wrap_socket(httpd.socket,
