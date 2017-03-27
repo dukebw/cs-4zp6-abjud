@@ -61,8 +61,13 @@
 \tableofcontents
 % \listoftables
 % \listoffigures
+\newpage
+
+\pagenumbering{arabic}
 
 
+\chapter{Preface}
+\section{Revision History}
 \begin{table}[bp]
 \caption*{\textbf Revision History}
 \begin{tabularx}{\textwidth}{p{3.5cm}p{2cm}X}
@@ -74,31 +79,27 @@ March 23, 2017 & 0.1 & Initial Template Completed \\
 \end{tabularx}
 \end{table}
 
-\newpage
+\section{List of Tables}
+\listoftables
 
-\pagenumbering{arabic}
-
-
-\chapter{List of Tables}
-    tables for a specific tests have been removed to improve readability
+\section{List of figures}
+This document does not utilize figures to a significant degree, as such, a list is not included.
 
 \chapter{Introduction}
 
 \section{Purpose of Document}
-This document summarizes the testing and the findings of the tests for the Text to Motion project. This documentuses the implementation outlined in the test plan.
+The purpose here is to document the testing that has been performed on the Text-To-Motion web application.   The testing that has been performed largely follows the test plan that was provided in the Test Plan design document.
 
 \section{Scope of Testing}
+Following good design procedures the Text-To-Motion web application has been modularized into $3$ conceptual modules.  There is a web framework that consists of a front end and allowing users to acccess the Text-To-Motion features and to input new data.  A back-end which consists of two separate components a database module and a deep-learning module.
 
-\section{Organization}
-    Section 1 is our introduction and introduces this report. Section 2 describes the test cases as outlined in our test plan and their results. Section 4 describes traceability to the requirements. Section 4 describes what changes have been made in response to our testing.
+The tests procedure here is again decomposed into $3$ conceptual tests.  The first stage of testing is done to ensure that a minimal set of milestones were reached.  These milestones were the set as a minimal viable product was planned for which we call the proof of concept.  Here we simply test to see that all of the software modules mentioned above have been created and these modules can work together.  So that this range of tests involves systems and unit testing.
 
-    \textbf{Testing structure}
+The second set of tests is a solution constraints testing.  In this set of tests the performance of the deep learning algorithm is more seriously tested and quantified and different formats of data that can be inputted is also tested.  We also test how easy the project is to build from in our recommended environment.
 
-    Automated Testing
+The final set of tests we test the functional and non-functional requirements of the the finished product. Some of these requirements include: useability, supported video encodings and maintainability of the web site.
 
-    \quad generating inputs
-
-    Manual Testing
+The final section in this document includes a traceability table that helps to organize and explain how are tests connect to the requirements that were created in the software requirements document we created earlier.
 
 %I have added a few examples of what the tables should be.
 \chapter{Preliminary Testing}
@@ -113,7 +114,6 @@ This is a baseline test to make sure the website is running , appears in a web b
 
 Put the proper url into the browser and click on each of the links to make sure that no error occurs.  Meaning that there are no excessive wait times and that the broswer does not crash.  Make sure there are poses shown on the site.
 \end{flushleft}
-
 \subsubsection{Results}
 %Any comments we wish to make or add can be added here should we wish to expand on the results. An overall summary can also be here
  \centering
@@ -142,10 +142,22 @@ Put the proper url into the browser and click on each of the links to make sure 
 \begin{flushleft}
 The database allows users to upload images to the database through the website
 interface. A test is considered a pass if an image or video can be uploaded,
-then accessed by user through the web interface.  Again we test this on the
-same files we have used in the previous tests: TomBrady.jpg, AverageGirl.jpg
-and AverageGuy.jpg.
+then accessed by user through the web interface.
 \end{flushleft}
+\subsubsection{Input Data}
+ \centering
+ \begin{tabular}{p{3cm}p{6cm}}
+ \hline\hline
+ Input & Description\\
+ % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
+ \hline\hline
+  TomBrady.jpg &  A picture of a man standing still and facing the camera\\ %fill in these entries once we have them
+ \hline
+ AverageGirl.jpg &  A picture of a woman standing still and facing the camera\\ %fill in these entries once we have them
+ \hline
+ AverageGuy.jpg &  A picture of football star Tom Brady\\ %fill in these entries once we have them
+ \hline
+ \end{tabular}
 \subsubsection{Results}
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
@@ -158,9 +170,6 @@ and AverageGuy.jpg.
    \hline\hline
   Average Guy & Pass  \\
 \hline
-
-   %fill in these entries once we have them
- \hline
  \end{tabular}
 
 \subsection{Running Pose Estimation}
@@ -183,9 +192,6 @@ user.
    \hline\hline
   Average Guy & Pass  \\
 \hline
-
-   %fill in these entries once we have them
- \hline
  \end{tabular}
 
 \subsection{Search by Tag or Name}
@@ -207,21 +213,19 @@ using a tag or name and the correct video appears.
    \hline\hline
   Average Guy & Pass  \\
 \hline
-
-   %fill in these entries once we have them
- \hline
  \end{tabular}
 \begin{flushleft}
 All of these tests passed. It was possible to search through the database and
 retrieve entries by tag and video name.
 \end{flushleft}
 %test for functional requirements.
+
 \section{Solution Constraints Testing}
 
 \subsection{Deep Learning Methods Test}
 \subsubsection{Description}
 \begin{flushleft}
-Our Supervisor Dr. Taylor will check if the Deep Learning Methods used are modern and up-to-date.
+Our supervisor Dr. Taylor will check if the Deep Learning Methods used are modern and up-to-date.
 \end{flushleft}
 \subsubsection{Results}
  \centering
@@ -229,7 +233,7 @@ Our Supervisor Dr. Taylor will check if the Deep Learning Methods used are moder
  \hline
  \textbf Test & \textbf Result\\
  \hline\hline
-   &  \\ %fill in these entries once we have them
+   Dr. Talyor &  Pass\\ %fill in these entries once we have them
  \hline
  \end{tabular}
 
@@ -238,91 +242,48 @@ Our Supervisor Dr. Taylor will check if the Deep Learning Methods used are moder
 \begin{flushleft}
 An automated test that checks if the human pose data used for the project is standard and compatible with existing software libraries.
 \end{flushleft}
-\subsubsection{Input Data}
- \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
 \subsubsection{Results}
-%Results are largely unchanged from nonfunctional requirements, though somtimes we might choose to simply describe the result without a table.
-
-\subsection{Linux Platform Build and Run Test}
-\subsubsection{Description}
 \begin{flushleft}
-An automated test that confirms that the pose estimation software can be built correctly on a Linux platform.
+This test was technically a failure. The data was not converted to a format compatible with libraries. Instead the data is stored in a JSON strings, which is a standard format, but not compressed as to be usable with all libraries.
 \end{flushleft}
-\subsubsection{Input Data}
- \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
-\subsubsection{Results}
-
-\subsection{Python API Hook Testing}
-\subsubsection{Description}
-\begin{flushleft}
-An automated test that confirms the major interfaces for the project have working python hooks.
-\end{flushleft}
-\subsubsection{Input Data}
- \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
-\subsubsection{Results}
 
 \chapter{Functional Requirements}
 \section{Supported Video Encodings Test}
 \subsection{Description}
 \begin{flushleft}
-Tests whether the ReadFrames API is able to decode MP4, MP2 and AAC video files.
+Tests whether the ReadFrames API is able to decode MP4 files. If we are able to run pose estimation on the video then the ReadFrames API is able to process the frames.
 \end{flushleft}
 \subsection{Input Data}
  \centering
  \begin{tabular}{p{3cm}p{6cm}}
  \hline\hline
  Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
-   &  \\ %fill in these entries once we have them
+ E9FY2.MP4  &  A short video of a woman eating a sandwhich\\
+ \hline
+ U4XV9.MP4  &  A short video of a man waking up and getting out of bed\\
+ \hline
+ Z1A0Q.MP4 & A short video of a man sitting on a stool\\
  \hline
  \end{tabular}
-\subsection{Results}
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \textbf Test & \textbf Result\\
+ \hline\hline
+  E9FY2.MP4  &  Pass\\
+ \hline
+ U4XV9.MP4  &  Pass\\
+ \hline
+ Z1A0Q.MP4 & Pass\\
+\hline
+\end{tabular}
 
 \section{Frame Reading Timestamp Accuracy Test}
 \subsection{Description}
 \begin{flushleft}
-Tests whether the timestamps on the frames returned by the ReadFrames API match their temporal position in the original video stream.
-\end{flushleft}
-\subsection{Input Data}
- \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
-\subsection{Results}
-
-\section{Human Pose Estimation Data Quality Test}
-\subsection{Description}
-\begin{flushleft}
-Test to ensure the data quality produced by the human pose estimator component. A set of Charades videos will be processed by the human pose estimator, and skeleton animations corresponding to the generated human pose data will be created (this is a scoped part of the software pipeline). A double-blind test will be ran, where testers will be shown random mixed sets of the skeleton animations produced by McMaster Text to Motion, together with skeletons from actual motion capture data coming from CMU’s motion capture lab. Testers will indicate whether they think the motion capture data came from actual motion capture, or from the pose estimation software.
+Tests whether the timestamps on the frames returned by the ReadFrames API match their temporal position in the original video stream. Our input data is identical to the previous test.
 \end{flushleft}
 \subsection{Results}
  \centering
@@ -330,14 +291,38 @@ Test to ensure the data quality produced by the human pose estimator component. 
  \hline
  \textbf Test & \textbf Result\\
  \hline\hline
-   &  \\ %fill in these entries once we have them
+  E9FY2.MP4  &  Pass\\ %fill in these entries once we have them
+ \hline
+ U4XV9.MP4  &  Pass\\
+ \hline
+ Z1A0Q.MP4 & Pass\\
+\hline
+\end{tabular}
+
+\section{Human Pose Estimation Data Quality Test}
+\subsection{Description}
+\begin{flushleft}
+Test to ensure the data quality produced by the human pose estimator component. A set of Charades videos will be processed by the human pose estimator, and skeleton animations corresponding to the generated human pose data will be created (this is a scoped part of the software pipeline). A double-blind test will be ran, where testers will be shown random mixed sets of the skeleton animations produced by McMaster Text to Motion, together with skeletons from actual motion capture data coming from CMU’s motion capture lab. Testers will indicate whether they think the motion capture data came from actual motion capture, or from the pose estimation software. The Mcmaster Text to motion Results should be guessed as accurate at similar rates to the Charades tests.
+\subsection{Results}
+We provide the ratio of TextToMotion images guessed as accurate compared to the Charades Images
+\end{flushleft}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
+ \hline
+ \textbf Test & \textbf Charades/TextToMotion & \textbf Result\\
+ \hline\hline
+  Nick &  1/1 & Pass\\
+ \hline
+ Maddy &  7/5  & Pass\\
+ \hline
+ Sarah & 5/4 & Pass\\
  \hline
  \end{tabular}
 
 \section{Database Output Full Range Coverage Test}
 \subsection{Description}
 \begin{flushleft}
-Tests to be sure all entries in the database can be successfully searched for.
+Tests to be sure all entries in the database can be successfully searched for. The videos provided from earlier tests are put into the database, and have been renamed for testing purposes.
 \end{flushleft}
 \subsection{Input Data}
  \centering
@@ -346,32 +331,50 @@ Tests to be sure all entries in the database can be successfully searched for.
  Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
-   &  \\ %fill in these entries once we have them
+  Waking_Up.mp4 &  Given tags sleeping, boy, man, sleepy, getting up, table\\
+ \hline
+ Eating.mp4 &  Given tags sandwhich, eating, girl, woman, table\\
+ \hline
+ Stool.mp4 &  Given tags man, stool, corner, sitting\\
  \hline
  \end{tabular}
-\subsection{Results}
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \textbf Test & \textbf Result\\
+ \hline\hline
+  Waking_Up.mp4 &  Pass \\
+ \hline
+ Eating.mp4 &  Pass\\
+ \hline
+ Stool.mp4 &  Pass\\
+\hline
+ \end{tabular}
 
 \section{Databse No False Positives}
 \subsection{Description}
 \begin{flushleft}
-Tests that the database search does not return any false positives, such as videos or images that do not contains searched words.
+Tests that the database search does not return any false positives, such as videos or images that do not contains searched words. The same videos from the previous test will be used with the same tags. Thus, we will search with tags other than those provided. If no videos appear the test is a sucess.
 \end{flushleft}
-\subsection{Input Data}
+\subsubsection{Results}
  \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
- \hline\hline
-   &  \\ %fill in these entries once we have them
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
  \hline
+ \textbf Test & \textbf Result\\
+ \hline\hline
+  Waking_Up.mp4 &  Pass \\
+ \hline
+ Eating.mp4 &  Pass\\
+ \hline
+ Stool.mp4 &  Pass\\
+\hline
  \end{tabular}
-\subsection{Results}
 
 \section{Full Text Search Order by Relevance Test}
 \subsection{Description}
 \begin{flushleft}
-%TO FILL
+Using the data the previous test we will conduct a search with multiple tags and the videos output by the search should correspond to the most relavent video to the least relavent.
 \end{flushleft}
 \subsection{Input Data}
  \centering
@@ -380,10 +383,26 @@ Tests that the database search does not return any false positives, such as vide
  Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
-   &  \\ %fill in these entries once we have them
+  man, stool &  should return Stool.mp4 followed by Waking up\\ %fill in these entries once we have them
+ \hline
+  man, bed &  should return Waking_Up.mp4 followed by Stool.mp4\\ %fill in these entries once we have them
+ \hline
+  table, girl &  should return Eating.mp4 followed by Waking_Up.mp4\\ %fill in these entries once we have them
  \hline
  \end{tabular}
-\subsection{Results}
+\subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \textbf Test & \textbf Result\\
+ \hline\hline
+  man, stool &  Pass \\
+ \hline
+ man, bed &  Pass\\
+ \hline
+ table, girl &  Pass\\
+\hline
+ \end{tabular}
 
 %For tests that require a time use this
 \chapter{Non-Functional Requirements}
@@ -398,15 +417,16 @@ The results from the participants can be seen throughout the Non-Functional Requ
 \end{flushleft}
 
 \section{Look and Feel Requirements}
-\subsection{Description}
+\subsection{Color Scheme}
+\subsubsection{Description}
 \begin{flushleft}
 A test to see if the color scheme of the website is visually appealing. The participants were asked to rate the websites colour scheme on a scale from 1-10, and any result above a 6 will be considered a pass.
 \end{flushleft}
- 
+\subsubsection{Results}
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \bf User & \bf Rating & \bf Result\\
+ \textbf User & \textbf Rating & \textbf Result\\
  \hline\hline
  Nick & 7 & Pass \\
  \hline
@@ -417,16 +437,16 @@ A test to see if the color scheme of the website is visually appealing. The part
  \end{tabular}
 
 \section{Style Requirements}
-\section{Description}
+\subsection{Minimalistic Web Design}
+\subsubsection{Description}
 \begin{flushleft}
 The website interface should be minimal and should inform the user of valid actions through visual means. Participants were asked to rate the design from 1-10, and any result above a 5 will be considered a pass.
 \subsubsection{Results}
 \end{flushleft}
- 
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \bf User & \bf Rating & \bf Result\\
+ \textbf User & \textbf Rating & \textbf Result\\
  \hline\hline
  Nick & 9 & Pass \\
  \hline
@@ -437,43 +457,40 @@ The website interface should be minimal and should inform the user of valid acti
  \end{tabular}
 
 \section{Ease of Use Requirements}
-
 \subsection{Upload/Download}
 \subsubsection{Description}
 \begin{flushleft}
-Through the web interface a user should be able to upload a picture using either a mobile phone camera, URL, or saved file. The participant will be on the Home page and asked to upload an image through one of the methods listed before. In order for this to be considered a pass it should take the users 30 seconds or less to complete the upload process and click the button. 
+Through the web interface a user should be able to upload a picture using either a mobile phone camera, URL, or saved file. The participant will be on the Home page and asked to upload an image through one of the methods listed before. In order for this to be considered a pass it should take the users 30 seconds or less to complete the upload process and click the button.
 \subsubsection{Results}
 \end{flushleft}
-
  \centering
  \begin{tabular}{||p{4.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \bf Test & \bf User & \bf Time & \bf Result \\
- \hline\hline
+ \textbf Test & \textbf User & \textbf Time & \textbf Result \\
+ \hline
     Uploading based on URL & Nick & 28 seconds & Pass\\
- \hline\hline
+ \hline
     Uploading image from a mobile device & Maddy & 22 seconds  & Pass\\
- \hline\hline
+ \hline
     Uploading file from Desktop &  Sarah & 26 seconds & Pass\\
  \hline
  \end{tabular}
- 
+
 \subsection{Text Box Functionality}
 \subsubsection{Description}
 \begin{flushleft}
 The user should be able to input a descriptive word or phrase into a text-box from within the web interface in order to search for a video. In order to complete this task the users were asked to search for a specific word and display the results. Any time below 10 seconds will be considered a pass.
 \subsubsection{Results}
 \end{flushleft}
-
  \centering
  \begin{tabular}{||p{4.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \bf Test & \bf User & \bf Time & \bf Result \\
+ \textbf Test & \textbf User & \textbf Time & \textbf Result \\
  \hline\hline
    Search for "Woman" & Nick & 4 seconds  & Pass\\ %fill in these entries once we have them
- \hline\hline
+ \hline
    Search for "f" & Maddy & 3 seconds  & Pass\\
- \hline\hline
+ \hline
    Search for "the" & Sarah & 4 seconds  & Pass\\
  \hline
  \end{tabular}
@@ -486,15 +503,14 @@ The user should be able to input a descriptive word or phrase into a text-box fr
 The user should be able to interact with the website without prior knowledge. They will given a minute to explore the website. After that time the participants were asked to rate the usability on a scale of 1-10. An average of 6 is required for a pass.
 \subsubsection{Results}
 \end{flushleft}
-
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \bf User & \bf Rank & \bf Result\\
+ \textbf User & \textbf Rank & \textbf Result\\
  \hline\hline
  Nick & 6 & Pass \\
  \hline
- Maddy & 8 & Pass \\ 
+ Maddy & 8 & Pass \\
  \hline
  Sarah & 8 & Pass\\
  \hline
@@ -506,15 +522,14 @@ The user should be able to interact with the website without prior knowledge. Th
 The user should be able to interact with the website without prior knowledge. They will given a minute to explore the website. After that time they are asked to rate the usability of the website on a scale of 1-10. An average of 6 is required for a pass.
 \subsubsection{Results}
 \end{flushleft}
-
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
  \hline
- \bf User & \bf Rank & \bf Result\\
+ \textbf User & \textbf Rank & \textbf Result\\
  \hline\hline
  Nick & 7 & Pass \\
  \hline
- Maddy & 8 & Pass \\ 
+ Maddy & 8 & Pass \\
  \hline
  Sarah & 6 & Pass\\
  \hline
@@ -526,7 +541,6 @@ The user should be able to interact with the website without prior knowledge. Th
 \begin{flushleft}
 Users should not be able to see the deep learning model and its training when using the pose estimation. When prompted the website should display the correct skeletons without any low-level detail. Once uploaded the participants were asked if they saw anything that seemed out of place or any information on the deep learning process, if they did not it will be considered a pass.
 \end{flushleft}
-
 \subsubsection{Results}
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
@@ -613,10 +627,9 @@ When given a word or phrase the web interface will be able to respond with an im
  \begin{tabular}{p{3cm}p{6cm}}
  \hline\hline
  Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
   Creepy & Searched using a tag within the description\\ %fill in these entries once we have them
- \hline\hline
+ \hline
   Seth Rogan & Searched using a tag within the description\\
  \hline
  \end{tabular}
@@ -635,7 +648,9 @@ When given a word or phrase the web interface will be able to respond with an im
 
 
 \chapter{Other Relavent Testing}
-
+Again we test this on the
+same files we have used in the previous tests: TomBrady.jpg, AverageGirl.jpg
+and AverageGuy.jpg.
 \section{Presicion and Accuracy}
 \subsection{Bone and Joint Position}
 \subsubsection{Description}
@@ -649,45 +664,47 @@ The pose estimation should accurately predict the placement of joints and bones 
  Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
-   &  \\ %fill in these entries once we have them
+  TomBrady.jpg &  A picture of a man standing still and facing the camera\\
+ \hline
+ AverageGirl.jpg &  A picture of a woman standing still and facing the camera\\
+ \hline
+ TomBrady.jpg &  A picture of football star Tom Brady\\
  \hline
  \end{tabular}
 \subsubsection{Results}
+ \centering
+ \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+ \hline
+ \textbf Test & \textbf Result\\
+ \hline\hline
+  Tom Brady & Pass  \\
+   \hline\hline
+  Average Girl & Pass  \\
+   \hline\hline
+  Average Guy & Pass  \\
+\hline
+\end{tabular}
 
 \section{Reliability and Availability Requirements}
 \subsection{Software Availibility}
 \subsubsection{Description}
 \begin{flushleft}
-The software component of the project should be availible at all times. If we can recieve correct output for a given input during a scheduling constraint then this will be considered a pass.
+The software component of the project should be availible at all times. If we can have an event regularly occur then it will be considered a pass. To do this we arranged to have the pose estimation algorithm automatically called on to process a single image at 4 hour intervals, and record the time.
 \end{flushleft}
-\subsubsection{Input Data}
- \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
 \subsubsection{Results}
+\begin{flushleft}
+The software sucessfully processed the image at the specified 4 hour intervals over a period of 2 days.
+\end{flushleft}
 
 \subsection{Software Availibility}
 \subsubsection{Description}
 \begin{flushleft}
-The software component of the project should be availible at all times with the exception of maintaince and migration. When we make a web server call we should recieve and HTTP verified response.
+The software component of the project should be availible at all times with the exception of maintaince and migration. When we make a web server call we should recieve and HTTP verified response. To do this we will have three users sending a HTTP POST request to the server. If they recieve a response the test is considered a pass.
 \end{flushleft}
-\subsubsection{Input Data}
- \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
 \subsubsection{Results}
+\begin{flushleft}
+
+\end{flushleft}
 
 \section{Robustness or Fault-Tolerance Requirements}
 \subsection{Web Interface Error Handling}
@@ -702,8 +719,9 @@ The web interface should respond to unhandled exceptions by throwing the corresp
  Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
-   &  \\ %fill in these entries once we have them
+  Scenario 1 &  Try uploading an image while the image storage service (Amazon s3) is not avalible. \\
  \hline
+  Scenario 2 & Trying to search an image on the database while the database server is down.
  \end{tabular}
 \subsubsection{Results}
 
@@ -738,10 +756,21 @@ The web interface should be able to serve multiple connections. If the interface
  Input & Description\\
  % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
  \hline\hline
-   &  \\ %fill in these entries once we have them
+  Andrew & The connection to the website coresponding to tester Andrew \\
+ \hline
+ Brenden & The connection to the website coresponding to tester Brenden \\
+ \hline
+ Udip & The connection to the website coresponding to tester Udip \\
+ \hline
+ Jordan & The connection to the website coresponding to tester Jordan \\
+ \hline
+ Dave & The connection to the website coresponding to tester Dave \\
  \hline
  \end{tabular}
 \subsubsection{Results}
+\begin{flushleft}
+The 5 users were able to sucessfully connect to the website, and run queries simultaniously without significant slow down or waiting.
+\end{flushleft}
 
 \subsection{Database Capacity}
 \subsubsection{Description}
@@ -749,6 +778,9 @@ The web interface should be able to serve multiple connections. If the interface
 The database should contain at least 5GB of data in order to facilitate growth.
 \end{flushleft}
 \subsubsection{Results}
+\begin{flushleft}
+The database successfully handled us uploading a total of 5.1GB of data in the form of pictures of various qualities. These pictures were of randomly acquired photos from Google and combined the the data used in this testing.
+\end{flushleft}
 
 \section{Scaling of Extensibility Requirements}
 \subsection{Deep Learning Training}
@@ -773,52 +805,83 @@ The deep learning model should be put through a rigorous test to be sure it is w
 \subsection{Linux Friendly Tensorflow}
 \subsubsection{Description}
 \begin{flushleft}
-The web interface should be run on a Linux friendly server that can access the Tensorflow model either directly or indirectly. By creating an interface that successfully runs on a Apache or NGINX server.
+The web interface should be run on a Linux friendly server that can access the Tensorflow model either directly or indirectly. By creating an interface that successfully runs on a Apache or NGINX server this test will be considered a pass.
 \end{flushleft}
 \subsubsection{Results}
- \centering
- \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
- \hline
- \textbf Test & \textbf Result\\
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
-
-\subsection{Tensorflow Library and Model}
-\subsubsection{Description}
 \begin{flushleft}
-The web interface should interact with the Tensorflow library, as the deep learning model cannot be run on the web interface alone. To pass we should be able to have the Tensorflow model on a picture or video and correctly determine if there is a person in it.
+Our service is sucessfully running on this
 \end{flushleft}
-\subsubsection{Input Data}
- \centering
- \begin{tabular}{p{3cm}p{6cm}}
- \hline\hline
- Input & Description\\
- % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
- \hline\hline
-   &  \\ %fill in these entries once we have them
- \hline
- \end{tabular}
-\subsubsection{Results}
 
 \subsection{Export Types}
 \subsubsection{Description}
 \begin{flushleft}
-The project should be able to export multiple types of media (JPEG, PNG, etc) in order to support all major operating
-systems.
+The project should be able to export multiple types of media (JPEG, PNG, etc) in order to support all major operating systems. We will use TomBrady.jpg for this test.
 \end{flushleft}
 \subsubsection{Results}
+\begin{flushleft}
+This test was a guarenteed pass due to the fact that our website stores images as a base64, meaning it can be converted into any type.
+\end{flushleft}
  \centering
  \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
  \hline
  \textbf Test & \textbf Result\\
  \hline\hline
-   &  \\ %fill in these entries once we have them
+  PNG & Pass \\ %fill in these entries once we have them
+ \hline
+ JPEG & Pass \\ %fill in these entries once we have them
+ \hline
+ BMP & Pass \\ %fill in these entries once we have them
  \hline
  \end{tabular}
 
 \chapter{Traceability} % FILL THIS IF WE HAVE TIME
-\chapter{Changes After testing}
+\begin{center}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.1\textwidth}>{\raggedright\arraybackslash}p{0.3\textwidth}>{\raggedright\arraybackslash}p{0.5\textwidth}}
+\caption{Traceability Matrix for Test-Requirement Relationships}\label{Table_TestsAndRequirements}
+\\\toprule
+\textbf Test \#  & \textbf Description & \textbf Requirement\\\midrule
+\# 3.2,  2.1.4,  2.2.1
+& Tests which measured performance Accuracy of Deep Learning Algorithm
+&  Req \# 1, 8,  23(Speed and Latency)\\
+\# 2.1.1,  2.1.2, 2.1.3, 2.2.3 & System tests, measuring reliability of the web framework. &
+Req \# 7,  12,  17, 20,  28,  30, 38, 39
+\\
+\# 2.1.5
+ & Unit and Systems Tests Grading Database Search Performance & Req \# 9, 10, 11,
+ \\
+2.1.3, 2.2.2,  & Security and Data Integrity Tests & Req \# 10, 27, 29 \\
+2.2.2, 2.3.1, 2.3.2 & Proper Formatting Tests & Req \# 2, 7, 23, 29
+\\
+\# 2.2.1, 2.4.1 & User Interface Tests & Req \# 13-21, 24-26
+\\
+\bottomrule
+\end{longtable}
+\end{center}
+\section{Modules}
+Similarly, the following is a traceability table explicitly relating test cases to modules:\\
+\begin{table}
+\caption{Tests and Modules Relationships}
+\begin{center}
+\begin{tabular}{p{6cm} p{4cm}}
+\hline
+\textbf Test \#  & Module \\
+\hline
+3.1(all subsections), 3.2.1, 4.4-4.6, 5(all sections), 6.2(all subsections) - 6.4(all subsections), 6.6.2 & ASP.NET and DB \\
+\hline
+3.1.3, 4.3, 5.8.2, 6.1, 6.5 & Tensorflow Models \\
+\hline
+3.13, 3.2.2, 4.1-4.2, 5.8.2, 6.2(all subsections), 6.6.1 & Python HTTP Server\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
 
+\chapter{Changes After testing}
+\begin{flushleft}
+First of our major changes would likely be to the website interface. Though our testers review it favouribly, there were numerous references, but we were also giving consistent criticism that an alternate color scheme might be slightly improve. As such we have agreed to expiriment with those improvements. \newline
+
+Testing also revealed that a javascript application to allow continous requests to the HTTP server as well as utilize a mobile platform would have greater applicability to the Guelph team. This improvement would come alongside a function on the website to display statistics. This would help insure greater availibility. The ability to track the database live would be both useful to the testing team as well as an entertaining aspect for the product demo. \newline
+
+The last major improvement we wish to provide is a imrpoved Javascript plugin for drawing the skeleton on top of an image. Testing revealed that there was flicker with the drawn skeletons, and as such, could lead to false negatives, where a skeleton that appears inacurate is actually just limited by our current skeleton drawing methods.
+\end{flushleft}
 \end{document}
