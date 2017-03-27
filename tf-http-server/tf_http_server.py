@@ -213,7 +213,7 @@ def run():
     At server startup, a joint inference computation graph is setup, a session
     to run the graph in is created, and model weights are restored from
     `RESTORE_PATH`.
-    
+
     The server listens on an SSL-wrapped socket at port 8765 of localhost,
     using an SSL certificate obtained from https://letsencrypt.org/.
     """
