@@ -1,10 +1,8 @@
 """This module contains all of the model definitions, importing models from TF
 Slim where needed.
 """
-
 from tensorflow.contrib.slim.nets import inception
 from tensorflow.contrib.slim.nets import vgg
-
 import tensorflow as tf
 from tensorflow.python.ops import control_flow_ops
 import tensorflow.contrib.slim as slim
@@ -222,7 +220,8 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'two_vgg_16s_cascade': (vgg_bulat.two_vgg_16s_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
-        'resnet_50': (resnet_bulat.resnet_50_detector, resnet_bulat.resnet_arg_scope)}
+        'resnet_50': (resnet_bulat.resnet_50_detector, resnet_bulat.resnet_arg_scope),
+        'resnet_50_cascade': (resnet_bulat.resnet_50_cascade, resnet_bulat.resnet_arg_scope)}
 
 NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
             'detector_only_xentropy': detector_only_xentropy_loss,

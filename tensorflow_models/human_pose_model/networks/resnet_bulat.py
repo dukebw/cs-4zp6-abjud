@@ -197,8 +197,9 @@ def resnet_50_cascade(inputs,
 
   regression_logits, _ = resnet_50_detector(inputs=stacked_heatmaps,
                                             num_classes=num_classes,
-                                            is_training=is_regressor_training,
-                                            scope='vgg_16_regression')
+                                            is_detector_training=is_detector_training,
+                                            is_regressor_training=is_regressor_training,
+                                            scope='resnet_50_regressor')
 
   return regression_logits, detect_endpoints
 
@@ -225,8 +226,6 @@ def resnet_detector(inputs,
 
   return bulat_resnet_v1(inputs, blocks, num_classes, is_training=is_detector_training,
                          include_root_block=True, reuse=reuse, scope='resnet_v1_152')
-
-
 
 
 def resnet_regressor(inputs, num_classes=16, is_training=True, scope='resnet_regressor'):

@@ -129,6 +129,7 @@ class ImageHandler(object):
         with tf.Graph().as_default():
             self.image_bytes_feed = tf.placeholder(dtype=tf.string)
             self.logits = get_joint_position_inference_graph(self.image_bytes_feed, self.get_logits_function)
+            self.graph = tf.get_def
             shape = self.logits.get_shape()
             #merged_logits = tf.reshape(tf.reduce_max(self.logits, 3),[1, IMAGE_DIM, IMAGE_DIM, 1])
             #self.pose = tf.cast(merged_logits, tf.float32)
@@ -192,6 +193,28 @@ class VideoHandler(object):
         fig = pylab.figure()
         fig.suptitle('image #{}'.format(num))
         pylab.imshow(self.get_random_frame())
+
+
+def _get_freeze_graph(get_logits_function = vgg_16_bn_relu):
+
+    input_graph_name = "input_graph.pb"
+    output_graph_name = "output_graph.pb"
+
+    # Note: This function needs to be called after make_graph
+    with tf.Graph().as_default():
+        image_bytes_feed = tf.placeholder(dtype=tf.string)
+        self.logits = get_joint_position_inference_graph(self.image_bytes_feed, self.get_logits_function)
+        sess = tf.Session(tf.global_variables_initializer())
+        #shape = self.logits.get_shape()
+        #merged_logits = tf.reshape(tf.reduce_max(self.logits, 3),[1, IMAGE_DIM, IMAGE_DIM, 1])
+        #self.pose = tf.cast(merged_logits, tf.float32)
+        #self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+
+        #latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=RESTORE_PATH)
+        #assert latest_checkpoint is not None
+
+        #restorer = tf.train.Saver(var_list=tf.global_variables())
+        #restorer.restore(sess=self.session, save_path=latest_checkpoint)
 
 
 if __name__ == "__main__":
