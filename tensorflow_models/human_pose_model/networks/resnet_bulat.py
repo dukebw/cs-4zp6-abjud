@@ -120,8 +120,6 @@ def bulat_resnet_v1(inputs,
                     num_classes=None,
                     is_training=True,
                     output_stride=None,
-                    include_root_block=True,
-                    reuse=None,
                     scope=None):
   """
   "Blocks B1-B4 are the same as the ones in the original ResNet, and B5 was slightly modified. We firstly removed both
@@ -131,7 +129,7 @@ def bulat_resnet_v1(inputs,
   deconvolution layer B7 with a kernel size and stride of 4, that upsamples the output layers to match the resolution
   of the input."
   """
-  with tf.variable_scope(scope, 'resnet_v1', [inputs], reuse=reuse) as sc:
+  with tf.variable_scope(scope, 'resnet_v1', [inputs], reuse=None) as sc:
     end_points_collection = sc.name + '_end_points'
     with slim.arg_scope([slim.conv2d, bottleneck, resnet_utils.stack_blocks_dense],
                         outputs_collections=end_points_collection):
@@ -155,9 +153,7 @@ def bulat_resnet_v1(inputs,
 
 def resnet_50_detector(inputs,
                        num_classes=16,
-                       is_detector_training=True,
-                       is_regressor_training=True,
-                       reuse=None,
+                       is_training=True,
                        scope='resnet_v1_50'):
   """ResNet-152 model of [1]. See resnet_v2() for arg and return description."""
 
@@ -174,22 +170,18 @@ def resnet_50_detector(inputs,
       # B5
       resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)]
 
-  return bulat_resnet_v1(inputs, blocks, num_classes, is_training=is_detector_training,
-                         include_root_block=True, reuse=reuse, scope='resnet_v1_50')
+  return bulat_resnet_v1(inputs, blocks, num_classes, is_training=is_training, scope=scope)
 
 
 def resnet_50_cascade(inputs,
                       num_classes=16,
-                      is_detector_training=True,
+                      is_detector_training=False,
                       is_regressor_training=True,
-                      reuse = None,
-                      scope='resenet'):
+                      scope='resnet_cascade'):
 
   detect_logits, detect_endpoints = resnet_50_detector(inputs,
-                                                       num_classes=16,
-                                                       is_detector_training=True,
-                                                       is_regressor_training=True,
-                                                       reuse=None,
+                                                       num_classes=num_classes,
+                                                       is_training=is_detector_training,
                                                        scope='resnet_v1_50')
   detect_endpoints['detect_logits'] = detect_logits
 
@@ -197,8 +189,7 @@ def resnet_50_cascade(inputs,
 
   regression_logits, _ = resnet_50_detector(inputs=stacked_heatmaps,
                                             num_classes=num_classes,
-                                            is_detector_training=is_detector_training,
-                                            is_regressor_training=is_regressor_training,
+                                            is_training=is_regressor_training,
                                             scope='resnet_50_regressor')
 
   return regression_logits, detect_endpoints

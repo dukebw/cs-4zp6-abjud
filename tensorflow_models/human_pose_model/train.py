@@ -12,6 +12,7 @@ from dataset.mpii_datatypes import Person
 from input_pipeline import setup_train_input_pipeline
 from networks.inference import inference
 from evaluate import setup_evaluation, evaluate_single_epoch
+import pdb
 
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
@@ -187,6 +188,7 @@ def _restore_checkpoint_variables(session,
     variables in the file found in `checkpoint_path`, except those excluded by
     `checkpoint_exclude_scopes`.
     """
+    print('hello')
     if checkpoint_path is None:
         return
 
@@ -314,7 +316,7 @@ def _init_regression_subnetwork_first_layer(session, second_checkpoint_path):
     """Initializes a subset of the weights of the first layer of the regression
     subnetwork (assumed to start with vgg_16_regression) with the pre-trained
     ILSVRC weights.
-    
+
     The rest of the first layer gets zero-initialized.
 
     I.e. subnetwork[:, :, 0:3, :] <- ILSVRC weights
@@ -345,6 +347,7 @@ def train():
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
+            #pdb.set_trace()
             num_batches_per_epoch, train_op, train_loss, global_step = _setup_training(FLAGS)
 
             eval_graph = tf.Graph()

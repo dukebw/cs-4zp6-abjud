@@ -7,16 +7,16 @@ import os
 import re
 import base64
 import ssl
-import urllib3
+#import urllib3
 #import http.server
 #import requests
 import numpy as np
 #from matplotlib import pylab
 #import imageio
 from PIL import Image
-from networks.vgg_bulat import two_vgg_16s_cascade
-from networks.resnet_bulat import resnet_50_detector
-from networks.vgg_bulat import vgg_16_bn_relu
+#from networks.vgg_bulat import two_vgg_16s_cascade
+#from networks.resnet_bulat import resnet_50_detector
+#from networks.vgg_bulat import vgg_16_bn_relu
 # Restrict tensorflow to only use the first GPU
 #os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 #os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -195,8 +195,7 @@ class VideoHandler(object):
         pylab.imshow(self.get_random_frame())
 
 
-def _get_freeze_graph(get_logits_function = vgg_16_bn_relu):
-
+def _get_freeze_graph(get_logits_function):
     input_graph_name = "input_graph.pb"
     output_graph_name = "output_graph.pb"
 

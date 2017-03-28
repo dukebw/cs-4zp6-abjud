@@ -98,7 +98,7 @@ tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
                           """Number of epochs before decay factor is applied
                           once.""")
 
-tf.app.flags.DEFINE_boolean('is_detector_training', True,
+tf.app.flags.DEFINE_boolean('is_detector_training', False,
                             """Set to true if the detector subnetwork should be
                             trained.""")
 
