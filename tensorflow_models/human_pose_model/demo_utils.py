@@ -1,25 +1,26 @@
 """This module implements the TensorFlow HTTP server, which is a standalone
 server that is able to handle HTTP requests to do TensorFlow operations.
 """
-import cv2 #We have to import cv2 before import tensorflow!!
+#import cv2 #We have to import cv2 before import tensorflow!!
+import tensorflow as tf
 import os
 import re
 import base64
 import ssl
-import urllib
+import urllib3
 #import http.server
 #import requests
 import numpy as np
-from matplotlib import pylab
-import imageio
+#from matplotlib import pylab
+#import imageio
 from PIL import Image
-import tensorflow as tf
 from networks.vgg_bulat import two_vgg_16s_cascade
-
+from networks.resnet_bulat import resnet_50_detector
+from networks.vgg_bulat import vgg_16_bn_relu
 # Restrict tensorflow to only use the first GPU
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+#os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 
 JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'r_knee',
@@ -38,11 +39,14 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'l_elbow',
                         'l_wrist']
 
-RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentropy_regression/23'
-IMAGE_DIM = 380
+resnet50_PATH = '/media/ubuntu/SD/data/resnet50'
+both_nets_PATH = '/media/ubuntu/SD/data/both_nets'
+detector_PATH = '/media/ubuntu/SD/data/detector'
 
+IMAGE_DIM = 260
+RESTORE_PATH = detector_PATH
 
-def get_joint_position_inference_graph(image_bytes_feed):
+def get_joint_position_inference_graph(image_bytes_feed, get_logits_function):
     """This function sets up a computation graph that will decode from JPEG the
     input placeholder image `image_bytes_feed`, pad and resize it to shape
     [IMAGE_DIM, IMAGE_DIM], then run joint inference on the image using the
@@ -52,6 +56,7 @@ def get_joint_position_inference_graph(image_bytes_feed):
     decoded_image = tf.image.convert_image_dtype(image=decoded_image, dtype=tf.float32)
 
     image_shape = tf.shape(input=decoded_image)
+    print(image_shape)
     height = image_shape[0]
     width = image_shape[1]
     pad_dim = tf.cast(tf.maximum(height, width), tf.int32)
@@ -74,7 +79,7 @@ def get_joint_position_inference_graph(image_bytes_feed):
 
     normalized_image = tf.expand_dims(input=normalized_image, axis=0)
 
-    logits, _ = two_vgg_16s_cascade(normalized_image, 16, False, False)
+    logits, _ = get_logits_function(normalized_image, 16, False, False)
 
     return logits
 
@@ -107,9 +112,10 @@ class ImageHandler(object):
     # What purpose does this class have?
     # This class serves to handle an image and a pose estimate with associated information from CNN
     # Later we will generalize this object to handle a stream of data
-    def __init__(self,filename):
+    def __init__(self,filename, get_logits_function):
         self.filename = filename
         self.image = self._read()
+        self.get_logits_function = get_logits_function
         self.init_session()
 
     def _read(self):
@@ -122,10 +128,10 @@ class ImageHandler(object):
         # Note: This function needs to be called after make_graph
         with tf.Graph().as_default():
             self.image_bytes_feed = tf.placeholder(dtype=tf.string)
-            self.logits = get_joint_position_inference_graph(self.image_bytes_feed)
+            self.logits = get_joint_position_inference_graph(self.image_bytes_feed, self.get_logits_function)
             shape = self.logits.get_shape()
-            merged_logits = tf.reshape(tf.reduce_max(self.logits, 3),[1, 380, 380, 1])
-            self.pose = tf.cast(merged_logits, tf.float32)
+            #merged_logits = tf.reshape(tf.reduce_max(self.logits, 3),[1, IMAGE_DIM, IMAGE_DIM, 1])
+            #self.pose = tf.cast(merged_logits, tf.float32)
             self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
             latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=RESTORE_PATH)
