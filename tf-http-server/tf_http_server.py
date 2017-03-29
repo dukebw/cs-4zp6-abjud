@@ -33,9 +33,9 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'l_elbow',
                         'l_wrist']
 
-RESTORE_PATH = '/media/ubuntu/SD/data/detector'
+RESTORE_PATH = '/home/mlrg/mcmaster-text-to-motion-database/tensorflow_models/human_pose_model/deployment_files/vgg_16_cascade'
 IMAGE_DIM = 380
-BATCH_SIZE = 1
+BATCH_SIZE = 32
 
 def _get_image_joint_predictions(image,
                                  session,
@@ -52,7 +52,7 @@ def _get_image_joint_predictions(image,
     I.e. it is a JSON array of dictionaries, where the keys are names of joints
     from `JOINT_NAMES_NO_SPACE`, and the values are two-element arrays
     containing the [x, y] coordinates of the joint prediction.
-    
+
     These [x, y] coordinates are in a space where the range [-0.5, 0.5]
     represent the range, in the padded image, from the far left to the far
     right in the case of x, and from the top to the bottom in the case of y.
@@ -107,17 +107,18 @@ def _get_image_joint_predictions(image,
 def _get_heatmaps_for_batch(frames,
                             logits_tensor,
                             resized_image_tensor,
-			    session,
-			    image_bytes_feed):
+                            session,
+                            image_bytes_feed,
+                            batch_size):
     """
     """
     logits, batch_images = session.run(fetches=[logits_tensor, resized_image_tensor],
                                        feed_dict={image_bytes_feed: frames})
 
     batch_heatmaps = []
-    for image_index in range(BATCH_SIZE):
+    for image_index in range(batch_size):
         _, threshold = cv2.threshold(logits[image_index, ...],
-                                     10,
+                                     40,
                                      255,
                                      cv2.THRESH_BINARY)
 
@@ -217,8 +218,9 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
                         batch_heatmaps = _get_heatmaps_for_batch(frames,
                                                                  logits_tensor,
                                                                  resized_image_tensor,
-								 session,
-								 image_bytes_feed)
+                                                                 session,
+                                                                 image_bytes_feed,
+                                                                 BATCH_SIZE)
                         for heatmap in batch_heatmaps:
                             out.write(heatmap)
 
@@ -272,8 +274,9 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
                         batch_heatmaps = _get_heatmaps_for_batch(frames,
                                                                  logits_tensor,
                                                                  resized_image_tensor,
-								 session,
-								 image_bytes_feed)
+                                                                 session,
+                                                                 image_bytes_feed,
+                                                                 BATCH_SIZE)
                         for heatmap in batch_heatmaps:
                             writer.append_data(heatmap)
 
@@ -338,7 +341,7 @@ def run():
     At server startup, a joint inference computation graph is setup, a session
     to run the graph in is created, and model weights are restored from
     `RESTORE_PATH`.
-    
+
     The server listens on an SSL-wrapped socket at port 8765 of localhost,
     using an SSL certificate obtained from https://letsencrypt.org/.
     """
