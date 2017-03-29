@@ -36,6 +36,7 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
 
 RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentropy_regression/23'
 IMAGE_DIM = 380
+BATCH_SIZE = 20
 
 def _get_image_joint_predictions(image,
                                  session,
@@ -186,40 +187,46 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
                                             fps=fps)
 
                 # @debug
+                frames = []
                 for frame in video:
-                    jpeg_image = session.run(tf.image.encode_jpeg(frame))
-                    logits, resized_image = session.run(fetches=[logits_tensor, resized_image_tensor],
-                                                        feed_dict={image_bytes_feed: jpeg_image})
+                    frames.append(frame)
 
-                    image_index = 0
-                    _, threshold = cv2.threshold(logits[image_index, ...],
-                                                 10,
-                                                 255,
-                                                 cv2.THRESH_BINARY)
+                    if len(frames) >= BATCH_SIZE:
+                        logits, batch_images = session.run(fetches=[logits_tensor, resized_image_tensor],
+                                                           feed_dict={image_bytes_feed: frames})
 
-                    heatmap_on_image = np.zeros(resized_image.shape, dtype=np.uint8)
-                    for joint_index in range(logits.shape[-1]):
-                        if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
-                            dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
-                                                                   cv2.DIST_L1,
-                                                                   3)
-                            dist_transform = cv2.convertScaleAbs(dist_transform,
-                                                                 dist_transform,
-                                                                 255.0/np.max(dist_transform))
-                            heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
-                            heatmap[..., 0] = 0
+                        for image_index in range(BATCH_SIZE):
+                            _, threshold = cv2.threshold(logits[image_index, ...],
+                                                         10,
+                                                         255,
+                                                         cv2.THRESH_BINARY)
 
-                            heatmap_on_image += heatmap
+                            heatmap_on_image = np.zeros(batch_images[image_index].shape, dtype=np.uint8)
+                            for joint_index in range(logits.shape[-1]):
+                                if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
+                                    dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
+                                                                           cv2.DIST_L1,
+                                                                           3)
+                                    dist_transform = cv2.convertScaleAbs(dist_transform,
+                                                                         dist_transform,
+                                                                         255.0/np.max(dist_transform))
+                                    heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
+                                    heatmap[..., 0] = 0
 
-                    heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
-                    alpha = 0.5
-                    heatmap_on_image = cv2.addWeighted(resized_image,
-                                                       alpha,
-                                                       heatmap_on_image,
-                                                       1.0 - alpha,
-                                                       0.0)
+                                    heatmap_on_image += heatmap
 
-                    writer.append_data(heatmap_on_image)
+                            heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
+                            alpha = 0.5
+                            heatmap_on_image = cv2.addWeighted(batch_images[image_index],
+                                                               alpha,
+                                                               heatmap_on_image,
+                                                               1.0 - alpha,
+                                                               0.0)
+
+                            writer.append_data(heatmap_on_image)
+
+                        frames = []
+
                 writer.close()
 
                 print('Video processing complete!')
@@ -229,27 +236,34 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
     return TFHttpRequestHandler
 
 
-def _get_joint_position_inference_graph(image_bytes_feed):
+def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
     """This function sets up a computation graph that will decode from JPEG the
     input placeholder image `image_bytes_feed`, pad and resize it to shape
     [IMAGE_DIM, IMAGE_DIM], then run human pose inference on the image using
     the "Two VGG-16s cascade" model.
     """
-    decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
-    decoded_image = tf.image.convert_image_dtype(image=decoded_image,
+    # decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
+    # decoded_image = tf.image.convert_image_dtype(image=decoded_image,
+    #                                              dtype=tf.float32)
+    decoded_image = tf.image.convert_image_dtype(image=image_bytes_feed,
                                                  dtype=tf.float32)
 
     image_shape = tf.shape(input=decoded_image)
-    height = image_shape[0]
-    width = image_shape[1]
+    # height = image_shape[0]
+    # width = image_shape[1]
+    height = image_shape[1]
+    width = image_shape[2]
     pad_dim = tf.cast(tf.maximum(height, width), tf.int32)
     offset_height = tf.cast(tf.cast((pad_dim - height), tf.float32)/2.0, tf.int32)
     offset_width = tf.cast(tf.cast((pad_dim - width), tf.float32)/2.0, tf.int32)
-    padded_image = tf.image.pad_to_bounding_box(image=decoded_image,
-                                                offset_height=offset_height,
-                                                offset_width=offset_width,
-                                                target_height=pad_dim,
-                                                target_width=pad_dim)
+    padded_image = tf.map_fn(
+        fn=lambda image: tf.image.pad_to_bounding_box(image=image,
+                                                      offset_height=offset_height,
+                                                      offset_width=offset_width,
+                                                      target_height=pad_dim,
+                                                      target_width=pad_dim),
+        elems = decoded_image,
+        parallel_iterations=BATCH_SIZE)
 
     resized_image = tf.image.resize_images(images=padded_image,
                                            size=[IMAGE_DIM, IMAGE_DIM])
@@ -258,9 +272,9 @@ def _get_joint_position_inference_graph(image_bytes_feed):
     normalized_image = tf.multiply(x=normalized_image, y=2.0)
 
     normalized_image = tf.reshape(tensor=normalized_image,
-                                  shape=[IMAGE_DIM, IMAGE_DIM, 3])
+                                  shape=[batch_size, IMAGE_DIM, IMAGE_DIM, 3])
 
-    normalized_image = tf.expand_dims(input=normalized_image, axis=0)
+    # normalized_image = tf.expand_dims(input=normalized_image, axis=0)
 
     with tf.device(device_name_or_function='/gpu:0'):
         with slim.arg_scope([slim.model_variable], device='/cpu:0'):
@@ -285,9 +299,11 @@ def run():
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            image_bytes_feed = tf.placeholder(dtype=tf.string)
+            # image_bytes_feed = tf.placeholder(dtype=tf.string)
+            image_bytes_feed = tf.placeholder(dtype=tf.uint8)
 
-            logits, resized_image = _get_joint_position_inference_graph(image_bytes_feed)
+            logits, resized_image = _get_joint_position_inference_graph(
+                image_bytes_feed, BATCH_SIZE)
 
             session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
