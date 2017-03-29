@@ -33,9 +33,9 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'l_elbow',
                         'l_wrist']
 
-RESTORE_PATH = '/media/ubuntu/SD/data/vgg_16_256x256'
-IMAGE_DIM = 256
-BATCH_SIZE = 20
+RESTORE_PATH = '/media/ubuntu/SD/data/detector'
+IMAGE_DIM = 380
+BATCH_SIZE = 1
 
 def _get_image_joint_predictions(image,
                                  session,
@@ -106,7 +106,9 @@ def _get_image_joint_predictions(image,
 
 def _get_heatmaps_for_batch(frames,
                             logits_tensor,
-                            resized_image_tensor):
+                            resized_image_tensor,
+			    session,
+			    image_bytes_feed):
     """
     """
     logits, batch_images = session.run(fetches=[logits_tensor, resized_image_tensor],
@@ -196,6 +198,9 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
                 fourcc = cv2.VideoWriter_fourcc(*'X264')
                 out = cv2.VideoWriter('out_response.avi', fourcc, 20.0, (640,480))
                 frames = []
+
+                # @debug
+                batch_count = 0
                 while cap.isOpened():
                     ret, frame = cap.read()
                     if ret != True:
@@ -203,13 +208,17 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
                         break
 
                     cv2.imshow('frame', frame)
-                    frame_count += 1
                     frames.append(frame)
 
-                    if frame_count >= BATCH_SIZE:
+                    if len(frames) >= BATCH_SIZE:
+                        batch_count += 1
+                        print('running inference on batch: {}'.format(batch_count))
+
                         batch_heatmaps = _get_heatmaps_for_batch(frames,
                                                                  logits_tensor,
-                                                                 resized_image_tensor)
+                                                                 resized_image_tensor,
+								 session,
+								 image_bytes_feed)
                         for heatmap in batch_heatmaps:
                             out.write(heatmap)
 
@@ -249,9 +258,9 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
                 #                             'ffmpeg',
                 #                             codec='vp9',
                 #                             fps=fps)
-                writer = imageio.get_writer('/export/mlrg/soe-bduke/Downloads/out_test.webm',
+                writer = imageio.get_writer('./out_response.mp4',
                                             'ffmpeg',
-                                            codec='x264',
+                                            codec='mpeg4',
                                             fps=fps)
 
                 # @debug
@@ -262,7 +271,9 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
                     if len(frames) >= BATCH_SIZE:
                         batch_heatmaps = _get_heatmaps_for_batch(frames,
                                                                  logits_tensor,
-                                                                 resized_image_tensor)
+                                                                 resized_image_tensor,
+								 session,
+								 image_bytes_feed)
                         for heatmap in batch_heatmaps:
                             writer.append_data(heatmap)
 
@@ -313,10 +324,10 @@ def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
     with tf.device(device_name_or_function='/gpu:0'):
         with slim.arg_scope([slim.model_variable], device='/cpu:0'):
             with slim.arg_scope(vgg_bulat.vgg_arg_scope()):
-                logits, _ = vgg_bulat.vgg_16_bn_relu(normalized_image,
-                                                     16,
-                                                     False,
-                                                     False)
+                logits, _ = vgg_bulat.two_vgg_16s_cascade(normalized_image,
+                                                          16,
+                                                          False,
+                                                          False)
 
     return logits, tf.image.convert_image_dtype(image=resized_image, dtype=tf.uint8)
 
