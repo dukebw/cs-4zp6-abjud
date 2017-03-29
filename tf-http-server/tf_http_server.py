@@ -242,15 +242,10 @@ def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
     [IMAGE_DIM, IMAGE_DIM], then run human pose inference on the image using
     the "Two VGG-16s cascade" model.
     """
-    # decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
-    # decoded_image = tf.image.convert_image_dtype(image=decoded_image,
-    #                                              dtype=tf.float32)
     decoded_image = tf.image.convert_image_dtype(image=image_bytes_feed,
                                                  dtype=tf.float32)
 
     image_shape = tf.shape(input=decoded_image)
-    # height = image_shape[0]
-    # width = image_shape[1]
     height = image_shape[1]
     width = image_shape[2]
     pad_dim = tf.cast(tf.maximum(height, width), tf.int32)
@@ -273,8 +268,6 @@ def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
 
     normalized_image = tf.reshape(tensor=normalized_image,
                                   shape=[batch_size, IMAGE_DIM, IMAGE_DIM, 3])
-
-    # normalized_image = tf.expand_dims(input=normalized_image, axis=0)
 
     with tf.device(device_name_or_function='/gpu:0'):
         with slim.arg_scope([slim.model_variable], device='/cpu:0'):
@@ -299,7 +292,6 @@ def run():
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            # image_bytes_feed = tf.placeholder(dtype=tf.string)
             image_bytes_feed = tf.placeholder(dtype=tf.uint8)
 
             logits, resized_image = _get_joint_position_inference_graph(
