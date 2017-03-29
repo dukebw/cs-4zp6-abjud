@@ -317,7 +317,7 @@ def run():
                                                           image_bytes_feed,
                                                           logits,
                                                           resized_image)
-            server_address = ('localhost', 8765)
+            server_address = ('localhost', 8766)
             httpd = http.server.HTTPServer(server_address, request_handler)
             httpd.socket = ssl.wrap_socket(httpd.socket,
                                            keyfile='./domain.key',
