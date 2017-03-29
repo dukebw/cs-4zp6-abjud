@@ -14,7 +14,7 @@ from matplotlib import pylab
 import imageio
 from PIL import Image
 import tensorflow as tf
-from networks.vgg_bulat import 
+from networks.vgg_bulat import two_vgg_16s_cascade
 
 # Restrict tensorflow to only use the first GPU
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -38,7 +38,7 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'l_elbow',
                         'l_wrist']
 
-RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentropy_regression/23'
+RESTORE_PATH = '/home/mlrg/mcmaster-text-to-motion-database/tensorflow_models/human_pose_model/deployment_files/vgg_16_cascade'
 IMAGE_DIM = 380
 
 
@@ -74,9 +74,9 @@ def get_joint_position_inference_graph(image_bytes_feed):
 
     normalized_image = tf.expand_dims(input=normalized_image, axis=0)
 
-    logits, _ = two_vgg_16s_cascade(normalized_image, 16, False, False)
+    logits, endpoints = two_vgg_16s_cascade(normalized_image, 16, False, False)
 
-    return logits
+    return logits, endpoints
 
 
 def draw_logits(image, logits):
@@ -103,6 +103,21 @@ def draw_logits(image, logits):
             return heatmap_on_image
 
 
+def display_feature_maps(maps, width, height):
+    '''
+    Args: maps is a list of feature maps for a given layer for an arbitrary number of images
+          width and height specify the grid dimensions for displaying all feature maps
+    '''
+    assert width * height == maps.shape[-1]
+    # put channels as major axis
+    maps = np.moveaxis(maps, 3, 1)
+    maps_list = []
+    # display for each of set of feature maps in the list (could be done for many timesteps)
+    for m in maps:
+      maps_grid = np.vstack([np.hstack([m[i + j * width] for i in range(width)]) for j in range(height)])
+      maps_list.append(maps_grid)
+    return maps_list
+
 class ImageHandler(object):
     # What purpose does this class have?
     # This class serves to handle an image and a pose estimate with associated information from CNN
@@ -122,7 +137,7 @@ class ImageHandler(object):
         # Note: This function needs to be called after make_graph
         with tf.Graph().as_default():
             self.image_bytes_feed = tf.placeholder(dtype=tf.string)
-            self.logits = get_joint_position_inference_graph(self.image_bytes_feed)
+            self.logits, self.endpoints = get_joint_position_inference_graph(self.image_bytes_feed)
             shape = self.logits.get_shape()
             merged_logits = tf.reshape(tf.reduce_max(self.logits, 3),[1, 380, 380, 1])
             self.pose = tf.cast(merged_logits, tf.float32)
@@ -140,20 +155,10 @@ class ImageHandler(object):
         pylab.imshow(self.image)
         pylab.show()
 
-    def get_pose(self):
-        print(type(self.image))
+    def get_logits_and_activations(self):
         feed_dict = {self.image_bytes_feed: self.image}
-        logits = self.session.run(fetches=[self.logits], feed_dict=feed_dict)
-        _, threshold = cv2.threshold(logits[0,...],5,255,cv2.THRESH_BINARY)
-        pose_heatmaps = []
-        for joint_index in range(Person.NUM_JOINTS):
-            dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8), cv2.DIST_L1, 3)
-            dist_transform = cv2.convertScaleAbs(dist_transform, dist_transform, 255.0/np.max(dist_transform))
-            heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
-            alpha = 0.5
-            heatmap_on_image = cv2.addWeighted(image_batch[image_index],alpha,heatmap,1.0 - alpha,0.0)
-            pose_maps.append(heatmap_on_image)
-        return pose, pose_maps
+        logits, endpoints = self.session.run(fetches=[self.logits, self.endpoints], feed_dict=feed_dict)
+        return logits, endpoints
 
 
     def get_feature_maps():
