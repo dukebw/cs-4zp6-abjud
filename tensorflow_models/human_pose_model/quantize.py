@@ -16,6 +16,9 @@ def get_joint_position_inference_graph(image_bytes_feed):
     decoded_image = tf.image.convert_image_dtype(image=decoded_image, dtype=tf.float32)
 
     image_shape = tf.shape(input=decoded_image)
+BkjVj AgQgQ B B B B
+B
+B
     height = image_shape[0]
     width = image_shape[1]
     pad_dim = tf.cast(tf.maximum(height, width), tf.int32)

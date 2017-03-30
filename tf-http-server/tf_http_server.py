@@ -109,11 +109,13 @@ def _get_heatmaps_for_batch(frames,
                             resized_image_tensor,
                             session,
                             image_bytes_feed,
+                            endpoints,
                             batch_size):
     """
     """
-    logits, batch_images = session.run(fetches=[logits_tensor, resized_image_tensor],
-                                       feed_dict={image_bytes_feed: frames})
+    logits, batch_images, batch_endpoints = session.run(
+        fetches=[logits_tensor, resized_image_tensor, endpoints],
+        feed_dict={image_bytes_feed: frames})
 
     batch_heatmaps = []
     for image_index in range(batch_size):
@@ -137,16 +139,16 @@ def _get_heatmaps_for_batch(frames,
                 heatmap_on_image += heatmap
 
         heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
-        alpha = 0.5
-        heatmap_on_image = cv2.addWeighted(batch_images[image_index],
-                                           alpha,
-                                           heatmap_on_image,
-                                           1.0 - alpha,
-                                           0.0)
+        # alpha = 0.5
+        # heatmap_on_image = cv2.addWeighted(batch_images[image_index],
+        #                                    alpha,
+        #                                    heatmap_on_image,
+        #                                    1.0 - alpha,
+        #                                    0.0)
 
         batch_heatmaps.append(heatmap_on_image)
 
-    return batch_heatmaps
+    return batch_heatmaps, batch_endpoints
 
 
 def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resized_image_tensor):
@@ -327,12 +329,12 @@ def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
     with tf.device(device_name_or_function='/gpu:0'):
         with slim.arg_scope([slim.model_variable], device='/cpu:0'):
             with slim.arg_scope(vgg_bulat.vgg_arg_scope()):
-                logits, _ = vgg_bulat.two_vgg_16s_cascade(normalized_image,
-                                                          16,
-                                                          False,
-                                                          False)
+                logits, endpoints = vgg_bulat.two_vgg_16s_cascade(normalized_image,
+                                                                  16,
+                                                                  False,
+                                                                  False)
 
-    return logits, tf.image.convert_image_dtype(image=resized_image, dtype=tf.uint8)
+    return logits, tf.image.convert_image_dtype(image=resized_image, dtype=tf.uint8), endpoints
 
 
 def run():
