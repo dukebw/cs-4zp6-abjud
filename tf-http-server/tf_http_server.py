@@ -137,12 +137,12 @@ def _get_heatmaps_for_batch(frames,
                 heatmap_on_image += heatmap
 
         heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
-        alpha = 0.5
-        heatmap_on_image = cv2.addWeighted(batch_images[image_index],
-                                           alpha,
-                                           heatmap_on_image,
-                                           1.0 - alpha,
-                                           0.0)
+        # alpha = 0.5
+        # heatmap_on_image = cv2.addWeighted(batch_images[image_index],
+        #                                    alpha,
+        #                                    heatmap_on_image,
+        #                                    1.0 - alpha,
+        #                                    0.0)
 
         batch_heatmaps.append(heatmap_on_image)
 
