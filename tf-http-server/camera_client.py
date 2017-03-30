@@ -23,12 +23,29 @@ BATCH_SIZE = 7
 MAX_FRAMES = 2000*BATCH_SIZE
 FRAME_QUEUE = queue.Queue()
 
+def display_feature_maps(maps, width, height):
+    '''
+    Args: maps is a list of feature maps for a given layer for an arbitrary number of images
+          width and height specify the grid dimensions for displaying all feature maps
+    '''
+    # assert width * height == maps.shape[-1]
+    # put channels as major axis
+    maps = np.moveaxis(maps, 3, 1)
+    maps_list = []
+    # display for each of set of feature maps in the list (could be done for many timesteps)
+    for m in maps:
+      maps_grid = np.vstack([np.hstack([m[i + j * width] for i in range(width)]) for j in range(height)])
+      maps_list.append(maps_grid)
+    return maps_list
+
+
 @timethis.timethis
 def _get_heatmap_batch_async(frames,
                              logits,
                              resized_image,
                              session,
                              frame_feed,
+                             endpoints,
                              BATCH_SIZE):
     """
     """
@@ -42,16 +59,29 @@ def _get_heatmap_batch_async(frames,
     end = max_dim - crop_width
     cropped_frames = np.array(frames)[..., start:end, :]
 
-    batch_heatmaps = tf_http_server._get_heatmaps_for_batch(cropped_frames,
-                                                            logits,
-                                                            resized_image,
-                                                            session,
-                                                            frame_feed,
-                                                            BATCH_SIZE)
+    batch_heatmaps, batch_endpoints = tf_http_server._get_heatmaps_for_batch(cropped_frames,
+                                                                             logits,
+                                                                             resized_image,
+                                                                             session,
+                                                                             frame_feed,
+                                                                             endpoints,
+                                                                             BATCH_SIZE)
+
+    feature_maps = []
+    feature_maps.append(display_feature_maps(
+        batch_endpoints['vgg_16/vgg_16/conv1/conv1_1'], 4, 4))
+    feature_maps.append(display_feature_maps(
+        batch_endpoints['vgg_16/vgg_16/conv3/conv3_1'], 8, 8))
+    feature_maps.append(display_feature_maps(
+        batch_endpoints['vgg_16/vgg_16/conv5/conv5_1'], 16, 16))
 
     FRAME_QUEUE = queue.Queue()
     for heatmap_index in range(len(batch_heatmaps)):
-        FRAME_QUEUE.put((cropped_frames[heatmap_index], batch_heatmaps[heatmap_index]))
+        FRAME_QUEUE.put((cropped_frames[heatmap_index],
+                         batch_heatmaps[heatmap_index],
+                         [feature_maps[0][heatmap_index],
+                          feature_maps[1][heatmap_index],
+                          feature_maps[2][heatmap_index]]))
 
 
 def run():
@@ -69,7 +99,7 @@ def run():
     
     # @debug
     frame_feed = tf.placeholder(dtype=tf.uint8)
-    logits, resized_image = tf_http_server._get_joint_position_inference_graph(
+    logits, resized_image, endpoints = tf_http_server._get_joint_position_inference_graph(
         frame_feed, BATCH_SIZE)
     session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
@@ -80,6 +110,9 @@ def run():
     restorer.restore(sess=session, save_path=latest_checkpoint)
 
     cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('frame0', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('frame1', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('frame2', cv2.WINDOW_NORMAL)
 
     total_frame_count = 0
     frames = []
@@ -93,19 +126,26 @@ def run():
                 if total_frame_count >= 2*BATCH_SIZE:
                     batch_thread.join()
 
-                args = (frames, logits, resized_image, session, frame_feed, BATCH_SIZE)
+                args = (frames, logits, resized_image, session, frame_feed, endpoints, BATCH_SIZE)
                 batch_thread = threading.Thread(target=_get_heatmap_batch_async, args=args)
                 batch_thread.start()
-                for frame in frames:
-                    FRAME_QUEUE.put(frame)
 
                 frames = []
 
-            time.sleep(0.65/BATCH_SIZE)
+            time.sleep(0.9/BATCH_SIZE)
             if  not FRAME_QUEUE.empty():
                 result = FRAME_QUEUE.get()
                 next_frame = result[0]
                 next_heatmap = result[1]
+                next_feature_map_list = result[2]
+
+                for next_feature_map_index in range(len(next_feature_map_list)):
+                    next_feature_map = next_feature_map_list[next_feature_map_index]
+                    next_feature_map = cv2.convertScaleAbs(next_feature_map,
+                                                           next_feature_map,
+                                                           255.0/np.max(next_feature_map))
+                    next_feature_map = cv2.applyColorMap(next_feature_map, cv2.COLORMAP_JET)
+                    cv2.imshow('frame{}'.format(next_feature_map_index), next_feature_map)
 
                 # next_heatmap = cv2.resize(next_heatmap, next_frame.shape[0:2])
                 next_heatmap = scipy.misc.imresize(next_heatmap,
