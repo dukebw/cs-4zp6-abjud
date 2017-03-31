@@ -179,6 +179,51 @@ def resnet_detector(inputs,
                          include_root_block=True, reuse=reuse, scope='resnet_v1_152')
 
 
+def resnet_50_detector(inputs,
+                       num_classes=16,
+                       is_training=True,
+                       scope='resnet_v1_50'):
+  """ResNet-152 model of [1]. See resnet_v2() for arg and return description."""
+
+  blocks = [ 
+      # B2
+      resnet_utils.Block('block1', bottleneck, [(256, 64, 1)] * 3), 
+      # B3
+      resnet_utils.Block('block2', bottleneck, [(512, 128, 1)] * 3), 
+      # B4
+      resnet_utils.Block('block3', bottleneck, [(1024, 256, 1)] * 5), 
+      # B4
+      # ADDED TO EXCLUDE PROPERLY with namescope as this is a modification from the original resnet
+      resnet_utils.Block('block3b', bottleneck, [(1024, 256, 1)] * 1), 
+      # B5
+      resnet_utils.Block('block4', bottleneck, [(2048, 512, 1)] * 3)] 
+
+  return bulat_resnet_v1(inputs, blocks, num_classes, is_training=is_training, scope=scope)
+
+
+def resnet_50_cascade(inputs,
+                      num_classes=16,
+                      is_detector_training=True,
+                      is_regressor_training=True,
+                      scope='resnet_cascade'):
+
+  detect_logits, detect_endpoints = resnet_50_detector(inputs,
+                                                       num_classes=num_classes,
+                                                       is_training=is_detector_training,
+                                                       scope='resnet_v1_50')
+  detect_endpoints['detect_logits'] = detect_logits
+
+  stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
+
+  regression_logits, _ = resnet_50_detector(inputs=stacked_heatmaps,
+                                            num_classes=num_classes,
+                                            is_training=is_regressor_training,
+                                            scope='resnet_50_regressor')
+
+  return regression_logits, detect_endpoints
+
+
+
 def resnet_regressor(inputs, num_classes=16, is_training=True, scope='resnet_regressor'):
   """Hourglass model framed within residual learning from Bulat et al
      Descr: Compiles the bottleneck blocks and calls the hourglass function

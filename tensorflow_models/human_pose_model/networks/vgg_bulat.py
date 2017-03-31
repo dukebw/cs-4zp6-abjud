@@ -859,7 +859,7 @@ def _vgg_bulat_regression_conv3x3_c2c3c4(inputs,
 
                 end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
-            return net, end_points
+            return net, end_point   
 
 
 def graham_vgg(inputs,
@@ -901,11 +901,12 @@ def graham_cascade(inputs,
     return regression_logits, detect_endpoints
 
 
-def graham_cascade(inputs,
-                      num_classes=16,
-                      is_detector_training=True,
-                      is_regressor_training=True,
-                      scope='vgg_bulat_cascade'):
+def vgg_resnet_cascade(inputs,
+                       num_classes=16,
+                       is_detector_training=True,
+                       is_regressor_training=True,
+                       scope='vgg_bulat_cascade'):
+
     """The cascade of VGG-style networks from the Bulat paper."""
     detect_logits, detect_endpoints = _vgg_16_bn_relu_graham(inputs=inputs,
                                                              num_classes=num_classes,
@@ -915,10 +916,10 @@ def graham_cascade(inputs,
 
     stacked_heatmaps = tf.concat(values=[detect_logits, inputs], axis=3)
 
-    regression_logits, _ = _vgg_16_bn_relu_graham(inputs=stacked_heatmaps,
-                                                  num_classes=num_classes,
-                                                  is_training=is_regressor_training,
-                                                  scope=scope)
+    regression_logits, _ = resnet_bulat.resnet_50_detector(inputs=stacked_heatmaps,
+                                                           num_classes=num_classes,
+                                                           is_training=is_regressor_training,
+                                                           scope=scope)
 
     return regression_logits, detect_endpoints
 
