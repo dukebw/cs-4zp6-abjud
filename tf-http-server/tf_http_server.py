@@ -3,14 +3,18 @@ server that is able to handle HTTP requests to do TensorFlow operations.
 """
 import re
 import base64
-import ssl
 import urllib
 import http.server
 import requests
 import numpy as np
+import cv2
+import imageio
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from human_pose_model.networks import vgg_bulat
+
+# @debug
+from matplotlib import pylab
 
 JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'r_knee',
@@ -29,8 +33,9 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'l_elbow',
                         'l_wrist']
 
-RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentropy_regression/23'
+RESTORE_PATH = '/home/mlrg/mcmaster-text-to-motion-database/tensorflow_models/human_pose_model/deployment_files/vgg_16_cascade'
 IMAGE_DIM = 380
+BATCH_SIZE = 32
 
 def _get_image_joint_predictions(image,
                                  session,
@@ -47,7 +52,7 @@ def _get_image_joint_predictions(image,
     I.e. it is a JSON array of dictionaries, where the keys are names of joints
     from `JOINT_NAMES_NO_SPACE`, and the values are two-element arrays
     containing the [x, y] coordinates of the joint prediction.
-    
+
     These [x, y] coordinates are in a space where the range [-0.5, 0.5]
     represent the range, in the padded image, from the far left to the far
     right in the case of x, and from the top to the bottom in the case of y.
@@ -99,7 +104,54 @@ def _get_image_joint_predictions(image,
     return joint_predictions_json
 
 
-def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
+def _get_heatmaps_for_batch(frames,
+                            logits_tensor,
+                            resized_image_tensor,
+                            session,
+                            image_bytes_feed,
+                            endpoints,
+                            batch_size):
+    """
+    """
+    logits, batch_images, batch_endpoints = session.run(
+        fetches=[logits_tensor, resized_image_tensor, endpoints],
+        feed_dict={image_bytes_feed: frames})
+
+    batch_heatmaps = []
+    for image_index in range(batch_size):
+        _, threshold = cv2.threshold(logits[image_index, ...],
+                                     40,
+                                     255,
+                                     cv2.THRESH_BINARY)
+
+        heatmap_on_image = np.zeros(batch_images[image_index].shape, dtype=np.uint8)
+        for joint_index in range(logits.shape[-1]):
+            if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
+                dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
+                                                       cv2.DIST_L1,
+                                                       3)
+                dist_transform = cv2.convertScaleAbs(dist_transform,
+                                                     dist_transform,
+                                                     255.0/np.max(dist_transform))
+                heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
+                heatmap[..., 0] = 0
+
+                heatmap_on_image += heatmap
+
+        heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
+        # alpha = 0.5
+        # heatmap_on_image = cv2.addWeighted(batch_images[image_index],
+        #                                    alpha,
+        #                                    heatmap_on_image,
+        #                                    1.0 - alpha,
+        #                                    0.0)
+
+        batch_heatmaps.append(heatmap_on_image)
+
+    return batch_heatmaps, batch_endpoints
+
+
+def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resized_image_tensor):
     """This function returns subclasses of
     `http.server.BaseHTTPRequestHandler`, using the closure of the function
     call to allow extra parameters (namely the session to run a computation
@@ -144,15 +196,50 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
             curl -X GET https://brendanduke.ca:8765/?image_url=http://st2.depositphotos.com/1912333/10089/i/950/depositphotos_100892946-stock-photo-sporty-woman-waving-hands.jpg --insecure
             """
             image_url = self.requestline.split()[1]
-            image_url = urllib.parse.unquote(image_url)
-            image_url = re.match('/\?image_url=(.*)', image_url)
-            assert image_url is not None
+            if re.match('/Video', image_url) is not None:
+                cap = cv2.VideoCapture('output.avi')
+                fourcc = cv2.VideoWriter_fourcc(*'X264')
+                out = cv2.VideoWriter('out_response.avi', fourcc, 20.0, (640,480))
+                frames = []
 
-            image_url = image_url.groups()[0]
+                # @debug
+                batch_count = 0
+                while cap.isOpened():
+                    ret, frame = cap.read()
+                    if ret != True:
+                        print('end of video')
+                        break
 
-            image_request = requests.get(image_url)
+                    cv2.imshow('frame', frame)
+                    frames.append(frame)
 
-            self._respond_with_joints(image_request.content)
+                    if len(frames) >= BATCH_SIZE:
+                        batch_count += 1
+                        print('running inference on batch: {}'.format(batch_count))
+
+                        batch_heatmaps = _get_heatmaps_for_batch(frames,
+                                                                 logits_tensor,
+                                                                 resized_image_tensor,
+                                                                 session,
+                                                                 image_bytes_feed,
+                                                                 BATCH_SIZE)
+                        for heatmap in batch_heatmaps:
+                            out.write(heatmap)
+
+                        frames = []
+
+
+                out.release()
+            else:
+                image_url = urllib.parse.unquote(image_url)
+                image_url = re.match('/\?image_url=(.*)', image_url)
+                assert image_url is not None
+
+                image_url = image_url.groups()[0]
+
+                image_request = requests.get(image_url)
+
+                self._respond_with_joints(image_request.content)
 
         def do_POST(self):
             """HTTP POST requests should contain a JPEG image encoded in base
@@ -165,32 +252,70 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
 
-            self._respond_with_joints(base64.b64decode(post_data))
+            post_url = self.requestline.split()[1]
+            if re.match('/Video', post_url) is not None:
+                video = imageio.get_reader(base64.b64decode(post_data),
+                                           'ffmpeg')
+
+                fps = video.get_meta_data()['fps']
+                # writer = imageio.get_writer(imageio.RETURN_BYTES,
+                #                             'ffmpeg',
+                #                             codec='vp9',
+                #                             fps=fps)
+                writer = imageio.get_writer('./out_response.mp4',
+                                            'ffmpeg',
+                                            codec='mpeg4',
+                                            fps=fps)
+
+                # @debug
+                frames = []
+                for frame in video:
+                    frames.append(frame)
+
+                    if len(frames) >= BATCH_SIZE:
+                        batch_heatmaps = _get_heatmaps_for_batch(frames,
+                                                                 logits_tensor,
+                                                                 resized_image_tensor,
+                                                                 session,
+                                                                 image_bytes_feed,
+                                                                 BATCH_SIZE)
+                        for heatmap in batch_heatmaps:
+                            writer.append_data(heatmap)
+
+                        frames = []
+
+                writer.close()
+
+                print('Video processing complete!')
+            else:
+                self._respond_with_joints(base64.b64decode(post_data))
 
     return TFHttpRequestHandler
 
 
-def _get_joint_position_inference_graph(image_bytes_feed):
+def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
     """This function sets up a computation graph that will decode from JPEG the
     input placeholder image `image_bytes_feed`, pad and resize it to shape
-    [IMAGE_DIM, IMAGE_DIM], then run joint inference on the image using the
-    "Two VGG-16s cascade" model.
+    [IMAGE_DIM, IMAGE_DIM], then run human pose inference on the image using
+    the "Two VGG-16s cascade" model.
     """
-    decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
-    decoded_image = tf.image.convert_image_dtype(image=decoded_image,
+    decoded_image = tf.image.convert_image_dtype(image=image_bytes_feed,
                                                  dtype=tf.float32)
 
     image_shape = tf.shape(input=decoded_image)
-    height = image_shape[0]
-    width = image_shape[1]
+    height = image_shape[1]
+    width = image_shape[2]
     pad_dim = tf.cast(tf.maximum(height, width), tf.int32)
     offset_height = tf.cast(tf.cast((pad_dim - height), tf.float32)/2.0, tf.int32)
     offset_width = tf.cast(tf.cast((pad_dim - width), tf.float32)/2.0, tf.int32)
-    padded_image = tf.image.pad_to_bounding_box(image=decoded_image,
-                                                offset_height=offset_height,
-                                                offset_width=offset_width,
-                                                target_height=pad_dim,
-                                                target_width=pad_dim)
+    padded_image = tf.map_fn(
+        fn=lambda image: tf.image.pad_to_bounding_box(image=image,
+                                                      offset_height=offset_height,
+                                                      offset_width=offset_width,
+                                                      target_height=pad_dim,
+                                                      target_width=pad_dim),
+        elems = decoded_image,
+        parallel_iterations=BATCH_SIZE)
 
     resized_image = tf.image.resize_images(images=padded_image,
                                            size=[IMAGE_DIM, IMAGE_DIM])
@@ -199,19 +324,17 @@ def _get_joint_position_inference_graph(image_bytes_feed):
     normalized_image = tf.multiply(x=normalized_image, y=2.0)
 
     normalized_image = tf.reshape(tensor=normalized_image,
-                                  shape=[IMAGE_DIM, IMAGE_DIM, 3])
-
-    normalized_image = tf.expand_dims(input=normalized_image, axis=0)
+                                  shape=[batch_size, IMAGE_DIM, IMAGE_DIM, 3])
 
     with tf.device(device_name_or_function='/gpu:0'):
         with slim.arg_scope([slim.model_variable], device='/cpu:0'):
             with slim.arg_scope(vgg_bulat.vgg_arg_scope()):
-                logits, _ = vgg_bulat.two_vgg_16s_cascade(normalized_image,
-                                                          16,
-                                                          False,
-                                                          False)
+                logits, endpoints = vgg_bulat.two_vgg_16s_cascade(normalized_image,
+                                                                  16,
+                                                                  False,
+                                                                  False)
 
-    return logits
+    return logits, tf.image.convert_image_dtype(image=resized_image, dtype=tf.uint8), endpoints
 
 
 def run():
@@ -226,12 +349,12 @@ def run():
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            image_bytes_feed = tf.placeholder(dtype=tf.string)
+            image_bytes_feed = tf.placeholder(dtype=tf.uint8)
 
-            logits = _get_joint_position_inference_graph(image_bytes_feed)
+            logits, resized_image = _get_joint_position_inference_graph(
+                image_bytes_feed, BATCH_SIZE)
 
-            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
-                                                       log_device_placement=True))
+            session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
             latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=RESTORE_PATH)
             assert latest_checkpoint is not None
@@ -241,13 +364,10 @@ def run():
 
             request_handler = TFHttpRequestHandlerFactory(session,
                                                           image_bytes_feed,
-                                                          logits)
-            server_address = ('localhost', 8765)
+                                                          logits,
+                                                          resized_image)
+            server_address = ('localhost', 8246)
             httpd = http.server.HTTPServer(server_address, request_handler)
-            httpd.socket = ssl.wrap_socket(httpd.socket,
-                                           keyfile='./domain.key',
-                                           certfile='./signed.crt',
-                                           server_side=True)
             httpd.serve_forever()
 
 
