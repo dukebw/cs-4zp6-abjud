@@ -26,16 +26,6 @@ def _summarize_loss(total_loss, gpu_index):
     return total_loss
 
 
-# We extrapolate by finding the nearest neighbors using LHS Hashing
-# We find the nearest neighbors in embedding space
-# The embedding space is managed by an external memory module
-# This function returns a batch of data that is twice the size of the original batch
-# It also updates the memory module
-# TODO (Thor)
-def extrapolate(images,):
-    #embeddings = tf.Variable(tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
-    pass
-
 def inference(images,
               binary_maps,
               heatmaps,
@@ -93,6 +83,110 @@ def inference(images,
             total_loss = _summarize_loss(total_loss, gpu_index)
 
     return total_loss, logits
+
+
+# We extrapolate by finding the nearest neighbors using LHS Hashing
+# We find the nearest neighbors in embedding space
+# The embedding space is managed by an external memory module
+# This function returns a batch of data that is twice the size of the original batch
+# It also updates the memory module
+# TODO (Thor)
+def extrapolate(images, embedding_space, gpu_index):
+    #embeddings = tf.Variable(tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+    # Here we do a lookup of the nearest neighbors for a given batch of images
+    # We return a batch that's twice the size of the original batch and has the nearest neighbours according to the
+    # feature maps given by the parameter setting after the latest epoch
+    pass
+
+
+def knn(x_keys, x_queries, k, batch_size):
+    '''Find the k nearest neighbours for a set of query vectors.
+
+    Uses a fast and efficient GPU implementation of k-nearest neighbour
+    search to quickly find neighbours. Uses batches so that the GPU
+    doesn't run out of memory.
+
+    Args:
+        x_keys: The vectors that are being searched (ie. the dataset).
+        x_queries: The vectors that need to be matched to vectors in the
+            dataset.
+        k: The number of nearest neighbours to return.
+        batch_size: The number of queries to search per batch. Reduce
+        this value if the GPU runs out of memory when computing
+        neighbours.
+
+    Returns:
+        An array containing the indices (with respect to the dataset) of
+        the k-nearest neighbours.
+    '''
+    n_feat = x_keys.shape[1]
+
+    # Pad the query matrix so that it will fit nicely into the batch size
+    n_batches = len(x_queries) / batch_size
+    n_padding = len(x_queries) - (n_batches * batch_size)
+    if len(x_queries) % batch_size != 0:
+        n_batches += 1
+    x_queries = np.concatenate([x_queries, np.zeros((n_padding, n_feat))])
+
+    # Define KNN tensorflow graph
+    keys = tf.placeholder("float", [None, n_feat])
+    queries = tf.placeholder("float", [None, n_feat])
+
+    normalized_keys = tf.nn.l2_normalize(keys, dim=1)
+    normalized_query = tf.nn.l2_normalize(queries, dim=1)
+    query_result = tf.matmul(normalized_keys, tf.transpose(normalized_query))
+    pred = tf.nn.top_k(tf.transpose(query_result), k=k, sorted=True, name=None)
+
+    # Initializing the variables
+    init = tf.global_variables_initializer()
+
+    # Do the nearest neighbour search
+    nn_indices = []
+    with tf.Session() as sess:
+        sess.run(init)
+        for i in range(n_batches):
+            batch_query = x_queries[i * batch_size: (i + 1) * batch_size]
+            indices = sess.run(pred, feed_dict={keys: x_keys, queries: batch_query})
+            nn_indices.append(indices.indices)
+    nn_indices = np.concatenate(nn_indices)
+
+    if n_padding > 0:
+        # If n_padding = 0 this would return an empty array
+        nn_indices = nn_indices[:-n_padding]
+    return nn_indices
+
+
+def random_binomial(shp=(1,), p=0.5):
+    '''Generate an array with a random binomial distribution.
+
+    Samples are drawn from a binomial distribution based on a
+    probability of success (of drawing a 1) of p. This is the
+    tensorflow equivalent of numpy.random.binomial.
+
+    Args:
+        shp: A list or tuple indicating the shape of the output 
+            array
+        p: A float in the interval [0, 1] which controls the 
+            probability of success (i.e of drawing a 1).
+
+    Returns:
+        An array of size shp drawn from a binomial distribution with
+        success rate p.
+    '''
+    return tf.where(tf.random_uniform(shp) < p, tf.ones(shp), tf.zeros(shp))
+
+
+def extrap(x1, x2):
+    # Perform extrapolation between both sets of samples
+    y1 = (x1 - x2) * self.extrap_lambda + x1
+    y2 = (x2 - x1) * self.extrap_lambda + x2
+
+    # With probability p, use the newly extrapolated sample
+    # Otherwise use the original sample
+    keep = self.random_binomial(shp=(2,), p=self.p)
+    y1 = keep[0] * y1 + (1 - keep[0]) * x1
+    y2 = keep[1] * y2 + (1 - keep[1]) * x2
+    return y1, y2
 
 
 def inference_extrapolation(images,
