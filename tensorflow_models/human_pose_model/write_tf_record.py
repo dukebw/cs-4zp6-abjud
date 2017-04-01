@@ -18,7 +18,7 @@ tf.app.flags.DEFINE_string(
     """Filepath to the .mat file from the MPII HumanPose
     [website](human-pose.mpi-inf.mpg.de)""")
 
-tf.app.flags.DEFINE_string('train_dir', '/mnt/data/datasets/MPII_HumanPose/train_80_shards_w_binmap',
+tf.app.flags.DEFINE_string('train_dir', '/mnt/data/datasets/MPII_HumanPose/train_512px',
                             """Path in which to write the TFRecord files.""")
 
 tf.app.flags.DEFINE_boolean('is_train', True,
@@ -32,7 +32,7 @@ tf.app.flags.DEFINE_integer('train_shards', 80,
                             """Number of output shards (TFRecord files
                             containing training examples) to create.""")
 
-tf.app.flags.DEFINE_integer('image_dim', 256,
+tf.app.flags.DEFINE_integer('image_dim', 512,
                             """Dimension of the square image to output.""")
 
 class ImageCoder(object):

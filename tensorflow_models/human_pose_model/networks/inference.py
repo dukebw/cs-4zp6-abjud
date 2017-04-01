@@ -9,6 +9,7 @@ import tensorflow.contrib.slim as slim
 from dataset.mpii_datatypes import Person
 from networks import vgg_bulat
 from networks import resnet_bulat
+from networks import gvgg
 
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
@@ -221,9 +222,9 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
         'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
         'resnet_50': (resnet_bulat.resnet_50_detector, resnet_bulat.resnet_arg_scope),
-        'resnet_50_cascade': (resnet_bulat.resnet_50_cascade, resnet_bulat.resnet_arg_scope)}
-        'graham_vgg': (vgg_bulat.vgg_16_bn_relu_graham, vgg_bulat.vgg_arg_scope),
-        'graham_cascade': (vgg_bulat.graham_vgg_cascade, vgg_bulat.vgg_arg_scope)}
+        'resnet_50_cascade': (resnet_bulat.resnet_50_cascade, resnet_bulat.resnet_arg_scope),
+        'graham_vgg': (gvgg.gvgg, gvgg.gvgg_arg_scope),
+        'graham_cascade': (gvgg.gvgg, gvgg.gvgg_arg_scope)}
 
 NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
             'detector_only_xentropy': detector_only_xentropy_loss,
