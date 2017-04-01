@@ -113,14 +113,15 @@ def _get_reparameterization(hidden_enc):
 
 def faster_pixel_cnn(img):
     if step == 0:
-      # Prediction 1
+        pass
+        # Prediction 1
 
-      # Prediction 2
+        # Prediction 2
 
-      # Prediction 3
+        # Prediction 3
 
-      # Prediction 4
-    # Step function - should be with a while loop, cond, body, var like in raw_rnn
+        # Prediction 4
+        # Step function - should be with a while loop, cond, body, var like in raw_rnn
 
 
 def _get_img_reconstruction(a8,z,batch_norm_params):

@@ -26,6 +26,16 @@ def _summarize_loss(total_loss, gpu_index):
     return total_loss
 
 
+# We extrapolate by finding the nearest neighbors using LHS Hashing
+# We find the nearest neighbors in embedding space
+# The embedding space is managed by an external memory module
+# This function returns a batch of data that is twice the size of the original batch
+# It also updates the memory module
+# TODO (Thor)
+def extrapolate(images,):
+    #embeddings = tf.Variable(tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+    pass
+
 def inference(images,
               binary_maps,
               heatmaps,
@@ -61,6 +71,7 @@ def inference(images,
         Tensor giving the total loss (combined loss from auxiliary and primary
         logits, added to regularization losses).
     """
+    # TODO  expand for the case of a generative network
     part_detect_net = NETS[network_name][0]
     net_arg_scope = NETS[network_name][1]
     net_loss = NET_LOSS[loss_name]
@@ -72,6 +83,77 @@ def inference(images,
                                                     is_regressor_training=is_regressor_training,
                                                     scope=scope)
                 net_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
+
+            losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
+
+            regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
+
+            total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
+
+            total_loss = _summarize_loss(total_loss, gpu_index)
+
+    return total_loss, logits
+
+
+def inference_extrapolation(images,
+                            binary_maps,
+                            heatmaps,
+                            weights,
+                            is_visible_weights,
+                            gpu_index,
+                            generative_network_name,
+                            recognition_network_name,
+                            loss_name,
+                            is_detector_training,
+                            is_regressor_training,
+                            scope):
+    """Sets up a human pose inference model, computes predictions on input
+    images and calculates loss on those predictions based on an input dense
+    vector of joint location confidence maps and binary maps (the ground truth
+    vector).
+
+    TF-slim's `arg_scope` is used to keep variables (`slim.model_variable`) in
+    CPU memory. See the training procedure block diagram in the TF Inception
+    [README](https://github.com/tensorflow/models/tree/master/inception).
+
+    Args:
+        images: Mini-batch of preprocessed examples dequeued from the input
+            pipeline.
+        heatmaps: Confidence maps of ground truth joints.
+        weights: Weights of heatmaps (tensors of all 1s if joint present, all
+            0s if not present).
+        is_visible_weights: Weights of heatmaps/binary maps, with occluded
+            joints zero'ed out.
+        gpu_index: Index of GPU calculating the current loss.
+        generative network name: A name for the architecture we use to generate with given the embeddings of the
+        recognition network.
+        recognition network name: A name for the architecture we use to do pose estimation
+        scope: Name scope for ops, which is different for each tower (tower_N).
+
+    Returns:
+        Tensor giving the total loss (combined loss from auxiliary and primary
+        logits, added to regularization losses).
+    """
+    # TODO  expand for the case of a generative network
+    recognition_net = NETS[recognition_network_name][0]
+    recognition_arg_scope = NETS[recognition_network_name][1]
+    recognition_loss = NET_LOSS[recognition_loss_name]
+
+    with slim.arg_scope([slim.model_variable], device='/cpu:0'):
+        with slim.arg_scope(net_arg_scope()):
+            with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
+                augmented_image_batch = extrapolate(inputs=images,
+                                                    is_detector_training=is_detector_trainig
+                                                    is_regressor_training=is_regressor_training,
+                                                    scope=scope)
+
+                logits, endpoints = recognition_net(inputs=augmented_image_batch,
+                                                    is_detector_training=is_detector_training,
+                                                    is_regressor_training=is_regressor_training,
+                                                    scope=scope)
+
+                recognition_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
+
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
 
@@ -168,6 +250,7 @@ def _KullbackLeibler(mu, log_sigma):
         KL_batch_loss = tf.reduce_mean(KL_loss)
         # There's no way of assuming the weights to retain meaning wrt latent dimensions
         tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_batch_loss)
+
 
 def detector_only_xentropy_loss(logits,
                                 endpoints,
@@ -268,7 +351,7 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'resnet_50': (resnet_bulat.resnet_50_detector, resnet_bulat.resnet_arg_scope),
         'resnet_50_cascade': (resnet_bulat.resnet_50_cascade, resnet_bulat.resnet_arg_scope),
         'graham_vgg': (gvgg.gvgg, gvgg.gvgg_arg_scope),
-        'graham_cascade': (gvgg.gvgg, gvgg.gvgg_arg_scope)}
+        'graham_cascade': (gvgg.gvgg, gvgg.gvgg_arg_scope),
         'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
         'vgg_vae': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope),
         'vgg_debug': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope)}
@@ -281,5 +364,3 @@ NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
             'inception_v3_loss': inception_v3_loss,
             'vae_detector_loss': vae_detector_loss,
             'vae_regressor_loss': vae_regressor_loss}
-
-

@@ -153,6 +153,9 @@ def _setup_training_op(images,
     for gpu_index in range(num_gpus):
         with tf.device(device_name_or_function='/gpu:{}'.format(gpu_index)):
             with tf.name_scope('tower_{}'.format(gpu_index)) as scope:
+                # TODO (Thor) generate new samples by extrapolation or interpolation
+                #
+                #
                 total_loss, _ = inference(images_split[gpu_index],
                                           binary_maps_split[gpu_index],
                                           heatmaps_split[gpu_index],
@@ -305,8 +308,7 @@ def _setup_training(FLAGS):
     num_training_examples, train_data_filenames = pose_util.count_training_examples(
         FLAGS.train_data_dir, num_counting_threads, 'train')
 
-    images, binary_maps, heatmaps, weights, is_visible_weights = setup_train_input_pipeline(
-        FLAGS, train_data_filenames)
+    images, binary_maps, heatmaps, weights, is_visible_weights = setup_train_input_pipeline(FLAGS, train_data_filenames)
 
     num_batches_per_epoch = int(num_training_examples / FLAGS.batch_size)
 
@@ -422,6 +424,7 @@ def train():
                                             num_batches_per_epoch,
                                             log_handle,
                                             FLAGS.log_dir)
+
 
                 with eval_graph.as_default():
                     evaluate_single_epoch(restorer,
