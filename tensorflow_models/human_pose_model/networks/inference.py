@@ -10,6 +10,9 @@ from dataset.mpii_datatypes import Person
 from networks import vgg_bulat
 from networks import resnet_bulat
 from networks import gvgg
+from networks import vgg_vae
+import pdb
+
 
 def _summarize_loss(total_loss, gpu_index):
     """Summarizes the loss and average loss for this tower, and ensures that
@@ -65,7 +68,6 @@ def inference(images,
         with slim.arg_scope(net_arg_scope()):
             with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 logits, endpoints = part_detect_net(inputs=images,
-                                                    num_classes=Person.NUM_JOINTS,
                                                     is_detector_training=is_detector_training,
                                                     is_regressor_training=is_regressor_training,
                                                     scope=scope)
@@ -73,11 +75,10 @@ def inference(images,
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
 
-            regularization_losses = tf.get_collection(
-                key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
+            regularization_losses = tf.get_collection(key=tf.GraphKeys.REGULARIZATION_LOSSES, scope=scope)
 
-            total_loss = tf.add_n(inputs=losses + regularization_losses,
-                                  name='total_loss')
+            total_loss = tf.add_n(inputs=losses + regularization_losses, name='total_loss')
+
             total_loss = _summarize_loss(total_loss, gpu_index)
 
     return total_loss, logits
@@ -151,6 +152,23 @@ def _mean_squared_error_loss(logits, heatmaps, weights):
     _add_weighted_loss_to_collection(losses, weights)
 
 
+# These are great mathematicians so their names are written with capital letters ^^
+def _KullbackLeibler(mu, log_sigma):
+    """
+    (Gaussian) Kullback-Leibler divergence KL(q||p), per training example
+    This function can be derived with basic knowledge of Bayesian variational inference,
+    see Kingma et al Autoencoding Variational Bayes.
+    (thor) Let me first get this running and then I'll explain.
+    """
+    with tf.name_scope("KL_divergence"):
+        KL = 1 + 2*log_sigma - mu**2 - tf.exp(2*log_sigma)
+        # take the trace of each channels and reduce the mean across the 16 channels
+        KL_loss = -0.5 * tf.reduce_sum(KL,1)
+        # reduce the mean across the batch dimension
+        KL_batch_loss = tf.reduce_mean(KL_loss)
+        # There's no way of assuming the weights to retain meaning wrt latent dimensions
+        tf.add_to_collection(name=tf.GraphKeys.LOSSES, value=KL_batch_loss)
+
 def detector_only_xentropy_loss(logits,
                                 endpoints,
                                 heatmaps,
@@ -211,6 +229,32 @@ def both_nets_regression_loss(logits,
     _mean_squared_error_loss(logits, heatmaps, weights)
 
 
+def vae_detector_loss(logits,
+                      endpoints,
+                      heatmaps,
+                      binary_maps,
+                      weights,
+                      is_visible_weights):
+    """ Trains the detector as a variational autoencoder
+    """
+    _KullbackLeibler(endpoints['z_mu'], endpoints['z_log_sigma'])
+
+    _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
+
+
+def vae_regressor_loss(logits,
+                       endpoints,
+                       heatmaps,
+                       binary_maps,
+                       weights,
+                       is_visible_weights):
+    """ Trains the detector as a variational autoencoder
+    """
+    _KullbackLeibler(endpoints['regressor_mu'], endpoints['regressor_log_sigma'], weights)
+
+    _sigmoid_cross_entropy_loss(logits, binary_maps, weights)
+
+
 NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'inception_v3': (inception.inception_v3, inception.inception_v3_arg_scope),
         'vgg_bulat_cascade': (vgg_bulat.vgg_bulat_cascade, vgg_bulat.vgg_arg_scope),
@@ -225,9 +269,17 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'resnet_50_cascade': (resnet_bulat.resnet_50_cascade, resnet_bulat.resnet_arg_scope),
         'graham_vgg': (gvgg.gvgg, gvgg.gvgg_arg_scope),
         'graham_cascade': (gvgg.gvgg, gvgg.gvgg_arg_scope)}
+        'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
+        'vgg_vae': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope),
+        'vgg_debug': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope)}
+
 
 NET_LOSS = {'detector_only_regression': detector_only_regression_loss,
             'detector_only_xentropy': detector_only_xentropy_loss,
             'both_nets_regression': both_nets_regression_loss,
             'both_nets_xentropy_regression': both_nets_xentropy_regression_loss,
-            'inception_v3_loss': inception_v3_loss}
+            'inception_v3_loss': inception_v3_loss,
+            'vae_detector_loss': vae_detector_loss,
+            'vae_regressor_loss': vae_regressor_loss}
+
+

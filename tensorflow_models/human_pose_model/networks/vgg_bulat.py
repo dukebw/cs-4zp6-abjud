@@ -42,20 +42,20 @@ from networks import resnet_bulat
 slim = tf.contrib.slim
 
 def vgg_arg_scope(weight_decay=0.0005):
-  """Defines the VGG arg scope.
+    """Defines the VGG arg scope.
 
-  Args:
-    weight_decay: The l2 regularization coefficient.
+    Args:
+      weight_decay: The l2 regularization coefficient.
 
-  Returns:
-    An arg_scope.
-  """
-  with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                      activation_fn=tf.nn.relu,
-                      weights_regularizer=slim.l2_regularizer(weight_decay),
-                      biases_initializer=tf.zeros_initializer()):
-    with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
-      return arg_sc
+    Returns:
+      An arg_scope.
+    """
+    with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                         activation_fn=tf.nn.relu,
+                         weights_regularizer=slim.l2_regularizer(weight_decay),
+                         biases_initializer=tf.zeros_initializer()):
+        with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
+            return arg_sc
 
 
 def vgg_16_base(inputs, num_classes, dropout_keep_prob, is_training):
@@ -77,11 +77,9 @@ def vgg_16_base(inputs, num_classes, dropout_keep_prob, is_training):
 
     # Use conv2d instead of fully_connected layers.
     a6 = slim.conv2d(a5, 4096, [7, 7], scope='fc6')
-    a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training,
-                      scope='dropout6')
+    a6 = slim.dropout(a6, dropout_keep_prob, is_training=is_training, scope='dropout6')
     a7 = slim.conv2d(a6, 4096, [1, 1], scope='fc7')
-    a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training,
-                      scope='dropout7')
+    a7 = slim.dropout(a7, dropout_keep_prob, is_training=is_training, scope='dropout7')
 
     a8  = slim.conv2d(a7, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
 

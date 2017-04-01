@@ -109,3 +109,6 @@ tf.app.flags.DEFINE_boolean('restore_global_step', True,
 tf.app.flags.DEFINE_boolean('is_regression_subnetwork_pretrained', False,
                             """Set to True if restoring ILSVRC pre-trained
                             weights to the regression subnetwork.""")
+
+tf.app.flags.DEFINE_string('optimizer', None,
+                           """optimizer to use. None for RMSProp 'adam' for adam optimizer""")
