@@ -233,11 +233,12 @@ def inference_extrapolation(images,
     recognition_arg_scope = NETS[recognition_network_name][1]
     recognition_loss = NET_LOSS[recognition_loss_name]
 
+    generative_net = NETS[generative_network_name][0]
     with slim.arg_scope([slim.model_variable], device='/cpu:0'):
         with slim.arg_scope(net_arg_scope()):
             with tf.variable_scope(name_or_scope=tf.get_variable_scope(), reuse=(gpu_index > 0)):
                 augmented_image_batch = extrapolate(inputs=images,
-                                                    is_detector_training=is_detector_trainig
+                                                    is_detector_training=is_detector_trainig,
                                                     is_regressor_training=is_regressor_training,
                                                     scope=scope)
 
@@ -247,7 +248,6 @@ def inference_extrapolation(images,
                                                     scope=scope)
 
                 recognition_loss(logits, endpoints, heatmaps, binary_maps, weights, is_visible_weights)
-
 
             losses = tf.get_collection(key=tf.GraphKeys.LOSSES, scope=scope)
 
