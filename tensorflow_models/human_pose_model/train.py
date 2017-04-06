@@ -13,6 +13,7 @@ from input_pipeline import setup_train_input_pipeline
 from networks.inference import inference
 from evaluate import setup_evaluation, evaluate_single_epoch
 import pdb
+import pandas as pd
 
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
@@ -178,7 +179,6 @@ def _setup_training_op(images,
 
                 grads = optimizer.compute_gradients(
                     loss=total_loss, var_list=_get_variables_to_train())
-                print(grads)
                 tower_grads.append(grads)
 
     avg_grad_and_vars = _average_gradients(tower_grads)
@@ -205,7 +205,6 @@ def _restore_checkpoint_variables(session,
     variables in the file found in `checkpoint_path`, except those excluded by
     `checkpoint_exclude_scopes`.
     """
-    print('hello')
     if checkpoint_path is None:
         return
 
@@ -244,7 +243,8 @@ def _train_single_epoch(session,
                         summary_op,
                         num_batches_per_epoch,
                         log_handle,
-                        log_dir):
+                        log_dir,
+                        runtime_df):
     """Runs the training loop, executing the graph stored in `session`,
     and for every epoch executes the graph in `val_session`, which will
     evaluate the latest model checkpoint on a validation set.
@@ -255,6 +255,7 @@ def _train_single_epoch(session,
         epoch: The epoch number that was just trained, calculated from the
                `global_step` variable.
     """
+    runtime_df['Epoch'].add(0)
     train_epoch_mean_loss = 0
     Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
     for batch_step in Epoch:
@@ -278,7 +279,7 @@ def _train_single_epoch(session,
             train_writer.add_summary(summary=summary_str,
                                      global_step=total_steps)
 
-    checkpoint_path = os.path.join(log_dir, 'model.ckpt')
+    checkpoint_path = os.path.join(log_dir, FLAGS.checkpoint_name+'.ckpt')
     saver.save(sess=session,
                save_path=checkpoint_path,
                global_step=total_steps)
@@ -288,8 +289,8 @@ def _train_single_epoch(session,
     log_handle.write('Epoch {} done.\n'.format(epoch))
     log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
     log_handle.flush()
-
-    return epoch
+    runtime_df['Mean_Training_Loss'].add(train_epoch_mean_loss)
+    return runtime_df
 
 
 def _setup_training(FLAGS):
@@ -355,6 +356,72 @@ def _init_regression_subnetwork_first_layer(session, second_checkpoint_path):
         tf.assign(ref=regression_subnet_conv1, value=conv1_initializer))
 
 
+def merge_two_dicts(x, y):
+    """Given two dicts, merge them into a new dict as a shallow copy."""
+    z = x.copy()
+    z.update(y)
+    return z
+
+
+JOINT_NAMES = ['0 - r ankle',
+               '1 - r knee',
+               '2 - r hip',
+               '3 - l hip',
+               '4 - l knee',
+               '5 - l ankle',
+               '6 - pelvis',
+               '7 - thorax',
+               '8 - upper neck',
+               '9 - head top',
+               '10 - r wrist',
+               '11 - r elbow',
+               '12 - r shoulder',
+               '13 - l shoulder',
+               '14 - l elbow',
+               '15 - l wrist']
+
+
+def _init_df():
+    if FLAGS.restore_global_step == False:
+        config = tf.flags.FLAGS.__flags
+        checkpoint_name = 'model'
+        runtime_dict = {'Checkpoint_Name':checkpoint_name,
+                        'Learning_Rate':[],
+                        'Epoch':[],
+                        'Mean_Training_Loss':[],
+                        'Mean_Validation_Loss':[],
+                        'Total PCKh':[]
+                        }
+        runtime_df = pd.DataFrame(runtime_dict)
+        log_dict = merge_two_dicts(config, runtime_dict)
+        log_df = pd.DataFrame(log_dict)
+    else:
+        config = tf.flags.FLAGS.__flags
+        print(config)
+        log_df = pd.read_hdf(FLAGS.log_dir + '/' +
+                             FLAGS.checkpoint_name + '.h5')
+        # Get sub-dataframe for runtime
+        runtime_cols = [log_df[joint] for joint in JOINT_NAMES]
+        runtime_cols.append(log_df.Learning_Rate,
+                            log_df.Epoch,
+                            log_df.Mean_Training_Loss,
+                            log_df.Mean_Validation_Loss)
+
+        runtime_df = log_df(runtime_cols)
+
+    return log_df, runtime_df
+
+
+def _save_df(log_df):
+    """Saves dataframe to hdf"""
+    log_df.to_hdf(FLAGS.checkpoint_name + '.h5')
+
+
+def _update_(log_df, runtime_df):
+    log_df = pd.merge(log_df, runtime_df)
+    stop_early = False
+    return log_df, stop_early
+
 def train():
     """Trains a human pose estimation network to detect and/or regress binary
     maps and/or confidence maps of joint co-ordinates (NUM_JOINTS sets of (x,
@@ -382,7 +449,7 @@ def train():
             if FLAGS.is_regression_subnetwork_pretrained:
                 _init_regression_subnetwork_first_layer(session,
                                                         FLAGS.second_checkpoint_path)
-
+            # This check for global_step
             _restore_checkpoint_variables(session,
                                           global_step,
                                           FLAGS.checkpoint_path,
@@ -403,8 +470,13 @@ def train():
                 logdir=FLAGS.log_dir,
                 graph=session.graph)
 
+            # Human Edible Report
             log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename), 'a')
-
+            # For Pandas overviewer we fill this dict with data at every epoch
+            # and update.
+            # The _init_df function checks for existence and merges if
+            # FLAGS.restore_global_step is True
+            log_df, runtime_df = _init_df()
             saver = tf.train.Saver(var_list=tf.global_variables())
 
             with eval_graph.as_default():
@@ -414,33 +486,40 @@ def train():
 
             epoch = 0
             while epoch < FLAGS.max_epochs:
-                epoch = _train_single_epoch(session,
-                                            saver,
-                                            train_writer,
-                                            train_op,
-                                            train_loss,
-                                            global_step,
-                                            summary_op,
-                                            num_batches_per_epoch,
-                                            log_handle,
-                                            FLAGS.log_dir)
+                runtime_df = _train_single_epoch(session,
+                                                 saver,
+                                                 train_writer,
+                                                 train_op,
+                                                 train_loss,
+                                                 global_step,
+                                                 summary_op,
+                                                 num_batches_per_epoch,
+                                                 log_handle,
+                                                 FLAGS.log_dir,
+                                                 runtime_df)
 
-
+                runtime_df['Epoch'].append(epoch)
+                runtime_df['Mean_Training_Loss'].append(train_epoch_mean_loss)
                 with eval_graph.as_default():
-                    evaluate_single_epoch(restorer,
-                                          FLAGS.log_dir,
-                                          val_loss,
-                                          val_logits,
-                                          gt_data,
-                                          num_val_examples,
-                                          FLAGS.batch_size,
-                                          FLAGS.image_dim,
-                                          epoch,
-                                          log_handle)
+                    runtime_df = evaluate_single_epoch(restorer,
+                                                       FLAGS.log_dir,
+                                                       val_loss,
+                                                       val_logits,
+                                                       gt_data,
+                                                       num_val_examples,
+                                                       FLAGS.batch_size,
+                                                       FLAGS.image_dim,
+                                                       epoch,
+                                                       log_handle,
+                                                       runtime_df)
+
+                    log_df, stop_early = _update_df(log_df, runtime_df)
+                    if stop_early:
+                        _save_df(log_df)
+                        break
 
             log_handle.close()
             train_writer.close()
-
             coord.request_stop()
             coord.join(threads=threads)
 

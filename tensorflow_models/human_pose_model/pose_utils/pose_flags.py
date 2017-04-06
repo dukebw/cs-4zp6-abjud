@@ -112,3 +112,6 @@ tf.app.flags.DEFINE_boolean('is_regression_subnetwork_pretrained', False,
 
 tf.app.flags.DEFINE_string('optimizer', None,
                            """optimizer to use. None for RMSProp 'adam' for adam optimizer""")
+
+tf.app.flags.DEFINE_string('checkpoint_name', None,
+                           """Name of checkpoint""")

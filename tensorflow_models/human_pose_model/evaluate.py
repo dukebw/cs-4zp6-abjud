@@ -9,6 +9,7 @@ from dataset.mpii_datatypes import Person
 from pose_utils.sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
 from networks.inference import inference
+import pandas
 
 JOINT_NAMES = ['0 - r ankle',
                '1 - r knee',
@@ -139,7 +140,8 @@ def evaluate_single_epoch(restorer,
                           batch_size,
                           image_dim,
                           epoch,
-                          log_file_handle):
+                          log_file_handle,
+                          runtime_df):
     """Evaluates the model checkpoint given by `restore_path` using the PCKh
     metric.
 
@@ -204,6 +206,7 @@ def evaluate_single_epoch(restorer,
             if (epoch > 1):
                 log_file_handle.write('\n')
             valid_epoch_mean_loss /= num_batches
+            runtime_df['Mean_Validation_Loss'].append(valid_epoch_mean_loss)
             log_file_handle.write('\nMean validation loss: {}\n\n'.format(valid_epoch_mean_loss))
             log_file_handle.write('************************************************\n')
             log_file_handle.write('Epoch {} PCKh metric.\n'.format(epoch))
@@ -215,12 +218,15 @@ def evaluate_single_epoch(restorer,
             log_file_handle.write('PCKh:\n')
             for joint_index in range(Person.NUM_JOINTS):
                 log_file_handle.write('{}: {}\n'.format(JOINT_NAMES[joint_index], PCKh[joint_index]))
+                runtime_df[JOINT_NAMES[joint_index]].append(PCKh[joint_index])
+
+            runtime_df['Total_PCKh'].append(np.sum(PCKh)/len(PCKh))
             log_file_handle.write('\nTotal PCKh: {}\n'.format(np.sum(PCKh)/len(PCKh)))
             log_file_handle.flush()
 
             coord.request_stop()
             coord.join(threads=threads)
-
+            return runtime_df
 
 def evaluate():
     """Does a loop checking for new checkpoints and evaluating them all, then
