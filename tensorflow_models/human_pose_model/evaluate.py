@@ -141,7 +141,7 @@ def evaluate_single_epoch(restorer,
                           image_dim,
                           epoch,
                           log_file_handle,
-                          runtime_df):
+                          runtime_dict):
     """Evaluates the model checkpoint given by `restore_path` using the PCKh
     metric.
 
@@ -183,10 +183,9 @@ def evaluate_single_epoch(restorer,
                         y_predicted_joints[batch_index, joint_index] = xy_max_confidence[0]/image_dim - 0.5
                         x_predicted_joints[batch_index, joint_index] = xy_max_confidence[1]/image_dim - 0.5
 
-                predicted_joint_points = _get_points_from_flattened_joints(
-                    x_predicted_joints,
-                    y_predicted_joints,
-                    batch_size)
+                predicted_joint_points = _get_points_from_flattened_joints(x_predicted_joints,
+                                                                           y_predicted_joints,
+                                                                           batch_size)
 
                 # NOTE(brendan): Here we are following steps to calculate the
                 # PCKh metric, which defines a joint estimate as matching the
@@ -206,7 +205,7 @@ def evaluate_single_epoch(restorer,
             if (epoch > 1):
                 log_file_handle.write('\n')
             valid_epoch_mean_loss /= num_batches
-            runtime_df['Mean_Validation_Loss'].append(valid_epoch_mean_loss)
+            runtime_dict['Mean_Validation_Loss'].append(valid_epoch_mean_loss)
             log_file_handle.write('\nMean validation loss: {}\n\n'.format(valid_epoch_mean_loss))
             log_file_handle.write('************************************************\n')
             log_file_handle.write('Epoch {} PCKh metric.\n'.format(epoch))
@@ -218,15 +217,15 @@ def evaluate_single_epoch(restorer,
             log_file_handle.write('PCKh:\n')
             for joint_index in range(Person.NUM_JOINTS):
                 log_file_handle.write('{}: {}\n'.format(JOINT_NAMES[joint_index], PCKh[joint_index]))
-                runtime_df[JOINT_NAMES[joint_index]].append(PCKh[joint_index])
+                runtime_dict[JOINT_NAMES[joint_index]].append(PCKh[joint_index])
 
-            runtime_df['Total_PCKh'].append(np.sum(PCKh)/len(PCKh))
+            runtime_dict['Total_PCKh'].append(np.sum(PCKh)/len(PCKh))
             log_file_handle.write('\nTotal PCKh: {}\n'.format(np.sum(PCKh)/len(PCKh)))
             log_file_handle.flush()
 
             coord.request_stop()
             coord.join(threads=threads)
-            return runtime_df
+            return runtime_dict
 
 def evaluate():
     """Does a loop checking for new checkpoints and evaluating them all, then

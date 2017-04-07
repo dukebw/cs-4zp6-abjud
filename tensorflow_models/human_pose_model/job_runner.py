@@ -6,6 +6,7 @@ import sys
 import json
 import random
 import numpy as np
+import pdb
 """
 List of Icelandic Volcanoes.
 """
@@ -68,28 +69,34 @@ def train_from_config(learning_rate,
     # Make config from json + hyperparameter search
     ##########
     config_string = ""
+    # reset log_dir s.t. we have one dir for each job
+    config['log_dir'] += '/' + str(log_dir_num)
     for option in config:
         config_string += ' --' + option + ' ' + str(config[option])
-
+    ##########
+    # Set hyperparameters
+    ##########
     config_string += ' --' + 'initial_learning_rate' + ' ' + str(learning_rate)
     config_string += ' --' + 'batch_size' + ' ' + str(batch_size)
     config_string += ' --' + 'heatmap_stddev_pixels' + ' ' + str(radius)
     config_string += ' --' + 'checkpoint_name' + ' ' + checkpoint_name
+
     print(config_string)
     command = 'python3 -m train' + config_string
     ##########
     # Check if log directory exists
     ##########
-    log_dir = config['log_dir'] + '/' + str(log_dir_num)
+    log_dir = config['log_dir']
     if os.path.exists(log_dir):
         print('Using logging directory ' + log_dir)
     else:
         print('Logging directory doesnt exist, creating ' + log_dir)
         os.mkdir(log_dir)
 
+    # For jobscheduler
     if argv[2] == 'copper':
-        sqsub = 'sqsub -q gpu -f mpi -n 8 --gpp '+'4'+' -r 3600 -o ' + checkpoint_name + '%J.out --gpp=' + \
-        str(config['num_gpus']) + ' --mpp=92g --nompirun '
+        sqsub = 'sqsub -q gpu -f mpi -n 8 --gpp 4 -r 3600 -o ' + log_dir
+        sqsub += '/' + checkpoint_name + '%J.out --mpp=92g --nompirun '
         #print(sqsub + command)
         subprocess.call(sqsub + command, shell=True)
 
@@ -97,35 +104,36 @@ def train_from_config(learning_rate,
         #print(command)
         subprocess.call(command, shell=True)
 
-
-def train_volcanoes(EXP_FAMILY):
-    logdir = os.path.split(os.getcwd())[1]
-    logdir = os.path.join(logdir+EXP_FAMILY)
-    rand_idx = random.shuffle(range(len(volcanoes)))
+#TODO shuffle name list
+def train_many_jobs(name_list):
+    # Number of log directory
+    log_dir_num = 0
     lr_bins = [10**(-i) for i in range(2,4)]
-    mb_size_bins = [2**i for i in range(3,6)]
+    mb_size_bins = [2**i for i in range(1,4)]
     heatmap_radius_bin = [2**i for i in range(2,5)]
-
+    # Random hyperparameter search for the learning rate, the batch size and
+    # the heatmap radius
     for i,lr in enumerate(lr_bins):
         learning_rate = np.random.uniform(lr, lr*10)
         for j,mb_size in enumerate(mb_size_bins):
-            batch_size = np.random.randint(mb_size, mb_size*2)
+            # We assume we're using 4 gpus
+            batch_size = 4*np.random.randint(mb_size, mb_size*2)
             for k, heatmap_radius in enumerate(heatmap_radius_bin):
                 radius = np.random.randint(heatmap_radius, heatmap_radius*2)
-                log_dir_num = i + j + k
-                checkpoint_name = rand_idx(i+j+k)+np.random.randint(0,1000)
+                log_dir_num += 1
+                print('Starting experiment', log_dir_num)
+                print('# Hyperparameters:')
+                print('initial learning_rate:', learning_rate)
+                print('batch size:', batch_size)
+                print('radius:', radius)
+                checkpoint_name = name_list[log_dir_num]+str(np.random.randint(0,1000))
                 train_from_config(learning_rate,
                                   batch_size,
                                   radius,
                                   checkpoint_name,
-                                  log_dir_num)
+                                  log_dir_num,
+                                  sys.argv)
 
 if __name__ == "__main__":
-    lr = 0.01
-    batch_size = 32
-    radius = 5
-    checkpoint_name = 'G'
-    log_dir_num = 0
-    train_from_config(lr, batch_size, radius, checkpoint_name, log_dir_num, sys.argv)
-
+    train_many_jobs(volcanoes)
 

@@ -11,7 +11,7 @@
   "num_gpus": 4,
   "batch_size": 96,
   "input_queue_memory_factor": 16,
-  "max_epochs": 60,
+  "max_epochs": 120,
   "learning_rate_decay_factor": 0.16,
   "num_epochs_per_decay": 30.0,
   "restore_global_step": false
