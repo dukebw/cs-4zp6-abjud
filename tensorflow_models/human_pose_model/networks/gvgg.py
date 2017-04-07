@@ -130,7 +130,6 @@ def _gvgg(inputs,
 
     return logits, end_points
 
-
 def gvgg(inputs,
          num_classes=16,
          is_detector_training=True,
@@ -146,6 +145,142 @@ def gvgg(inputs,
                  num_classes=num_classes,
                  is_training=is_detector_training,
                  scope='gvgg')
+
+
+def sampleGaussian(mu, log_sigma):
+    """(Differentiably!) draw sample from Gaussian with given shape, subject to random noise epsilon"""
+    with tf.name_scope("sample_gaussian"):
+        # reparameterization trick
+        epsilon = tf.random_normal(tf.shape(log_sigma), name="epsilon")
+        return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
+
+
+def _get_reparameterization(hidden_enc):
+    # latent distribution parameterized by hidden encoding
+    # z ~ N(z_mean, np.exp(z_log_sigma)**2)
+    z_mu = slim.fully_connected(hidden_enc,
+                                LATENT_DIM,
+                                activation_fn=None,
+                                normalizer_fn=None,
+                                scope='z_mu')
+
+    z_log_sigma = slim.fully_connected(hidden_enc,
+                                       LATENT_DIM,
+                                       activation_fn=None,
+                                       normalizer_fn=None,
+                                       scope='z_log_sigma')
+
+    return sampleGaussian(z_mu, z_log_sigma), z_mu, z_log_sigma
+
+
+def _get_img_reconstruction(a8,z,batch_norm_params):
+    shape = z.get_shape().as_list()
+    size = shape[1]*shape[1]
+    d1 = slim.fully_connected(z,
+                              size,
+                              activation_fn=tf.nn.relu,
+                              normalizer_fn=slim.batch_norm,
+                              normalizer_params=batch_norm_params)
+
+    d1 = tf.reshape(d1, [9, LATENT_DIM, LATENT_DIM,1])
+    d2 = slim.conv2d_transpose(d1,1,2,2)
+    d3 = slim.conv2d_transpose(d2,1,2,2)
+    img = slim.conv2d_transpose(d3,3,2,2)
+    return img
+
+
+def _gvgg_vae(inputs,
+          num_classes=16,
+          is_training=True,
+          dropout_keep_prob=0.5,
+          batch_norm_var_collection='moving_vars',
+          scope='gvgg_vae'):
+    """Slim convolutional VGG inspired network.
+
+    Args:
+      inputs: a tensor of size [batch_size, height, width, channels].
+      num_classes: number of predicted classes (joints).
+      is_training: whether or not the model is being trained.
+      dropout_keep_prob: the probability that activations are kept in the dropout
+        layers during training.
+      scope: Optional scope for the variables.
+
+    Returns:
+      the last op containing the log predictions and end_points dict.
+    """
+    # We need to write notes about this.
+    batch_norm_params = {
+      # Decay for moving averages
+      'decay': 0.9997,
+      # epsilon to prevent 0s in variance
+      'epsilon': 0.001,
+      # Collection containing update_ops
+      'updates_collections': ops.GraphKeys.UPDATE_OPS,
+      # Collection containing the moving mean and moving variance.
+      'variables_collections':{
+          'beta': None,
+          'gamma': None,
+          'moving_mean': [batch_norm_var_collection],
+          'moving_variance': [batch_norm_var_collection],
+      },
+      'is_training': is_training
+    }
+
+    with tf.variable_scope(scope, 'gvgg_vae', [inputs]) as sc:
+        with tf.name_scope(scope):
+            end_points_collection = sc.original_name_scope + '_end_points'
+            # Collect outputs for conv2d, fully_connected and max_pool2d.
+            with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.conv2d_transpose, slim.fully_connected, slim.flatten], outputs_collections=end_points_collection):
+                # nested argscope because we don't apply activations and normalization to maxpool
+                with slim.arg_scope([slim.conv2d, slim.conv2d_transpose],
+                                    activation_fn=tf.nn.relu,
+                                    normalizer_fn=slim.batch_norm,
+                                    normalizer_params=batch_norm_params):
+                    # 3-tuple (a3, a4, global_bottleneck)
+                    a3, a4, a7 = _encoder(inputs,
+                                          num_classes,
+                                          dropout_keep_prob,
+                                          is_training)
+
+                    z = slim.flatten(a8)
+                    z_latent, z_mu, z_log_sigma = _get_reparameterization(z)
+                    
+                    output_resolution = inputs.get_shape()[1:3]
+                    _, _, logits = _decoder(a3,
+                                            a4,
+                                            a7,
+                                            output_resolution,
+                                            num_classes,
+                                            dropout_keep_prob,
+                                            is_training)
+
+
+                    # Convert end_points_collection into a end_point dict.
+                    end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+
+                    # For calculating the KL loss
+                    end_points['z_mu'] = z_mu
+                    end_points['z_log_sigma'] = z_log_sigma
+                    end_points['pose_logits'] = pose_logits
+
+    return logits, end_points
+
+
+def gvgg_vae(inputs,
+         num_classes=16,
+         is_detector_training=True,
+         is_regressor_training=True,
+         dropout_keep_prob=0.5,
+         batch_norm_var_collection='moving_vars',
+         scope='gvgg'):
+    """This is a wrapper around the `_vgg_16_bn_relu`, which assumes that we
+    want to run VGG-16 with batchnorm and RELU as a single network pose
+    estimator (i.e. just the detector).
+    """
+    return _gvgg_vae(inputs=inputs,
+                     num_classes=num_classes,
+                     is_training=is_detector_training,
+                     scope='gvgg')
 
 
 def gvgg_cascade(inputs,

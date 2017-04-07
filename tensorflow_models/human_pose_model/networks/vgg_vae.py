@@ -92,7 +92,6 @@ def sampleGaussian(mu, log_sigma):
         epsilon = tf.random_normal(tf.shape(log_sigma), name="epsilon")
         return mu + epsilon * tf.exp(log_sigma) # N(mu, I * sigma**2)
 
-# For some reason this yields None when taking the gradients?!?!
 def _get_reparameterization(hidden_enc):
     # latent distribution parameterized by hidden encoding
     # z ~ N(z_mean, np.exp(z_log_sigma)**2)
@@ -201,9 +200,9 @@ def _vgg_16_vae_v0(inputs,
                     z_latent, z_mu, z_log_sigma = _get_reparameterization(z)
 
                     pose_logits = _get_pose_logits(a3,a4,a8, inputs.get_shape()[1:3])
+                    # Convert end_points_collection into a end_point dict.
                     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
-                    # Convert end_points_collection into a end_point dict.
                     # For calculating the KL loss
                     end_points['z_mu'] = z_mu
                     end_points['z_log_sigma'] = z_log_sigma
