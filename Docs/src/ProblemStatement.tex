@@ -1,0 +1,53 @@
+\documentclass[a4paper, 12pt]{article}
+
+\usepackage{cite}
+\usepackage{amsmath}
+\usepackage{fullpage}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{inputenc}
+\usepackage{titling}
+
+\date{\today}
+\title{Problem Statement\\ McMaster Text to Motion Database \\CS 4ZP6}
+
+\author{Brendan Duke\\
+        Andrew Kohnen\\
+        Udip Patel\\
+        Dave Pitkanen\\
+        Jordan Viveiros}
+
+\begin{document}
+
+\maketitle
+\clearpage
+
+\section{Project Overview}
+
+The McMaster Text to Motion Database is a component of a larger project that is being managed by Dr.Graham Taylor from the University of Guelph. The larger project is a collaboration between the University of Guelph, SRI (a non-profit research organization) and other institutions, and was established with the goal of producing a "Computational Storytelling system".
+\\
+\\
+This large-scale Computational Storytelling system is intended to work by taking text descriptions of a scene or dialogue and producing an animated video 'story' with that given content and characters.
+\\
+\\
+Under Dr. Wenbo He from McMaster University, this smaller project will contribute a Python HTTP server that can be used to process images and videos with a deep learning algorithm, along with a website and database that can be used to store and view the processed media. Having access to the processed media will be a resource that can be of use to the larger project.
+
+
+\section{Problem Statement and Our Contribution}
+To implement the 'Computational Storytelling' functionality, the larger system should be able to produce an animation with moving characters that look reasonably realistic.
+\\
+\\
+As of now, there is no simple, accessible database that links images and videos with text annotations or descriptions of the motions/positions of people observed in the image or video (ex. mapping the locations of some of the observed skeletal joints of a person in the image or video)
+\\
+\\
+We propose to harvest the motion data (joint positions) of moving people by seeding our database with existing large image/video datasets of people doing common movements, and categorizing the data with tags. The developers of the larger system can use our website to search for specific actions, and take the motion data in order to generate the animated story with moving characters. The developers can also upload their own media to be processed as well at any time.
+
+
+
+
+\section{Motivation}
+The motivation behind this project is to explore deep learning algorithms and the
+
+
+\end{document}
+\grid

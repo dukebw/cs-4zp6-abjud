@@ -1,3 +1,4 @@
+PROBSTMT=ProblemStatement
 SRS=SoftwareRequirementsSpecification
 POC=ProofOfConceptPlan
 TEST=TestPlan
@@ -9,6 +10,12 @@ USERMANUAL=UserManual
 .phony: srs poc test_plan user_manual
 
 all: srs poc test_plan user_manual
+
+prob_stmt:
+	xelatex $(PROBSTMT).tex
+	xelatex $(PROBSTMT).tex
+	$(MAKE) clean
+
 
 srs:
 	xelatex $(SRS).tex
