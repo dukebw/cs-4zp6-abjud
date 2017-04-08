@@ -38,12 +38,60 @@ the image or video (ex. mapping the locations of some of the observed skeletal
 joints of a person in the image or video) \\ \\ We propose to harvest the motion
 data (joint positions) of moving people by seeding our database with existing
 large image/video datasets of people doing common movements, and categorizing
-the data with tags. The developers of the larger system can use our website to
-search for specific actions, and take the motion data in order to generate the
-animated story with moving characters. The developers can also upload their own
-media to be processed as well at any time.
+the processed media with tags. The developers of the larger system can use our
+website to search for specific actions, and take the motion data in order to
+generate the animated story with moving characters. The developers can also
+upload their own media to be processed as well at any time.
 
-\section{Motivation} The motivation behind this project is to explore deep
-learning algorithms and the
+\section{Motivation} The ability to move between natural language and motion
+data is at the core of what the larger project is trying to acheive. To enable
+research along the lines of converting text descriptions into observable motion,
+we propose to create a large databank of images and videos that are annotated
+both with human actions (via tags) and the motions observed (the positions of
+joints relative to each other).
+
+\section{Background Information and Challenges} Over the last ten years machine
+learning algorithms have significantly improved as well as the limits of our
+computer processing power, computer memory and available sources of many types
+of data. The growth in all these areas has made it possible for computer
+applications that use machine learning to improve their performance. The key
+advancement in the algorithms of machine learning has been the ability to train
+neural networks that are more than a single layer deep. With this ability neural
+networks are able to learn structures from long sequences of sequential
+data(long sequences of inputs such as natural language and video in our case). \\ \\
+Many different researchers have already been able to create a mapping between
+text and images (Kiros ​ et al., 2014a, b; ​ Socher et al., 2010). However these
+examples simply map from image to text but the problem of performing the mapping
+using videos is that there is now a new dimension of time and the volume of data
+grows very quickly as the length of the video increases. \\ \\ The biggest
+challenge of this project is to produce a deep learning model that is trained to
+analyze an image or video (a set of image frames) and estimate the joint
+positions of a human, if there is one in the media. Luckily, there are some
+existing open-source code bases that work with varying platforms and frameworks
+(like C/C++ or Python). Implementing these models will take up the bulk of the
+project research. \\ \\ Once the website can take in large amounts of media
+input from users and process the media, the databank can be populated by
+existing collections of images/videos that are pre-labeled with the actions
+observed in the media
+
+The datasets with heavy labelling that we intend to use to seed the database of
+our website are: MovieQA, Charades, MSR-VTT
+
+\section{Objectives, Constraints and Deliverables}
+
+The goal of the entire collaboration is to create a basic text-to-motion tool
+which can link language concepts to a data structure representing motion (e.g. a
+series of joint angles). The first step in analyzing motion from a machine
+learning approach is typically to create a feature space -- which is a lower
+dimensional representation of some of the important aspects of the data which
+the machine learning algorithms can then analyze. \\ \\ The specific feature
+space we wish to consider is called a pose structure (Wei, 2016). This structure
+is used to model the motion of people. The feature space essentially consists of
+a labelling of the regions in an image where a specific limb is located (arm,
+head eye etc). Modelling the motion of the entire body is made much simpler when
+the problem can be decomposed into the “independent” motion of these features
+(applying the constraints that the features are connected in the conventional
+human form). \\ \\ Therefore in order to achieve this first step we
+hierarchically break this set of deliverables into 2 components
 
 \end{document} \grid
