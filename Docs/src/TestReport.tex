@@ -94,25 +94,20 @@ performed largely follows the test plan that was provided in the Test Plan docum
 \section{Scope of Testing}
 
 Following good design procedures, the Text-To-Motion web application has been
-modularized into $3$ conceptual modules.  The first module is a web framework that allows users to access key features like uploading an image, view a previous image, among others. The database is the second module in the application as it is used to store events from the website like the previously listed features. The third module is the most expansive and is the deep learning module that runs pose estimation on the images and pictures uploaded.
+modularized into $3$ conceptual modules.  The first module is a web framework that allows users to access key features like uploading an image, viewing previous images, registering for an account and more. The database is the second module in the application as it is used to store events from the website like the previously listed features of uploading or viewing images. The third module is the most expansive and is the deep learning module that runs pose estimation on the uploaded media.
 
-Following the application's modular decomposition, the tests have been
-decomposed into $3$ conceptual tests, in addition to automated testing.
+Following the application's modular decomposition, the tests have been decomposed into $3$ conceptual tests, with the addition of automated testing.
 
 The first stage of testing is the minimum viable product, and was done to ensure
 that a base level of functionality was provided. This is where we test to see that all of the software modules have been created and can work together. With this in mind the types of testing that were done to ensure a minimum viable product involved both system and unit testing.
 
-The second set of tests is Solution Constraints testing or Functional tests.  In this set of tests, the performance of the deep learning algorithm is rigorously tested
-and quantified. In addition to testing the deep learning algorithm we test the database, and search capabilities with more specific parameters than those introduced in the minimum viable product.
+The second set of tests is Solution Constraints testing or Functional tests.  In this set of tests, the performance of the deep learning algorithm is rigorously tested and quantified. In addition to testing the deep learning algorithm we test the database, and search capabilities with more specific parameters than those introduced in the minimum viable product.
 
-In the third set of tests, we get a few users to test the non-functional requirements
-of the finished product. Examples of these requirements include: usability, look and feel requirements and learnability.
+In the third set of tests, we get a few users to test the non-functional requirements of the finished product. Examples of these requirements include: usability, user interface requirements and learnability.
 
-The final set of tests were the automated tests ran on the http-server in order to verify the GET and POST calls to and from the server. 
+The final set of tests were automated tests ran on the http-server in order to verify the GET and POST calls to and from the server. 
 
-The final section in this document includes a traceability table that helps to
-organize and explain how tests are connected to the requirements that were
-created in the software requirements document we created earlier.
+The final section in this document includes a traceability table that helps to organize and explain how tests are connected to the requirements that were created in the software requirements document we created earlier.
 
 %I have added a few examples of what the tables should be.
 \chapter{Preliminary Testing}
@@ -123,15 +118,17 @@ created in the software requirements document we created earlier.
 
 \subsubsection{Description}
 
-This test is done to ensure that the TextToMotion Database (https://brendanduke.ca/) is functioning as intended and available to the public. These tests will be done by first accessing the home page of https://brendanduke.ca/, and then navigating to other pages within the website to ensure they are meeting the availability requirements.
+This test is done to ensure that the TextToMotion Database (brendanduke.ca/) is functioning as intended and available to the public. These tests will be done by first accessing the home page of https://brendanduke.ca/, and then navigating to other pages within the website to ensure they are meeting the availability requirements.
 
 \subsubsection{Results}
 
+The website was accessible through the browser at brendanduke.ca with all buttons and URL's responsive the test has been passed.
+
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
                 3.1 & Input brendanduke.ca to view the home page & Google.ca & The home page of brendanduke.ca & The home page of brendanduke.ca & Pass \\
                 \hline
@@ -151,11 +148,13 @@ This test is done to ensure that the TextToMotion Database (https://brendanduke.
 \subsection{Updating the database}
 \subsubsection{Description}
 
-The database allows users to upload images to the database through the website through brendanduke.ca/ImagePoseDraw. The test will be considered a pass if an image can be uploaded successfully and then viewed through the interface within ImagePoseDraw. 
+The database allows users to upload images to the database through the website through brendanduke.ca/ImagePoseDraw. The test will be considered a pass if an image can be uploaded successfully and the user lands on ImagePoseDraw without error.
+
+In order to get to the URL brendanduke.ca/ImagePoseDraw/Create the user can navigate to brendanduke.ca/ImagePoseDraw and click the buttons associated with adding a new image or video.
 
 \subsubsection{Input Data}
 
-Throughout this section the input data is referenced by "Name".jpeg and the website location is referenced through ../ImagePoseDraw which represents brendanduke.ca/ImagePoseDraw.
+Throughout this section the input data is referred to by "Input".jpeg and the website location is referenced through ../ImagePoseDraw which represents brendanduke.ca/ImagePoseDraw.
 
 \begin{table}[H]
         \centering
@@ -174,13 +173,13 @@ Throughout this section the input data is referenced by "Name".jpeg and the webs
 
 \subsubsection{Results}
 
-In order to get to the URL brendanduke.ca/ImagePoseDraw/Create the user can navigate to brendanduke.ca/ImagePoseDraw and click the buttons associated with adding a new image or video. After the upload is complete a user will be taken back to the ImagePoseDraw where they can search for the uploaded media.
+All images uploaded without error and the user was redirected back to brendanduke.ca/ImagePoseDraw after each upload, therefor the test has been passed.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
                 3.6 & Upload TomBrady.jpeg using the ImagePoseDraw functionality & .. /ImagePoseDraw/Create & Land on ../ImagePoseDraw & Landed on ../ImagePoseDraw & Pass\\
                 \hline
@@ -196,21 +195,23 @@ In order to get to the URL brendanduke.ca/ImagePoseDraw/Create the user can navi
 
 After the user has uploaded an image for pose estimation they should be able to view the pose estimation that has been run on the image. In order to verify that some form of pose estimation has been run on the image the user must view their upload and have visible annotations made to the image to be considered a pass.
 
+An image once uploaded can be found within brendanduke.ca/ImagePoseDraw/Details/N, where N represents the number of the uploaded image. This can also be achieved by searching through the uploads.
+
 \subsubsection{Results}
 
-An image once uploaded can be found within brendanduke.ca/ImagePoseDraw/Details/N, where N represents the number of the uploaded image. This can also be achieved by searching through the uploads.
+Each uploaded image had pose estimation run sucessfuly and resulted in a new image with a skeleton overlay on the limbs so this test was passed.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
-                3.9 & View TomBrady.jpeg from ../ImagePoseDraw/Details/30 & .. /ImagePoseDraw & An image of Tom Brady with pose estimated limbs & Tom Brady with pose estimated limbs & Pass\\
+                3.9 & View TomBrady.jpeg from ../ImagePoseDraw/Details/30 & .. /ImagePoseDraw & TomBrady.jpeg with pose estimated limbs & TomBrady.jpeg with pose estimated limbs & Pass\\
                 \hline
-                3.10 & View AvergaeGirl.jpeg from ../ImagePoseDraw/Details/26 & .. /ImagePoseDraw & An image of a female with pose estimated limbs & A female with pose estimated limbs & Pass\\
+                3.10 & View AvergaeGirl.jpeg from ../ImagePoseDraw/Details/26 & .. /ImagePoseDraw & AvergaeGirl.jpeg with pose estimated limbs &AvergaeGirl.jpeg with pose estimated limbs & Pass\\
                 \hline
-                 3.11 & View AverageGuy.jpeg from ../ImagePoseDraw/Details/27 & .. /ImagePoseDraw & An image of a male with pose estimated limbs & A male with pose estimated limbs & Pass\\
+                 3.11 & View AverageGuy.jpeg from ../ImagePoseDraw/Details/27 & .. /ImagePoseDraw & AverageGuy.jpg with pose estimated limbs & AverageGuy.jpg with pose estimated limbs & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -222,11 +223,13 @@ The web interface has the ability to search through the uploaded images and vide
 
 \subsubsection{Results}
 
+All three tests passed as it was successful to search through the entries and find the upload through an associated name or description.
+
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
                 3.12 & Input  "Tom" in the search bar within ../ImagePoseDraw & .. /ImagePoseDraw & A list of figured including the Tom Brady image that was uploaded & A single return of the Tom Brady image & Pass\\
                 \hline
@@ -248,9 +251,9 @@ In order to provide a proper demonstration of the deep learning mechanics that c
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{1cm}|p{7.5cm}|p{1cm}||}
+        \begin{tabular}{||p{0.75cm}|p{7.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Result\\
                 \hline\hline
                 3.15 & Meet with Dr.Taylor in order to verify the integrity of the deep learning implementation within the TextToMotion Database. & Pass\\ %fill in these entries once we have them
                 \hline
@@ -270,11 +273,12 @@ This test was technically a failure. The data was not converted to a format
 compatible with libraries. Instead the data is stored in JSON strings, which is
 a standard format, but not compressed as an ideal format such as HDF5 would be.
 
+
 \chapter{Functional Requirements}
 
 \section{Input Data}
 
-Throughout this section the input data is referenced by "Name".jpeg and the website location is referenced through ../ImagePoseDraw which represents brendanduke.ca/ImagePoseDraw.
+Throughout this section the input data is referred to by "Input".MP4 and the website location is referenced through ../ImagePoseDraw which represents brendanduke.ca/ImagePoseDraw.
 
 \begin{table}[H]
         \centering
@@ -295,23 +299,23 @@ Throughout this section the input data is referenced by "Name".jpeg and the webs
 
 \subsection{Description}
 
-Tests whether the ReadFrames API is able to decode MP4 files. If we are able to
-run pose estimation on the video, then the ReadFrames API is able to process the
-frames.
+Tests whether the ReadFrames API is able to decode MP4 files. If we are able to run pose estimation on the video, then the ReadFrames API is able to process the frames and the test will be considered a pass.
 
 \subsubsection{Results}
 
+Each test was successful in using the ReadFrames API to decode the MP4 files and run pose estimation so this test has been passed.
+
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
-                4.1 & Running ReadFrames API on E9FY2.MP4, to run pose estimation & ReadFrame API & A compiled E9FY2.MP4 with pose estimation executed & E9FY2.MP4 that has been pose estimated & Pass\\
+                4.1 & Using the ReadFrames API on E9FY2.MP4, to run pose estimation & ReadFrame API & A compiled E9FY2.MP4 that has been pose estimated & E9FY2.MP4 with pose estimation & Pass\\
                 \hline
-                4.2 & Running ReadFrames API on U4XV9.MP4, to run pose estimation & ReadFrame API & A compiled U4XV9.MP4 with pose estimation executed & U4XV9.MP4 that has been pose estimated & Pass\\
+                4.2 & Using the ReadFrames API on U4XV9.MP4, to run pose estimation & ReadFrame API & A compiled U4XV9.MP4 that has been pose estimated & U4XV9.MP4 with pose estimation & Pass\\
                 \hline
-                4.3 & Running ReadFrames API on Z1A0Q.MP4, to run pose estimation & ReadFrame API & A compiled Z1A0Q.MP4 with pose estimation executed & Z1A0Q.MP4 that has been pose estimated & Pass\\
+                4.3 & Using the ReadFrames API on Z1A0Q.MP4, to run pose estimation & ReadFrame API & A compiled Z1A0Q.MP4 that has been pose estimated & Z1A0Q.MP4 with pose estimation & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -319,23 +323,23 @@ frames.
 \section{Frame Reading Timestamp Accuracy Test}
 \subsection{Description}
 
-Tests whether the timestamps on the frames returned by the ReadFrames API match
-their temporal position in the original video stream. Our input data is
-identical to the previous test.
+Tests whether the timestamps on the frames returned by the ReadFrames API match their temporal position in the original video stream. In order for this test to be considered a pass two random timestamps will be verified and if they match it will be considered a success. On a single failed timestamp two new timestamps will be taken until it is a definite failure or success.
 
 \subsection{Results}
 
+All three tests were able to match timestamps to the original video and the test has been passed.
+
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
-                4.4 & Run ReadFrames API on E9FY2.MP4, to verify the timestamps match & ReadFrame API & Matching timestamps at 5 seconds & Matching timestamps at 5 seconds & Pass\\
+                4.4 & Use the ReadFrames API on E9FY2.MP4, in order to verify the timestamps & ReadFrame API & Matching timestamps at 5 and 7 seconds & Matching timestamps at 5 and 7 seconds & Pass\\
                 \hline
-                4.5 & Run ReadFrames API on U4XV9.MP4, to verify the timestamps match & ReadFrame API & Matching timestamps at 10 seconds & Matching timestamps at 10 seconds & Pass\\
+                4.5 & Use ReadFrames API on U4XV9.MP4, in order to verify the timestamps match & ReadFrame API & Matching timestamps at 3 and 10 seconds & Matching timestamps at 3 and 10 seconds & Pass\\
                 \hline
-                4.6 & Run ReadFrames API on Z1A0Q.MP4, to verify the timestamps match & ReadFrame API & Matching timestamps at 6 seconds & Matching timestamps at 6 seconds  & Pass\\
+                4.6 & Use ReadFrames API on Z1A0Q.MP4, in order to verify the timestamps match & ReadFrame API & Matching timestamps at 6 and 11 seconds & Matching timestamps at 6 and 11 seconds  & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -360,20 +364,19 @@ rates to the Charades tests.
 
 \subsection{Results}
 
-We provide the ratio of Text-to-Motion images guessed as accurate compared to
-the Charades Images.
+We provide the ratio of Text-to-Motion images guessed as accurate compared to the Charades Images.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{7.5cm}|p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}{||p{0.75cm}|p{7.5cm}|p{2.5cm}|p{2.5cm}||}
                 \hline
-                \textbf Test & \textbf Charades/ TextToMotion & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Charades/ TextToMotion & \textbf Result\\
                 \hline\hline
-                Nick was shown a set of videos and asked to determine which was generated by the TextToMotion Database &  1/1 & Pass\\
+                4.7 & Nick was shown a set of videos and asked to determine which was generated by the TextToMotion Database &  1/1 & Pass\\
                 \hline
-                Drew was shown a set of videos and asked to determine which was generated by the TextToMotion Database&  7/5  & Pass\\
+                4.8 & Drew was shown a set of videos and asked to determine which was generated by the TextToMotion Database&  7/5  & Pass\\
                 \hline
-                Sarah was shown a set of videos and asked to determine which was generated by the TextToMotion Database& 5/4 & Pass\\
+                4.9 & Sarah was shown a set of videos and asked to determine which was generated by the TextToMotion Database& 5/4 & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -381,13 +384,11 @@ the Charades Images.
 \section{Database Output Full Range Coverage Test}
 \subsection{Description}
 
-Tests to be sure all entries in the database can be successfully searched for.
-The videos provided from earlier tests are put into the database, and have been
-renamed for testing purposes.
+Tests to be sure all entries in the database can be successfully searched for. The previous input data has been renamed in order to add specific names and descriptions which can be found below. In order for this test to be considered a pass each uploaded video will need to be found when searching for the name or description given.
 
 \subsection{Input Data}
 
-Throughout this section the input data is referenced by "Name".jpeg and the website location is referenced through ../ImagePoseDraw which represents brendanduke.ca/ImagePoseDraw.
+Throughout this section the input data is referred to by "Input".MP4 and the website location is referenced through ../ImagePoseDraw which represents brendanduke.ca/ImagePoseDraw.
 
 \begin{table}[H]
         \centering
@@ -407,20 +408,19 @@ Throughout this section the input data is referenced by "Name".jpeg and the webs
 
 \subsubsection{Results}
 
-The given set of videos appeared in the returned list of videos from a database
-search.
+The given set of videos appeared in the returned list of videos from the search, so this test has been passed.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
-                4.7 & Search for the Waking_Up.mp4 within ../ImagePoseDraw by searching "Waking" & .. /ImagePoseDraw & A list of results with Waking_Up in the results & A single result of the Waking_up.mp4 & Pass\\
+                4.10 & Search for the Waking_Up.mp4 within ../ImagePoseDraw with keyword "Waking" & .. /ImagePoseDraw & A list of results including Waking_Up.MP4 & A single result of the Waking_up.mp4 & Pass\\
                 \hline
-                4.8 & Search for the Eating.mp4 within ../ImagePoseDraw by searching "Eat" & .. /ImagePoseDraw & A list of results with Eating in the results & A single result of the Eat.mp4 & Pass\\
+                4.11 & Search for the Eating.mp4 within ../ImagePoseDraw with keyword "Eat" & .. /ImagePoseDraw & A list of results including Eating.MP4 & A single result of the Eat.mp4 & Pass\\
                 \hline
-                4.9 & Search for the Stool.mp4 within ../ImagePoseDraw by searching "Stool" & .. /ImagePoseDraw & A list of results with Stool in the results & A single result of the Stool.mp4 & Pass\\
+                4.12 & Search for the Stool.mp4 within ../ImagePoseDraw with keyword "sitting" & .. /ImagePoseDraw & A list of results including Stool.Mp4 & A single result of the Stool.mp4 & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -440,15 +440,15 @@ returned, meaning that the test passed.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
-                4.10 & Search for "Raptor" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
+                4.13 & Search for "Raptor" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
                 \hline
-                4.11 & Search for "Exponent" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
+                4.14 & Search for "Exponent" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
                 \hline
-                4.12 & Search for "Glasses" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
+                4.15 & Search for "Glasses" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -461,18 +461,10 @@ In order to determine the usability of the Text-to-Motion database, a small
 sample of users were asked to use the website to perform some predetermined
 actions and answer questions afterwards.
 
-Before the participants were asked to preform any actions they were given a
-minute to familiarize themselves with the interface, but were not given any
-guidance or tips from the development team.
-
-Once the time was up they were asked to upload an image on mobile or desktop
-through their webcam, a URL or from a file saved within the computer.
+Before the participants were asked to preform any actions they were given a minute to familiarize themselves with the interface, but were not given any guidance or tips from the development team. Once the time was up they were asked to upload an image using their mobile device or desktop. If they used the desktop the user either uploaded an image through a URL or a previously saved file.
 
 While performing the required action the participant's time was recorded and
-used to determine if a requirement had passed or failed.
-
-Upon completion of the task the users were asked to rate the style and design
-of the website on a scale from 1 to 10.
+used to determine if a requirement had passed or failed. Upon completion of the task the users were asked to rate the style and design of the website on a scale from 1 to 10, with 1 being the lowest option and 10 being the highest.
 
 \subsection{Results}
 
@@ -485,7 +477,7 @@ Requirements along with a pass or fail based on the requirements description.
 
 A test to see if the colour scheme of the website is visually appealing. Making the colour scheme of the website visually appealing to a larger audience is important as it will help keep users on the website and ideally provide a reason to reference it to a friend or colleague.
 
-When testing the colour scheme anything above a 6 was considered a pass. We chose anything above a 6 because if the users were to rate it above a 6 it means they are within the upper percentage and enjoyed the colour scheme. This may result in them recommending the website to others and providing more traffic.
+When testing the colour scheme anything above a 6 was considered a pass. We chose anything above a 6 because with this rating it means users enjoyed the colour scheme and may result in them recommending the website to others or returning.
 
 \subsubsection{Results}
 
@@ -493,7 +485,7 @@ When testing the colour scheme anything above a 6 was considered a pass. We chos
         \centering
         \begin{tabular}{||p{0.75cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
                 \hline
-                \textbf Test Num & \textbf User & \textbf Rating & \textbf Result\\
+                \textbf Test \# & \textbf User & \textbf Rating & \textbf Result\\
                 \hline\hline
                 5.1 & Nick & 7 & Pass \\
                 \hline
@@ -512,7 +504,7 @@ When testing the colour scheme anything above a 6 was considered a pass. We chos
 The website interface should be minimal and should inform the user of valid
 actions through visual means. This is a modern requirement in website design, the more minimalistic design you can provide the better it will be for the user experience and any new technologies use to enforce this will help drive traffic.
 
-While testing the minimalistic design anything above a 7 was considered a pass. This required a higher rating then the colour scheme as we believed it would be a key factor in providing the user with an enjoyable experience and help provide a greater amount of traffic through uploads.
+While testing the minimalistic design anything above a 7 was considered a pass. This required a higher rating then the colour scheme as we believed it would be a key factor in providing the user with an enjoyable experience and help provide a greater amount of uploads if the interface was easily understood.
 
 \subsubsection{Results}
 
@@ -520,7 +512,7 @@ While testing the minimalistic design anything above a 7 was considered a pass. 
         \centering
         \begin{tabular}{||p{0.75cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
                 \hline
-                \textbf Test Num & \textbf User & \textbf Rating & \textbf Result\\
+                \textbf Test \# & \textbf User & \textbf Rating & \textbf Result\\
                 \hline\hline
                 5.4 & Nick & 9 & Pass \\
                 \hline
@@ -543,18 +535,17 @@ mentioned.
 In order for this to be considered a pass it should take the users 45 seconds or less to complete the upload process and click the button. The required time of 45 seconds was chosen due to the amount of time that was required to find an image, URL, or file  while running trials throughout the development.
 
 \subsubsection{Results}
-
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf User & \textbf Time & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf User & \textbf Time & \textbf Result\\
                 \hline\hline
                 5.7 & Upload an image from a URL & .. /ImagePoseDraw/Create & Nick & 32 seconds & Pass\\
                 \hline
-                5.8 & Upload an image from a mobile device & .. /ImagePoseDraw/Create & Nick & 38 seconds & Pass\\
+                5.8 & Upload an image from a mobile device & .. /ImagePoseDraw/Create & Drew & 38 seconds & Pass\\
                 \hline
-                5.9 & Upload a file stored within the Desktop & .. /ImagePoseDraw/Create & Nick & 27 seconds & Pass\\
+                5.9 & Upload a file stored within the Desktop & .. /ImagePoseDraw/Create & Sarah & 27 seconds & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -569,12 +560,11 @@ In order to complete this task the users were asked to search for a specific wor
 display the results. Any time below 10 seconds will be considered a pass. Each user was allocated 10 seconds because we did not want the action of typing the keyword to be the bottleneck when searching for a database entry.
 
 \subsubsection{Results}
-
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test Num & \textbf Test & \textbf Initial State & \textbf User & \textbf Time & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf User & \textbf Time & \textbf Result\\
                 \hline\hline
                 5.10 & Search for "Woman" & .. /ImagePoseDraw & Nick & 4 seconds & Pass\\
                 \hline
@@ -590,26 +580,25 @@ display the results. Any time below 10 seconds will be considered a pass. Each u
 \subsection{Usability Tests}
 \subsubsection{Description}
 
-The user should be able to interact with the website without prior knowledge.
+The user should be able to interact with the website without any previous knowledge.
 They will given a minute to explore the website. After that time the
-participants were asked to rate the usability on a scale of 1-10. An average of
-6 is required for a pass.
+participants were asked to rate the usability on a scale of 1-10. 
+
+In order for the result to be considered a pass the ranking must be greater then a 6. This was chosen as having a website that is usable to someone without any prior knowledge to pose estimation or deep learning keeps the users that may use the website much larger and widely accepted. 
 
 \subsubsection{Results}
 
-The users' usability ratings allowed the site to pass this test.
-
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}{||p{0.75cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
                 \hline
-                \textbf User & \textbf Rank & \textbf Result\\
+                \textbf Test \# & \textbf User & \textbf Rating & \textbf Result\\
                 \hline\hline
-                Nick & 6 & Pass \\
+                5.13 & Nick & 7 & Pass \\
                 \hline
-                Drew & 8 & Pass \\
+                5.14 & Drew & 8 & Pass\\ %fill in these entries once we have them
                 \hline
-                Sarah & 8 & Pass\\
+                5.16 & Sarah & 7 & Pass \\
                 \hline
         \end{tabular}
 \end{table}
@@ -620,9 +609,7 @@ The users' usability ratings allowed the site to pass this test.
 
 Users should not be able to see the deep learning model and its training when
 using the pose estimation. When prompted the website should display the correct
-skeletons without any low-level detail. Once uploaded the participants were
-asked if they saw anything that seemed out of place or any information on the
-deep learning process, if they did not it will be considered a pass.
+skeletons without any low-level detail. Once the image was uploaded the participants were asked if they saw anything that seemed out of place or any information on the software used, if they did not it will be considered a pass.
 
 \subsubsection{Results}
 
@@ -631,29 +618,30 @@ and hence this test passed.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{2.5cm}|p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                \textbf Test & \textbf User & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf User  & \textbf Result\\
                 \hline\hline
-                Uploading an image from URL & Nick & Pass\\
-                \hline\hline
-                Uploading an image from mobile & Drew & Pass\\
-                \hline\hline
-                Uploading an image from desktop & Sarah & Pass\\
+                5.17 & Uploading an image from URL & .. /ImagePoseDraw/Create & Nick & Pass\\
+                \hline
+                5.18 & Uploading an image from mobile & .. /ImagePoseDraw/Create & Drew & Pass\\
+                \hline
+                5.19 & Uploading an image from desktop & .. /ImagePoseDraw/Create & Sarah & Pass\\
                 \hline
         \end{tabular}
 \end{table}
 
 \section{Speed and Latency Testing}
 
-\subsection{External Database Connection Response Time}
+\subsection{External Database Connection and Verification Time}
 \subsubsection{Description}
 
 The web interface should be able to connect to an external database and store
 or query items. In order for this test to be considered a pass the confirmation
-of the image being uploaded would have to occur within 30 seconds so that
-additional resources are not wasted by the database. Testing this will occur by
-uploading an image and testing the total time taken.
+of the image being uploaded would have to occur within 60 seconds so that
+additional resources are not wasted by the database.
+
+The required time was determined to be 60 seconds because we are remotely connecting to a server within the University of Guelph in order to access their GPU and would add time to the total execution time.
 
 \subsubsection{Input Data}
 
@@ -664,68 +652,34 @@ uploading an image and testing the total time taken.
                 Input & Description\\
                 % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
                 \hline\hline
-                Image from a URL & An image of a male  \\
+                URL image & An image of a male  \\
                 \hline\hline
-                Image that was saved within the desktop & An image of Seth Rogan \\
+                Desktop file & An image of Seth Rogan \\
+                \hline\hline
+                Mobile image & An image of Andrew \\
                 \hline
         \end{tabular}
 \end{table}
 
 \subsubsection{Results}
 
-According to the response times of this automated test, the database queries
+According to the response times of this test and verification, the database queries
 were executed fast enough for the test to pass.
 
-\begin{table}
-        \centering
-        \begin{tabular}{||p{1.5cm}|p{1.5cm}|p{1.5cm}||}
-                \hline
-                \textbf Test & \textbf Time & \textbf Result \\
-                \hline\hline
-                Uploading the image from a URL & 28 seconds  & Pass\\
-                \hline
-                Uploading an image from desktop & 29 seconds & Pass\\
-                \hline
-        \end{tabular}
-\end{table}
-\vspace{1cm}
-
-\subsection{Website Search Responsiveness}
-\subsubsection{Description}
-
-When given a word or phrase the web interface will be able to respond with an
-image or video of a pose or action within a two minutes.
-
-\subsubsection{Input Data}
-
 \begin{table}[H]
         \centering
-        \begin{tabular}{p{3cm}p{6cm}}
-                \hline\hline
-                Input & Description\\
-                \hline\hline
-                Creepy & Searched using a tag within the description\\ %fill in these entries once we have them
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
                 \hline
-                Seth Rogan & Searched using a tag within the description\\
-                \hline
-        \end{tabular}
-\end{table}
-
-\subsubsection{Results}
-
-\begin{table}[H]
-        \centering
-        \begin{tabular}{||p{1.5cm}|p{1.5cm}|p{1.5cm}||}
-                \hline
-                \textbf Test & \textbf Time & \textbf Result \\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf End State & \textbf Time & \textbf Result\\
                 \hline\hline
-                Search for ``Seth'' & 1 second & Pass\\ %fill in these entries once we have them
-                \hline\hline
-                Search for ``Creepy'' & 2 seconds & Pass\\
+                5.20 & Upload an image from a URL & .. /ImagePoseDraw/Create & phpMyAdmin with updated database & 52 seconds & Pass\\
+                \hline
+                5.21 & Upload a file stored within the Desktop & .. /ImagePoseDraw/Create & phpMyAdmin with updated database & 55 seconds & Pass\\
+                \hline
+                5.22 & Upload an image from a mobile device & .. /ImagePoseDraw/Create & phpMyAdmin with updated database & 56 seconds & Pass\\
                 \hline
         \end{tabular}
 \end{table}
-
 
 \chapter{Other Relevant Testing}
 
@@ -749,7 +703,7 @@ with an uncertainty range of 20 pixels.
                 Input & Description\\
                 % NEED THE BUILD COMMANDS WITH DESCRIPTIONS
                 \hline\hline
-                \verb|TomBrady.jpg| &  A picture of a man standing still and facing the camera\\
+                \verb|AverageGuy.jpg| &  A picture of a man standing still and facing the camera\\
                 \hline
                 \verb|AverageGirl.jpg| &  A picture of a woman standing still and facing the camera\\
                 \hline
@@ -766,15 +720,15 @@ performance of our deep learning model on single-person pose estimation.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}{||p{0.75cm}|p{4cm}|p{2.5cm}|p{2.5cm}||}
                 \hline
-                \textbf Test & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Tester & \textbf Result\\
                 \hline\hline
-                Tom Brady & Pass  \\
+                6.1 & Verify the joint position of TomBrady.jpg & Jordan & Pass  \\
                 \hline\hline
-                Average Girl & Pass  \\
+                6.2 & Verify the joint position of AverageGirl.jpg & Jordan & Pass  \\
                 \hline\hline
-                Average Guy & Pass  \\
+                6.3 & Verify the joint position of AverageGuy.jpg & Jordan & Pass  \\
                 \hline
         \end{tabular}
 \end{table}
@@ -972,39 +926,76 @@ as a base64, meaning it can be converted into any type.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}{||p{0.75cm}|p{4cm}|p{2.5cm}||}
                 \hline
-                \textbf Test & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Result\\
                 \hline\hline
-                PNG & Pass \\ %fill in these entries once we have them
+                6.4 & Export as PNG & Pass \\ %fill in these entries once we have them
                 \hline
-                JPEG & Pass \\ %fill in these entries once we have them
+                6.5 & Export as JPEG & Pass \\ %fill in these entries once we have them
                 \hline
-                BMP & Pass \\ %fill in these entries once we have them
+                6.6 & Export as BMP & Pass \\ %fill in these entries once we have them
                 \hline
         \end{tabular}
 \end{table}
 
+\chapter{Automated Testing}
+
+The majority of the tests preformed on the TextToMotion Database have been manual due to the state of deep learning and pose estimations requirement of human verification. With this in mind testing the http server and the correctness of the returned images can be automated through tf\_http\_server\_tests.py, located in tf-http-server.
+
+\section{HTTP-Server}
+
 \chapter{Traceability} % FILL THIS IF WE HAVE TIME
 \begin{center}
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.3\textwidth}>{\raggedright\arraybackslash}p{0.3\textwidth}>{\raggedright\arraybackslash}p{0.4\textwidth}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.2\textwidth}>{\raggedright\arraybackslash}p{0.5\textwidth}>{\raggedright\arraybackslash}p{0.4\textwidth}}
 \caption{Traceability Matrix for Test-Requirement Relationships}\label{Table_TestsAndRequirements}
 \\\toprule
-\textbf Test & \textbf Description & \textbf Requirement\\\midrule
- 3.2, 4.2, 4.3, 5.8.2
-& Tests which measured performance Accuracy of Deep Learning Algorithm
-&  Req 1, 8,  23(Speed and Latency)\\
- 4.1,  5.3.1, 5.7.1, 6.4.2 & System tests, measuring reliability of the web framework. &
-Req 7,  12,  17, 20, 30, 38, 39
-\\
-4.4-4.6
- & Unit and Systems Tests Grading Database Search Performance & Req \# 9, 10, 11,
- \\
-4.5, 6.3.1, 6.3.1, 6.4.1 & Security and Data Integrity Tests & Req \# 10, 27, 29 \\
-4.1.1, 5.8.2, 6.4.1 & Proper Formatting Tests & Req \# 7, 23, 29
-\\
-4.2.1-5.8.1,6.1.1-6.2.2  & User Interface Tests & Req \# 13-21, 24-26
-\\
+\textbf Test Section & \textbf Description & \textbf Requirement\\\midrule
+3.1.1  & Reliability and Availability of the web interface & Req \# 27, 28\\
+\hline
+3.2.1  & Solution Constraints and accuracy of deep learning & Req \# 1\\
+\hline
+3.2.2  & Solution Constraints for data rich storage  & Req \# 2\\
+\hline
+6.6.1  & Implementation Environment to support operating systems & Req \# 3\\
+\hline
+4.2  & Functional Requirement that ensures video can be processed & Req \# 7\\
+\hline
+4.3  & Functional Requirement for joint positioning relative to timestamps & Req \# 8\\
+\hline
+4.5  & Functional Requirement that each media upload has associated text & Req \# 9\\
+\hline
+4.6  & Functional Requirement that no false postiives are returned while searching & Req \# 7\\
+\hline
+5.2  & Appearance Requirement for the look and feel & Req \# 12\\
+\hline
+5.3  & Style Requirement to implement a minimalistic design & Req \# 13\\
+\hline
+5.4.1  & Ease of Use Requirement that an average user can use the website & Req \# 14\\
+\hline
+5.4.2  & Ease of Use Requirement for text box functionality & Req \# 16, 24\\
+\hline
+5.5 & Learning Requirement that a user can 'pose estimate' without prior knowledge & Req \# 17, 18\\
+\hline
+5.6 & Politeness and Understandability Requirement to hide the inner workings of deep learning & Req \# 20\\
+\hline
+5.4.2  & Ease of Use Requirement for text box functionality & Req \# 16\\
+\hline
+5.7  & Speed and Latency Requirement to minimize resource cost & Req \# 22, 23\\
+\hline
+6.1.1  & Precision and Accuracy of bone joints positioning & Req \# 25, 26\\
+\hline
+6.1.2  & Precision and Accuracy of the deep learning model & Req \# 1, 26\\
+\hline
+6.2.2  & Reliability and Availability of the web interface & Req \# 27, 28\\
+\hline
+6.3  & Robustness or Fault-Tolerance Requirements to handle errors within theweb interface & Req \# 29\\
+\hline
+6.4.1  & Capacity Requirement for multiple connections & Req \# 31\\
+\hline
+6.4.2  & Capacity Requirement to populate the database with images and video & Req \# 32\\
+\hline
+6.6.2  & Productization Requirement for multiple export types & Req \# 37\\
 \bottomrule
 \end{longtable}
 \end{center}
@@ -1029,11 +1020,7 @@ Similarly, the following is a traceability table explicitly relating test cases 
 
 \chapter{Changes After testing}
 
-The first of our major changes would likely be to the website interface. Though
-our testers reviewed it favourably -- there were numerous references -- but we
-were also given consistent criticism that an alternate colour scheme might be a
-slight improvement. As such we have agreed to experiment with those
-improvements.
+The first of our major change was to the web interface. Though our testers reviewed it favourably -- there were numerous references -- but we were also given consistent criticism that an alternate colour scheme might be a slight improvement. As such we have agreed to experiment with those improvements. In addition to changing the colour scheme the layout of the website was also changed to provide a more modern approach to how the websites information was displayed.
 
 Testing also revealed that a JavaScript application to allow continuous requests
 to the HTTP server as well as utilize a mobile platform would have greater
@@ -1042,7 +1029,7 @@ function on the website to display statistics. This would help insure greater
 availability. The ability to track the database live would be both useful to
 the testing team as well as an entertaining aspect for the product demo.
 
-The last major improvement we wish to provide is an improved JavaScript plugin
+The last major improvement provided was an improved JavaScript plugin
 for drawing the skeleton on top of an image. Testing revealed that there was
 flicker with the drawn skeletons, and as such, could lead to false negatives,
 where a skeleton that appears inaccurate is actually just limited by our
