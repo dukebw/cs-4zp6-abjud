@@ -2,59 +2,48 @@
 @{
     ViewData["Title"] = "Register";
 }
-
-<br /><br /><br />
 <div class="row">
-    <div class="col-lg-6 col-md-6 col-sm-8 col-xs-10 col-lg-offset-3 col-md-offset-3 col-sm-offset-2 col-xs-offset-1">
-        <div class="card">
-            <div class="card-content">
-                <form asp-controller="Account" asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post" class="form-horizontal">
-                    <h2 class="text-center">Create a new account</h2>
-                    <hr />
-                    <div class="row">
-                        <div class="col-lg-offset-2">
-                            <div asp-validation-summary="All" class="text-danger"></div>
-                            <div class="form-group">
-                                <label asp-for="Email" class="col-md-2 control-label"></label>
-                                <div class="col-md-10">
-                                    <input asp-for="Email" class="form-control" />
-                                    <span asp-validation-for="Email" class="text-danger"></span>
+    <div class="col m10 s12 offset-m1">
+        <div class="card teal lighten-1">
+            <div class="card-content white-text z-depth-1">
+                <h4 class="center-align no-margins padded-from-bot"><b>@ViewData["Title"]</b></h4>
+                <div class="col m6 s12 offset-m3">
+                    <div class="card-panel white z-depth-3 black-text">
+                        <form asp-controller="Account" asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post">
+                            <div asp-validation-summary="All" class="red darken-1 white-text center-align pushed-up bold rounded"></div>
+                            <div class="row">
+                                <div class='col m10 offset-m1'>
+                                    <div class="input-field">
+                                        <i class="material-icons prefix">perm_identity</i>
+                                        <input id="email" asp-for="Email" type="email" />
+                                        <label for="email">Please enter your email</label>
+                                    </div>
+                                    <div class="input-field">
+                                        <i class="material-icons prefix">lock_open</i>
+                                        <input id="password" asp-for="Password" type="password" />
+                                        <label for="password">Please enter a Password</label>
+                                    </div>
+                                    <div class="input-field">
+                                        <i class="material-icons prefix">lock_outline</i>
+                                        <input id="confirm-password" asp-for="ConfirmPassword" type="password" />
+                                        <label for="confirm-password">Confirm Password</label>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label asp-for="Password" class="col-md-2 control-label"></label>
-                                <div class="col-md-10">
-                                    <input asp-for="Password" class="form-control" />
-                                    <span asp-validation-for="Password" class="text-danger"></span>
-                                </div>
+                            <div class="row no-margins">
+                                <button class="btn waves-effect waves-light indigo lighten-2 col s10 offset-s1" type="submit">
+                                    Sign Up
+                                    <i class="fa fa-arrow-circle-right right-align"></i>
+                                </button>
                             </div>
-                            <div class="form-group">
-                                <label asp-for="ConfirmPassword" class="col-md-2 control-label"></label>
-                                <div class="col-md-10">
-                                    <input asp-for="ConfirmPassword" class="form-control" />
-                                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="col-md-offset-2 col-md-10">
-                                    <button type="submit" class="btn btn-default">Register</button>
-                                </div>
-                            </div>
-                        </div>
+                        </form>
                     </div>
-                    <div class="row">
-                        <div class="col-lg-6 col-lg-offset-3">
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-danger fullWidth">Register</button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
-
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 }

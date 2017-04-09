@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Linq;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using TextToMotionWeb.Data;
 using Microsoft.AspNetCore.Authorization;
 using TextToMotionWeb.Models;
@@ -30,6 +34,15 @@ namespace TextToMotionWeb.Controllers
 
         public IActionResult Error()
         {
+            return View();
+        }
+
+        [Authorize]
+        public IActionResult Dashboard()
+        {
+            /*var media = new Media { UserId = "3968c27f-3580-4e8b-a5eb-dc841194694d" , Category = "test", Type = "e" };
+            dbcontext.Media.Add(media);
+            dbcontext.SaveChanges();*/
             return View();
         }
     }
