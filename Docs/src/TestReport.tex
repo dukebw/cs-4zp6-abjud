@@ -103,7 +103,7 @@ The second set of tests focused on Solution Constraints testing or Functional te
 
 In the third set of tests, volunteers were asked to test the Non-Functional requirements of the finished product. Examples of these requirements include: usability, design requirements and learnability.
 
-The final set of tests were automated tests ran on the http-server in order to verify the server was posting the correct GET and POST calls. These tests were also used to verify the correctness of the pose estimation of an image. 
+The final set of tests were automated tests ran on the http-server in order to verify the server was posting the correct GET and POST calls. These tests were also used to verify the correctness of the pose estimation of an image.
 
 The final section in this document includes a traceability table that helps to organize and explain how tests are connected to the Software Requirements and Specification document.
 
@@ -290,6 +290,117 @@ Throughout this section the input data is referred to by "Input".MP4 and the web
                 \hline
         \end{tabular}
 \end{table}
+
+
+\section{HTTP Get test}
+\subsection{Description}
+
+A test to be sure out HTTP server can recieve a get request for an image, and return the Json string of values. If every value is between -0.5 and 0.5 then the data returned is accurate, and the test is a pass. The GET requests were created using curl with the -X option and attempting to reach the server brendandule.ca:8765
+\subsection{Input Data}
+
+\begin{table}[H]
+        \centering
+        \begin{tabular}{p{3cm}p{6cm}}
+                \hline\hline
+                Input & Command\\
+                \hline\hline
+                Test 1 &  https://brendanduke.ca:8765/?image_url=http://st2.
+                depositphotos.com/1912333/10089/i/950/
+                depositphotos_100892946-stock-photo-sporty-woman-waving-hands.jpg --insecure\\
+                \hline
+                U4XV9.MP4  &  A short video of a man waking up and getting out of bed\\
+                \hline
+                Z1A0Q.MP4 & A short video of a man sitting on a stool\\
+                \hline
+        \end{tabular}
+\end{table}
+
+\subection{Output Data}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{||p{2cm}|p{6.5cm}||}
+        \hline
+        \textbf{Body Part} & \textbf {Json Values}\\
+         \hline\hline
+        r ankle & [-0.0736842105263, 0.328947368421] \\
+        \hline
+        r knee & [-0.0315789473684, 0.157894736842] \\
+        \hline
+        r hip & [-0.0526315789474, 0.0105263157895] \\
+        \hline
+        l hip & [-0.0315789473684, 0.0315789473684] \\
+        \hline
+        l knee & [-0.0315789473684, 0.157894736842] \\
+        \hline
+        l ankle & [-0.0315789473684, 0.157894736842] \\
+        \hline
+        pelvis & [-0.0342105263158, 0.0105263157895]\\
+        \hline
+        thorax & [-0.0105263157895, -0.223684210526] \\
+        \hline
+        upper neck & [0.0105263157895, -0.244736842105] \\
+        \hline
+        head top & [0.0105263157895, -0.394736842105] \\
+        \hline
+        r wrist & [-0.223684210526, -0.328947368421] \\
+        \hline
+        r elbow & [-0.202631578947, -0.244736842105] \\
+        \hline
+        r shoulder & [-0.0526315789474, -0.223684210526] \\
+        \hline
+        l shoulder & [0.0526315789474, -0.223684210526] \\
+        \hline
+        l elbow & [0.181578947368, -0.265789473684] \\
+        \hline
+        l wrist & [0.160526315789, -0.371052631579] \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Results}
+\begin{table}[H]
+        \centering
+        \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+                \hline
+                \textbf Test & \textbf Result\\
+                \hline\hline
+                \verb|Test 1|  &  Pass\\
+                \hline
+                \verb|U4XV9.MP4|  &  Pass\\
+                \hline
+                \verb|Z1A0Q.MP4| & Pass\\
+                \hline
+        \end{tabular}
+\end{table}
+
+\section{False Positive Test}
+\subsection{Description}
+
+Tests whether the HTTP server will return a 404 error when we attempt to make an empty GET request. To do this we do call ssl to the server (openssl s_client -connect brendanduke.ca:8765) and then, when asked for an input, hit enter/return twice to create an empty request.
+
+\subsection{Output data}
+HTTP/1.0 400 Bad Request \\
+Server: BaseHTTP/0.6 Python/3.5.2 \\
+Date: Sun, 09 Apr 2017 14:59:30 GMT \\
+Access-Control-Allow-Origin: https://brendanduke.ca \\
+
+\subsection{Results}
+
+\begin{table}[H]
+        \centering
+        \begin{tabular}{||p{2.5cm}|p{2.5cm}||}
+                \hline
+                \textbf Test & \textbf Result\\
+                \hline\hline
+                \verb|Test 1|  &  Pass\\ %fill in these entries once we have them
+                \hline
+                \verb|U4XV9.MP4|  &  Pass\\
+                \hline
+                \verb|Z1A0Q.MP4| & Pass\\
+                \hline
+        \end{tabular}
+\end{table}
+
 
 \section{Supported Video Encoding Test}
 
@@ -526,7 +637,7 @@ While testing the minimalistic design anything above a 7 was considered a pass. 
 Through the web interface a user should be able to upload a picture using
 either a mobile phone camera, URL, or saved file. The participant will start on
 the Home page and be asked to upload an image through one of the methods previously
-mentioned. 
+mentioned.
 
 In order for this to be considered a pass it should take the users 45 seconds or less to complete the upload process and click the button. The required time of 45 seconds was chosen due to the amount of time that was required to find an image, URL, or file  while running trials throughout the development.
 
@@ -578,9 +689,9 @@ display the results. Any time below 10 seconds will be considered a pass. Each u
 
 The user should be able to interact with the website without any previous knowledge.
 They will given a minute to explore the website. After that time the
-participants were asked to rate the usability on a scale of 1-10. 
+participants were asked to rate the usability on a scale of 1-10.
 
-In order for the result to be considered a pass the ranking must be greater then a 6. This was chosen as having a website that is usable to someone without any prior knowledge to pose estimation or deep learning keeps the users that may use the website much larger and widely accepted. 
+In order for the result to be considered a pass the ranking must be greater then a 6. This was chosen as having a website that is usable to someone without any prior knowledge to pose estimation or deep learning keeps the users that may use the website much larger and widely accepted.
 
 \subsubsection{Results}
 
