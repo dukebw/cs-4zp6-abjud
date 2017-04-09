@@ -862,319 +862,163 @@ a given image and draw a skeleton overlay on the image\href{http://caffe.berkele
 
 \break
 
-\section{Flowing Convnets - Human Pose Estimation}
+\section{tf-http-server - Human Pose Interface Server}
 
 \subsection{Overview}
 
-This component of the project actually renders the skeleton overlay onto an
-image submitted to the website.
+This component of the project actually provides an HTTP interface through which human pose estimation can be run on images and video. The tf-http-server is written in python and interfaces with the TensorFlow and the human\_pose\_model directly.
 
-Mapping out the joints of a person in an image requires the use of image
-manipulation and deep learning libraries. As of now, this proces is based on a
-research paper and is implemented with \textbf{Caffe} and \textbf{OpenCV} in
-\textbf{C++}. (*The parameters for functions given below will reference 'caffe'
-and 'cv' types in c++)
+\subsection{tf\_http\_server.py}
 
-
-\subsection{Shared Object File}
-
-The website is able to take an uploaded image and process it by using a shared
-object file (.so). The web app can make function calls to functions in the
-shared object file and pass in images as the parameters.
-
-The C++ file \textbf{``estimate\_pose.cpp''} contains all of the functions that
-interface with Caffe and OpenCV. The C file
-\textbf{``estimate\_pose\_wrapper.c''} is used to wrap the C++ function in C,
-and create the shared object file so that the C++ function can be accessed from
-the website.
-
-\subsection{Pose Estimation C Program (estimate\_pose\_wrapper.c)}
-
-The file \textbf{``estimate\_pose\_wrapper.c''} just contains 1 function. This
-function references a C++ function in \textbf{estimate\_pose.cpp}
-
-\textbf{Function: int32\_t estimate\_pose\_wrapper(args)}
+\textbf{Function: \_get\_image\_joint\_predictions(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    void\quad\textit{*image}
+            \quad\textit{image}
 
-    uint32\_t\quad\textit{*size\_bytes}
+            \quad\textit{session}
 
-    uint32\_t\quad\textit{max\_size\_Bytes}
+            \quad\textit{image\_bytes\_feed}
 
-    \item\quad\textbf{Returns:}
-
-    if \textit{image} is processed and saved, returns: \textbf{int32\_t size}
-    (describing size of file that was uploaded)
-
-    else returns error object
-
-    \item \textbf{Description:}
-
-    this function makes a direct call to the C++ function \textbf{``estimate\_pose\_from\_c''} in \textbf{``estimate\_pose.cpp''} and simply returns the result of that C++ function call.
-
-    The C++ function takes in the same args as this function
-\end{itemize}
-
-\subsection{Pose Estimation C++ Program (estimate\_pose.cpp)}
-
-This C++ Program file contains 8 functions. All of these functions take in
-objects from the 'openCV'(cv) and 'Caffe'(caffe) libraries as arguments
-
-The key function in this file is \textbf{estimate\_pose\_from\_c}, and most of the functions serve as helpers to this function
-
-\underline{ \textbf{List of Functions and Descriptions (PE = Pose Estimation):}}
-
-\subsubsection{References for Objects used in C++ functions}
-
-\begin{itemize}
-    \item \textbf{References for OpenCV objects}
-
-    \href{http://docs.opencv.org/3.1.0/d3/d63/classcv_1_1Mat.html#details}{Reference to cv::Mat}
-
-    \href{http://docs.opencv.org/3.1.0/db/d4e/classcv_1_1Point__.html}{Reference to cv::Point}
-
-    \href{http://docs.opencv.org/3.1.0/d4/d32/classcv_1_1__InputArray.html}{Reference to cv::InputArray}
-
-    \item \textbf{References for Caffe Objects}
-
-    \href{http://caffe.berkeleyvision.org/doxygen/classcaffe_1_1Blob.html}{Reference to caffe::Blob}
-
-    \href{http://caffe.berkeleyvision.org/doxygen/classcaffe_1_1Net.html}{Reference to caffe::Net}
-
-
-
-
-    \item \textbf{References for Other Objects}
-
-    \href{http://www.boost.org/doc/libs/1_63_0/libs/smart_ptr/shared_ptr.htm}{Reference to boost::shared\_ptr}
-
-\end{itemize}
-
-\subsubsection{PE Function 1: void channels\_from\_blob(args)}
-\begin{itemize}
-    \item \textbf{Expected Arguments:}
-
-    std::vector\textless cv::Mat\textgreater\quad\textit{channels}
-
-    boost::shared\_ptr\textless caffe::Blob\textgreater\quad\textit{blob}
-
-    int32\_t\quad\textit{width}
-
-    int32\_t\quad\textit{height}
+            \quad\textit{logits\_tensor}
 
     \item \textbf{Returns:}
 
-    void (saves data into \textit{channels})
+            The joint predictions of a single image in a JSON string.
 
     \item \textbf{Description:}
 
-    The \textit{blob} object contains concatenated mulit-channel data
+            This function does joint position inference on a single image, and stores the results in a JSON string. It uses an array of dictionaries relating the keys to joint names, and the values to the predicited positions with respects to the x and y axis. It follows the format: [{"r\_ankle": [0.5, 0.5], "r\_knee": [1.0, 2.0], ...}, {"r\_ankle": [0.25, 0.2], "r\_knee": [0.1, 0.5], ...}].
 
-    The \textit{channels} object is empty to begin with
-
-    This function converts the raw data in a Caffe blob into a 'container of channels' (vector of openCV matrices)
-
-    The \textit{width} and \textit{heigth} parameters let the program know what the dimensions of the channels are in the \textit{blob}
-
-    The extracted information from \textit{blobs} is saved into the \textit{channels} vector
-
-    This function is just used as a helper for other functions
 \end{itemize}
 
-
-\subsubsection{PE Function 2: void copy\_image\_to\_input\_blob(args)}
+\textbf{Function: \_get\_heatmaps\_for\_batch(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    caffe::Net \textless float\textgreater\quad\textit{heatmap\_net}
+            \quad\textit{frames}
 
-    cv::Mat\quad\textit{image}
+            \quad\textit{logits\_tensor}
+
+            \quad\textit{resized\_image\_tensor}
+
+            \quad\textit{session}
+
+            \quad\textit{image\_bytes\_feed}
+
+            \quad\textit{endpoints}
+
+            \quad\textit{batch\_size}
 
     \item \textbf{Returns:}
 
-    void (saves data into \textit{heatmap\_net})
 
     \item \textbf{Description:}
 
-    This function converts the \textit{image} object from OpenCV BGR format to 32-bit-floating point RGB format and copies the image to the input blob of \textit{heatmap\_net}. It lso divides the input layer of the \textit{heatmap\_net} from a multi-channel array into several single-channel arrays by calling a helper function
-
-    \textit{image} is the image that will serve as the input layer to the caffe network
-
-    \textit{heatmap\_net} is the caffe network that will get its input layer filled with the RGB pixel data from \textit{image}
-
-    This function makes a call to \textbf{PE-cpp Function 1} when it splits up the newly updated image in \textit{heatmap\_net}'s input layer into several 'input\_channels'
 \end{itemize}
 
-
-\subsubsection{PE Function 3: void get\_joints\_from\_network(args)}
+\textbf{Function: TFHttpRequesthandlerFactory(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    cv::Point \quad\textit{*joints}
+            \quad\textit{session}
 
-    cv::Size \quad\textit{channel\_size}
+            \quad\textit{image\_bytes\_feed}
 
-    caffe::Net\textless float\textgreater\quad\textit{heatmap\_net}
+            \quad\textit{logits\_tensor}
+
+            \quad\textit{resized\_image\_tensor}
 
     \item \textbf{Returns:}
 
-    void (saves data into \textit{joints})
+            This function returns a subclass of the 'http.server.BaseHTTPrequestHandler'.
 
     \item \textbf{Description:}
 
-    This function uses the \textit{heatmap\_net}'s ``conv5\_fusion'' layer to get a set of joint locations for that heatmap. (This layer is derived from the research paper used)
+            This function is required to call the subclass of the 'http.server.BaseHTTPrequestHandler' as it allows the function to call extra parameters which are local to the class. All of this is required as the constructor expects a certain function signature.
 
-    The joint locations get saved into \textit{*joints}
-
-    The \textit{channel\_size} is used to maintain the accuracy of the position of the joints relative to the image as the image matrix is resized multiple times
-
-    This function makes a call to \textbf{PE-cpp Function 1} when it uses the \textit{heatmap\_net} to save all of the joint locations in a 'joint\_channel' vector of cv::Mat objects
 \end{itemize}
 
-
-\subsubsection{PE Function 4: void draw\_skeleton(args)}
+\textbf{Function: \_respond\_with\_joints(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    cv::Mat \quad\textit{image}
+            \quad\textit{self}
 
-    cv::Point \quad\textit{*joints}
+            \quad\textit{image}
 
     \item \textbf{Returns:}
 
-    void (saves image data into \textit{image})
+            Returns a 200 OK HTTP response message with response data as a JSON string containing the inferred joint position.
 
     \item \textbf{Description:}
 
-    This function uses the joint\_locations described in \textit{*joints} to draw an upper-body skeleton on the \textit{image} matrix passed in.
+            Takes the image and preforms joint inference on it in order to store it within the JSON that is returned containing the inferred joint position.
 
-    \textit{image} is the image to draw the skeleton overlay on
-
-    \textit{*joints} contain the locations for the set of joints (wrists, elbows, shoulders and head)
 \end{itemize}
 
-\subsubsection{PE Function 5: std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater init\_pose\_estimator\_network(args)}
+\textbf{Function: do\_GET(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    std::string\quad\textit{model}
-
-    std::string\quad\textit{trained\_weights}
+           \quad\textit{self}
 
     \item \textbf{Returns:}
 
-    \textbf{std::unique\_ptr\textless caffe::Net\textless float\textgreater\textgreater} heatmap\_net
-
-    pointer to an object that represents a whole caffe network
+            A JSON string of the estimated joints for the image URL that has been passed as an option parameter.
 
     \item \textbf{Description:}
 
-    This function creates a Caffe network and copies over the trained layers from a given option for \textit{trained\_weights}
+            This representation of an HTTP GET request will take an image URL as a JPEG and preform joint inference on the image in order to save it in as a JSON string that will later be returned.
 
-    For this application, a caffe network is initialized with the default settings:
-
-    (\textit{model} = 'MODEL\_DEFAULT', \textit{trained\_weights} = TRAINED\_WEIGHTS\_DEFAULT)
 \end{itemize}
 
-
-\subsubsection{PE Function 6: void image\_pose\_overlay(args)}
+\textbf{Function: do\_POST(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    caffe::Net\textless float\textgreater\quad\textit{heatmap\_net}
-
-    cv::Mat\quad\textit{image}
+            \quad\textit{self}
 
     \item \textbf{Returns:}
 
-    void (saves to \textit{image})
+            A JSON string that represents the infered joint position.
 
     \item \textbf{Description:}
 
-    This function processes the \textit{image} passed in using the \textit{heatmap\_net} to draw a skeleton on the openCV Matrix
+            This function is a HTTP POST request containing a JPEG in base 64 in order to decode the base 64 image and preform joint inference in order to store it as a JSON string representing the joint position.
 
-    Details on the actions taken by the function:
-    \begin{enumerate}
-        \item Resizes \textit{image} to 256x256
-
-        \item calls \textbf{PE Function 2} to copy the image into the input layer of the \textit{heatmap\_net}
-
-        \item after allowing the network to extract some data, declares an array object of cv::Point called \textit{joints}
-
-        \item calls \textbf{PE Function 3} to load in joint locations into \textit{joints}
-
-        \item converts image to a format so that it can be drawn on by the program
-
-        \item calls \textbf{PE Function 4} to draw the skeleton overlay on top of the \textit{image}
-    \end{enumerate}
 \end{itemize}
 
-
-\subsubsection{PE Function 7: void square\_image\_with\_borders(args)}
+\textbf{Function: \_get\_joint\_position\_inference\_graph(args)}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    cv::Mat\quad\textit{image\_mat}
+            \quad\textit{image\_bytes\_feed}
+
+            \quad\textit{batch\_size}
 
     \item \textbf{Returns:}
 
-    void (saves image data to \textit{image\_mat})
+            A constructed computation graph that will be used to run human pose inferrence on.
 
     \item \textbf{Description:}
 
-    If the image's dimensions do not fit a square (length != width), this function makes it so that the image dimensions are expanded so that it fits into a square
-
-    This is to avoid distorting the image drastically when the image is resized to 256x256
-
-    This is just a simple helper function to pre-process the image
+            The function sets up the computation graph that will decode a JPEG from the input \textit{image\_bytes\_feed} in order to pad and resize the image to the desired shape. Which is then used to run the human pose inferrence on it using the "Two VGG-16s cascade" model.
 \end{itemize}
 
-
-
-\subsubsection{PE Function 8: int32\_t estimate\_pose\_from\_c(args)}
+\textbf{Function: run()}
 \begin{itemize}
     \item \textbf{Expected Arguments:}
 
-    void\quad\textit{*image}
-
-    uint32\_t\quad\textit{*size\_bytes}
-
-    unit32\_t\quad\textit{max\_size\_bytes}
-
     \item \textbf{Returns:}
-
-    if \textit{image} is processed and saved, returns: \textbf{int32\_t size}
-    (describing size of file that was uploaded)
-
-    else returns error object
 
     \item \textbf{Description:}
 
-    This function is the key method in this file. This function overwrites the contents of the memory allocated for \textit{*image} so that a given image is updated to show the skeleton overlay on that image
-
-    This function creates a new Caffe network and calls a lot of helper functions needed to process the \textit{image}
-
-    Details on the actions taken by the function:
-    \begin{enumerate}
-        \item calls \textbf{PE Function 5} to create a new caffe Network, stores new network in \textit{heatmap\_net}
-
-        \item uses \textit{*image} and \textit{*size\_bytes} to create a cv::InputArray object to represent the uploaded image
-
-        \item creates a cv::Mat image matrix, and decodes the contents of the cv::InputArray object into the newly created matrix object
-
-        \item calls \textbf{PE Function 7} to pre-process the image matrix to reaffirm that the image is square
-
-        \item calls \textbf{PE Function 6} using \textit{heatmap\_net} and the image matrix so that the image\_matrix includes the skeleton overlay
-
-        \item converts and compresses the image\_matrix into a png
-
-        \item finally, overwrites the contents of \textit{*image} with the newly created image that has the pose estimation 'skeleton overlay'
-    \end{enumerate}
+            Starts the server in order to handle the HTTP request by listening on an SSL-wrapped socket at port 8765 of the localhost. On startup a joint inference computation graph is setup, all model weights are restored and a session where the graph can be run is initialized.
 
 \end{itemize}
 
+\section{human\_pose\_model - Training and Inference Software Suite}
 
 \break
 
