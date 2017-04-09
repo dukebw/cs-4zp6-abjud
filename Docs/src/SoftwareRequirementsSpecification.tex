@@ -991,17 +991,6 @@ mechanisms, there is no need to provide any accessibility requirements for now
 {Created October 11th, 2016.}
 \\ \\
 
-\requirement
-{Req_RetrievedVideoRelevance}
-{\ref{req-speed-latency} Speed and Latency Requirement}
-{web-text-to-motion-event}
-{The web interface, given a word or phrase as input, shall be able to respond with an output of an image/video detailing a pose or action within 2 minutes}
-{The web interface will need a considerable amount of time to process the request since it has to be able to parse the text input, be able to interpret it as a description of a pose or action using a set of defined database mappings. The web interface is is then responsible for constructing a visual object that encapsulates all of the bone and joint positions and exporting the object in a standardized data format. This is a very time consuming set of processes to compute, so it should be expected to take at least 2 minutes.}
-{Udip Patel}
-{The Quantitative goal has been mentioned in the Description. The entire workset shall be completed in a span of 2 minutes, the workset itself: 1) parsing input, 2) mapping the text input to a description, 3) generating a visual object based on the description, 4)exporting the object in a data format that is accessible to the user }
-{High}
-{Created October 11th, 2016.}
-
 \subsection{Safety-Critical Requirements}
 \label{req-safety-critical}
 As of Revision 1, there are no safety critical requirements. Both of the interfaces are very simple in terms of the output they produce, and even if the program is fed with bad input, there will be no actual physical or virtual damage to the system.
