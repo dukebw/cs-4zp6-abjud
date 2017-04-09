@@ -115,7 +115,7 @@
 
 \section{Legal and Copyright Information}
 
-The McMaster Text to Motion Database is not associated with any copyright policy as the software operates under the MIT license and the Apache license (version 2.0). There might be some legal concerns stemming from the fact that the website and database store uploaded media with people in it, and make this media available to other users of the website. However, since this project is a research study, these concerns are miniscule.
+The McMaster Text to Motion Database is not associated with any copyright policy as the software operates under the MIT license and the Apache license (version 2.0). There might be some legal concerns stemming from the fact that the website and database store uploaded media with people in it, and make this media available to other users of the website. However, since this project is a research study, these concerns are minuscule.
 
 \subsection{Need List of tables and figures}
 
@@ -449,7 +449,7 @@ or pose, of the body based on a single still image or a sequence of images that
 comprise a video. Human pose estimation may find the chin, radius, humerus, and
 other bone and joint positions.
 
-\textbf{Charades} is a dataset composed of approximately 10K videos of daily
+\textbf{Charades} is a data-set composed of approximately 10K videos of daily
 indoor activities, complete with associated action-describing sentences,
 collected through Amazon Mechanical Turk\cite{charades}.
 
@@ -662,7 +662,7 @@ We do not include a product boundary diagram, and instead refer to Figure
 
 All interfaces to the McMaster Text-to-Motion Database will be software
 interfaces except the web interfaces, which will have a human component. There
-will be a search box requiring user input to do text-to-motion lookups, and
+will be a search box requiring user input to do text-to-motion look-ups, and
 there will be a graphical web interface for users to upload videos to use the
 skeleton-overlay functionality.
 
@@ -736,7 +736,7 @@ could be retrieved from the database programmatically using use case
 {The skeleton overlay software shall be incorporated into a HTTP server that can handle incoming requests containing images from any trusted source, and send back a response containing the positions of the joints observed.}
 {The skeleton overlay software needs to be able to interact with the web interface so that it can process the media that users have uploaded to the web interface. Having the skeleton overlay software process handle incoming media from another web server is a required need }
 {Udip Patel}
-{The HTTP server hosting the skelton overlay program needs to be able to process the media contained in an incoming request from a trusted source (verified VPN) at any time, unless the HTTP server is down for maintenance or development}
+{The HTTP server hosting the skeleton overlay program needs to be able to process the media contained in an incoming request from a trusted source (verified VPN) at any time, unless the HTTP server is down for maintenance or development}
 {High}
 {Created April 9th, 2017.}
 \\ \\
@@ -746,7 +746,7 @@ could be retrieved from the database programmatically using use case
 {\ref{req-functional-requirement} Functional Requirement}
 {web-skeleton-event}
 {The web interface shall interact with the skeleton overlay software by sending requests to the specific HTTP server that is hosting the skeleton overlay program}
-{The web interface cannot process the uploaded media itself, it needs to delegate the procesing of the media to another server that is equipped to run the skeleton overlay program}
+{The web interface cannot process the uploaded media itself, it needs to delegate the processing of the media to another server that is equipped to run the skeleton overlay program}
 {Udip Patel}
 {The web interface should be able to send a request containing an image to the HTTP server and get a JSON response with the joints positions of a person in the image at any time, unless the HTTP server is down for maintenance or development }
 {High}
@@ -760,7 +760,7 @@ could be retrieved from the database programmatically using use case
 {The web interface shall interact with a database to save the images and videos processed by the skeleton overlay program, and associate saved images with users and tags (simple descriptions of the media, provided by users) }
 {The web interface should allow users to save processed images and videos that they find interesting enough to revisit or make use of, and associate the media with some text descriptions so that other users can find the uploaded media easily}
 {Udip Patel}
-{A User of the web interface that has logged in should be able to save an uploaded image and its processed version and associate the media with tags whenever they want, unless the website is down for maintenace or development }
+{A User of the web interface that has logged in should be able to save an uploaded image and its processed version and associate the media with tags whenever they want, unless the website is down for maintenance or development }
 {High}
 {Created April 9th, 2017.}
 \\ \\
@@ -846,7 +846,7 @@ module hierarchy during the design iterations of the project development.
 {\ref{req-appearance} Appearance Requirement}
 {web-skeleton-event} % add <web-text-to-motion-event>
 {The web interface shall have a color-scheme that is focused on contrast.}
-{A color shceme with bright and dark colors clashing is bound to captivate users of the website.}
+{A color scheme with bright and dark colors clashing is bound to captivate users of the website.}
 {Udip Patel}
 {At least 6 out of every 10 users should be left with a positive impression of the color scheme.}
 {Low}
@@ -878,7 +878,7 @@ module hierarchy during the design iterations of the project development.
 {The functionalities of the web interface shall be easy to use for any casual internet user that has been on websites involving file uploads/downloads.}
 {Having a simpler interface can open up this web app to a lot of potential users.}
 {Udip Patel}
-{Any end user shall be able know how to upload an image to the web interface by looking at the visible signage on the webpage that explains how to upload media to be processed.}
+{Any end user shall be able know how to upload an image to the web interface by looking at the visible signage on the web-page that explains how to upload media to be processed.}
 {Medium}
 {Created October 10th, 2016.}
 \\ \\
@@ -958,7 +958,7 @@ to determine the valid output.}
 
 \subsection{Accessibility Requirements}
 \label{req-accessibility}
-As of Revision 1, there are no accessbility requirements for this application.
+As of Revision 1, there are no accessibility requirements for this application.
 Since both interfaces only contain a virtual/visual component and no physical
 mechanisms, there is no need to provide any accessibility requirements for now
 
@@ -986,7 +986,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 {The software interface's deep learning model shall be able to process an image (RGB format) in a span of one minute or a set of frames in relative time (ex. 5 frames = 5 minutes)}
 {The deep learning model is the most computationally expensive aspect of the software interface, and thus, should be able to process images/videos quickly enough so that the user does not find the process too time consuming.}
 {Udip Patel}
-{The Quantative goal has been mentioned in the Description. The deep learning model shall be able to process an image in a span of 1 minute}
+{The Quantitative goal has been mentioned in the Description. The deep learning model shall be able to process an image in a span of 1 minute}
 {High}
 {Created October 11th, 2016.}
 \\ \\
@@ -998,7 +998,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 {The web interface, given a word or phrase as input, shall be able to respond with an output of an image/video detailing a pose or action within 2 minutes}
 {The web interface will need a considerable amount of time to process the request since it has to be able to parse the text input, be able to interpret it as a description of a pose or action using a set of defined database mappings. The web interface is is then responsible for constructing a visual object that encapsulates all of the bone and joint positions and exporting the object in a standardized data format. This is a very time consuming set of processes to compute, so it should be expected to take at least 2 minutes.}
 {Udip Patel}
-{The Quantative goal has been mentioned in the Description. The entire workset shall be completed in a span of 2 minutes, the workset itself: 1) parsing input, 2) mapping the text input to a description, 3) generating a visual object based on the description, 4)exporting the object in a data format that is accessible to the user }
+{The Quantitative goal has been mentioned in the Description. The entire workset shall be completed in a span of 2 minutes, the workset itself: 1) parsing input, 2) mapping the text input to a description, 3) generating a visual object based on the description, 4)exporting the object in a data format that is accessible to the user }
 {High}
 {Created October 11th, 2016.}
 
@@ -1013,7 +1013,7 @@ As of Revision 1, there are no safety critical requirements. Both of the interfa
 {\ref{req-precision-accuracy} Precision and Accuracy Requirement}
 {database-text-to-motion-event}
 {The software interface shall be able to deliver a data object that can accurately encapsulate the bone positions and joint angles of a human being's skeleton for every valid image or video that it processes}
-{The software interface would not be very useful to the end user if it is not able to accurately portray a human bodym, so this is a very high priority requirement.}
+{The software interface would not be very useful to the end user if it is not able to accurately portray a human body, so this is a very high priority requirement.}
 {Udip Patel}
 {The software interface shall be able to create a data object that can use vectors to provide the positions of well-defined bones relative to each other in a 2D grid. The vectors which describe the bones should all be able to correspond to the anatomical proportions of an average human, with an uncertainty of 5 percent.}
 {High}
@@ -1035,24 +1035,24 @@ As of Revision 1, there are no safety critical requirements. Both of the interfa
 \label{req-reliability-availability}
 \requirement
 {Req_RetrievedVideoRelevance}
-{\ref{req-reliability-availability} Reliability and Availablilty Requirement}
+{\ref{req-reliability-availability} Reliability and Availability Requirement}
 {software-skeleton-event}
 {The software interface shall be available for use 24 hours a day, 365 days a year.}
 {This will make it so that the user is able to decide when they want to use the functionality, and will not be constrained by any scheduling issues.}
 {Udip Patel}
-{The quantative goal of this requirement has been stated in the description}
+{The quantitative goal of this requirement has been stated in the description}
 {Medium}
 {Created October 11th, 2016.}
 \\ \\
 
 \requirement
 {Req_RetrievedVideoRelevance}
-{\ref{req-reliability-availability} Reliability and Availablilty Requirement}
+{\ref{req-reliability-availability} Reliability and Availability Requirement}
 {web-skeleton-event}
 {The web interface shall be available for use 24 hours a day, 365 days a year, except for when the system has to be audited, tested or migrated to a different environment}
 {Any standard web app should be available for use at any time, this is a major standard in web development, so this project aims to abide by it.}
 {Udip Patel}
-{The quantative goal of this requirement has been stated in the description}
+{The quantitative goal of this requirement has been stated in the description}
 {High}
 {Created October 11th, 2016.}
 
@@ -1106,7 +1106,7 @@ As of Revision 1, there are no safety critical requirements. Both of the interfa
 {\ref{req-capacity} Scaling of Extensibility Requirement}
 {software-skeleton-event}
 {The deep learning model that is used by the software interface shall be put through rigorous training so that it can predict the correct skeleton-overlay position more accurately}
-{The deep learning model can make better predictions if it is given more data to train with. End users will be satisified with the product if the skeleton overlay functionality is extremely precise}
+{The deep learning model can make better predictions if it is given more data to train with. End users will be satisfied with the product if the skeleton overlay functionality is extremely precise}
 {Udip Patel}
 {The deep learning model shall be trained with thousands, if not tens of thousands of images that depict a myriad of human poses and actions.}
 {Medium}
@@ -1180,7 +1180,7 @@ As of Revision 1, there are no safety critical requirements. Both of the interfa
 
 \subsection{Release Requirements}
 \label{req-release}
-As of Revision 1, there are no release requirements. This is because the application has yet to be fully documented, and we are not under contractual obligations to release future versions within a given timeframe
+As of Revision 1, there are no release requirements. This is because the application has yet to be fully documented, and we are not under contractual obligations to release future versions within a given time frame
 
 
 \section{Maintainability and Support Requirements}
@@ -1497,7 +1497,7 @@ of data will cause performance issues for our program.}
 {Another worry is the possibly that algorithms will not generalize well
 from images to video. They have not been tested on these tasks so it is
 possible that they will create very noisy data in their output and will
-not generalise well.}
+not generalize well.}
 
 \section{Costs}
 
