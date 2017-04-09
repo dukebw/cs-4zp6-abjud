@@ -190,12 +190,11 @@ expected, which specifies training parameters, which network to train, as well
 as the location and dimensions (width and height) of training and validation
 data.
 
-The \verb|train| sub-module calls the \verb|evaluate| sub-module once per epoch
-to compute an evaluation metric on the validation data, as well as the
-\verb|input_pipeline| module in order to setup a pipeline to retrieve and
-preprocess training data. The \verb|networks| module provides an interface to
-access by name the network chosen in the configuration file, as well as to do
-inference with the chosen network.
+The \verb|train| sub-module calls the \verb|input_pipeline| module in order to
+setup a pipeline to retrieve and preprocess training data. The \verb|networks|
+module provides an interface to access by name the network chosen in the
+configuration file, and thereby obtain TensorFlow gradient ops for
+back-propagation, as well as to do inference with the chosen network.
 
 \subsection{evaluate}
 
@@ -221,11 +220,38 @@ information about the format of the human pose dataset.
 
 \subsection{input\_pipeline}
 
+Sets up an input pipeline that reads example protobufs from all TFRecord files,
+decodes and preprocesses the images. The input pipeline is setup with a
+sequence of queues so that preprocessing and file-reading can be parallelized
+across many hardware threads.
+
 \subsection{networks}
+
+The \verb|networks| sub-module contains interfaces to obtain networks by name,
+e.g. the ``two VGG-16s cascade'' network, to do inference with those networks,
+as well as to compute different loss functions. The network and loss function
+are independently configurable via the configuration file.
+
+\subsection{dataset}
+
+The \verb|dataset| sub-module is a module for reading the
+\href{http://human-pose.mpi-inf.mpg.de/}{MPII Human Pose Dataset}.
+
+The MPII dataset is a set of 25 000 images, containing annotations for 40 000
+people in total. The images are colour and of various dimensions (e.g.
+1280x720, 640x480 etc.).
+
+The ADTs (Abstract Data Types) for a \verb|Person| and a \verb|Joint|,
+including the \verb|NUM_JOINTS| parameter, are provided by the \verb|dataset|
+sub-module.
 
 \subsection{pose\_utils}
 
-\subsection{dataset}
+The \verb|pose_utils| sub-module provides a set of commonly used utility
+functions to most other modules. The utility functions provided by
+\verb|post_utils| including image utilities used for drawing confidence maps on
+images, profiling modules (\verb|timethis.py|), and convenience functions for
+converting between sparse and dense Tensors.
 
 \chapter{Important Design Decisions and Reasoning}
 
