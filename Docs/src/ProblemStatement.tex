@@ -2,6 +2,10 @@
 
 \usepackage{cite} \usepackage{amsmath} \usepackage{fullpage} \usepackage{url}
 \usepackage{graphicx} \usepackage{inputenc} \usepackage{titling}
+\usepackage{enumerate}% http://ctan.org/pkg/enumerate
+\usepackage{hyperref}
+
+\newcommand\tab[1][1cm]{\hspace*{#1}}
 
 \date{\today} \title{Problem Statement\\ McMaster Text to Motion Database \\CS
 4ZP6}
@@ -36,12 +40,13 @@ now, there is no simple, accessible database that links images and videos with
 text annotations or descriptions of the motions/positions of people observed in
 the image or video (ex. mapping the locations of some of the observed skeletal
 joints of a person in the image or video) \\ \\ We propose to harvest the motion
-data (joint positions) of moving people by seeding our database with existing
-large image/video datasets of people doing common movements, and categorizing
-the processed media with tags. The developers of the larger system can use our
-website to search for specific actions, and take the motion data in order to
-generate the animated story with moving characters. The developers can also
-upload their own media to be processed as well at any time.
+data (joint positions) of moving people by using a deep learning model and
+seeding our database with existing large image/video datasets of people doing
+common movements, and categorizing the processed media with tags. The developers
+of the larger system can use our website to search for specific actions, and
+take the motion data in order to generate the animated story with moving
+characters. The developers can also upload their own media to be processed as
+well at any time.
 
 \section{Motivation} The ability to move between natural language and motion
 data is at the core of what the larger project is trying to acheive. To enable
@@ -93,5 +98,63 @@ the problem can be decomposed into the “independent” motion of these feature
 (applying the constraints that the features are connected in the conventional
 human form). \\ \\ Therefore in order to achieve this first step we
 hierarchically break this set of deliverables into 2 components
+
+\begin{enumerate} \item Web-Interface and Database \begin{itemize} \item The
+website allows users to upload media to be processed by the deep learning
+algorithm. The users are prompted to associate the processed media with some
+tags and save it to the database. \item The website allows users to search for
+media with certain actions by having a full-text search on the tags that people
+that associate their uploads with in the database \end{itemize}
+
+    \item Tensorflow Deep Learning Model and HTTP Server \begin{itemize} \item
+    Will involve exploring pose estimation and tracking methods in Tensorflow
+    that can extract motion data out of images and videos \item Will use the
+    Python Request library to handle incoming requests containing images/videos
+    to process \item References we will use as starting points for our model:
+    \begin{enumerate}[i] \item (Pfister, Charles, and Zisserman 2015) \item
+    (Wei, Ramakrishna, and Kanade 2016) \item (Belagiannis and Zisserman 2016)
+    \item (Tekin et al. 2016) \item (Zhou et al. 2015) \end{enumerate}
+    \end{itemize} \end{enumerate}
+
+These sub-goals reflect the requirement that we wish to create an interactive
+database that contains thousands of examples of our data structure (video motion
+that is labelled with the poses of the people in the video). These examples will
+then be used in the larger collaboration for a supervised learning algorithm
+that will perform the natural language to video mapping
+
+\section{Bibliography}
+
+Belagiannis, V., and A. Zisserman. 2016. “Recurrent Human Pose Estimation.”
+\\ \tab \textit{arXiv Preprint arXiv:1605.02914.} arxiv.org. ​ http://arxiv.org/abs/1605.02914.
+\\ \\
+Jain, Ashesh, Amir R. Zamir, Silvio Savarese, and Ashutosh Saxena. 2016.
+\\ \tab
+“Structural-RNN:Deep Learning on Spatio-Temporal Graphs.” In ​ \textit{The IEEE Conference on Computer
+Vision and Pattern Recognition (CVPR)}.
+\\ \\
+Kiros, R., Salakhutdinov, R., and Zemel, R. (2014a). Multimodal neural language models.In ​ \textit{ICML’2014}. ​ 102
+\\ \\
+Kiros, R., Salakhutdinov, R., and Zemel, R. (2014b). Unifying visual-semantic embeddings with multimodal neural language models. \textit{a
+rXiv:1411.2539} [cs.LG]. 102​ , ​ 410
+\\ \\
+Pfister, Tomas, James Charles, and Andrew Zisserman. 2015. \\
+\tab “Flowing ConvNets for Human Pose Estimation in Videos.” \textit{arXiv [cs.CV]}. arXiv. http://arxiv.org/abs/1506.02897​ .
+\\ \\
+Socher Richard, Karpathy Andrej, Le Ve Quoc, Manning D. Christopher, Ng Y.
+\\ \tab “Connecting modalities: Semi-supervised segnmentation and annotation of images using un-aligned text corpora.” CVPR (2010).
+\\ \\
+Taylor, Graham W., Geoffrey E. Hinton, and Sam T. Roweis. 2011.
+\\ \tab “Two Distributed-StateModels For Generating High-Dimensional Time Series.” \textit{Journal of Machine Learning Research: JMLR} 12 (Mar): 1025–68.
+\\ \\
+Tekin, Bugra, Isinsu Katircioglu, Mathieu Salzmann, Vincent Lepetit, and Pascal Fua. 2016.
+\\ \tab
+“Structured Prediction of 3D Human Pose with Deep Neural Networks.” ​\textit{ arXiv [cs.CV]}. arXiv. ​ http://arxiv.org/abs/1605.05180​ .
+\\ \\
+Wei, S. E., V. Ramakrishna, and T. Kanade. 2016. \\ \tab “Convolutional Pose Machines.” \textit{ arXiv Preprint arXiv}: arxiv.org. http://arxiv.org/abs/1602.00134​ .
+\\ \\
+Zhou, Xiaowei, Menglong Zhu, Spyridon Leonardos, Kosta Derpanis, and Kostas Daniilidis. 2015.
+\\
+\tab “Sparseness Meets Deepness: 3D Human Pose Estimation from Monocular
+Video.” ​ \textit{arXiv [cs.CV]}. arXiv. ​ http://arxiv.org/abs/1511.09439​ .
 
 \end{document} \grid
