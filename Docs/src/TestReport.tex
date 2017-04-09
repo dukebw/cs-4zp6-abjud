@@ -88,26 +88,24 @@ This document does not utilize figures in order to display our results.
 \section{Purpose of Document}
 
 The purpose of this manuscript is to document the testing that has been
-performed on the Text-to-Motion web application. The testing that has been
-performed largely follows the test plan that was provided in the Test Plan document.
+performed on the Text-to-Motion Database. The testing that has been
+performed largely follows the test plan and requirements that were provided in the Test Plan and Software Requirements and Specification documents respectively.
 
 \section{Scope of Testing}
 
-Following good design procedures, the Text-To-Motion web application has been
-modularized into $3$ conceptual modules.  The first module is a web framework that allows users to access key features like uploading an image, viewing previous images, registering for an account and more. The database is the second module in the application as it is used to store events from the website like the previously listed features of uploading or viewing images. The third module is the most expansive and is the deep learning module that runs pose estimation on the uploaded media.
+Following good design principles, the Text-To-Motion Database has been modularized into $3$ conceptual modules.  The first module is a web framework that allows users to access key features like uploading media, viewing previous uploads, and running pose estimation through our deep learning algorithm. The database is the second module in the application and is used to store events from the website like account registration or the uploading of new media. The third module is the most expansive and is the deep learning module that is responsible for running pose estimation on a remote server.
 
-Following the application's modular decomposition, the tests have been decomposed into $3$ conceptual tests, with the addition of automated testing.
+Following the application's modular decomposition, the tests have been separated into $3$ conceptual tests and automated testing.
 
-The first stage of testing is the minimum viable product, and was done to ensure
-that a base level of functionality was provided. This is where we test to see that all of the software modules have been created and can work together. With this in mind the types of testing that were done to ensure a minimum viable product involved both system and unit testing.
+The first stage of testing is the minimum viable product, and was done to ensure that a base level of functionality was provided. This is where we test to see that all of the software modules have been created and can function synchronously. In order to ensure a minimum viable product was complete both system and unit testing were utilized.
 
-The second set of tests is Solution Constraints testing or Functional tests.  In this set of tests, the performance of the deep learning algorithm is rigorously tested and quantified. In addition to testing the deep learning algorithm we test the database, and search capabilities with more specific parameters than those introduced in the minimum viable product.
+The second set of tests focused on Solution Constraints testing or Functional tests.  In this set of tests, the performance of the deep learning algorithm was rigorously tested and quantified. Building upon the testing of the deep learning algorithm the database was tested to ensure the search capabilities by using specific parameters and test cases.
 
-In the third set of tests, we get a few users to test the non-functional requirements of the finished product. Examples of these requirements include: usability, user interface requirements and learnability.
+In the third set of tests, volunteers were asked to test the Non-Functional requirements of the finished product. Examples of these requirements include: usability, design requirements and learnability.
 
-The final set of tests were automated tests ran on the http-server in order to verify the GET and POST calls to and from the server. 
+The final set of tests were automated tests ran on the http-server in order to verify the server was posting the correct GET and POST calls. These tests were also used to verify the correctness of the pose estimation of an image. 
 
-The final section in this document includes a traceability table that helps to organize and explain how tests are connected to the requirements that were created in the software requirements document we created earlier.
+The final section in this document includes a traceability table that helps to organize and explain how tests are connected to the Software Requirements and Specification document.
 
 %I have added a few examples of what the tables should be.
 \chapter{Preliminary Testing}
@@ -118,15 +116,15 @@ The final section in this document includes a traceability table that helps to o
 
 \subsubsection{Description}
 
-This test is done to ensure that the TextToMotion Database (brendanduke.ca/) is functioning as intended and available to the public. These tests will be done by first accessing the home page of https://brendanduke.ca/, and then navigating to other pages within the website to ensure they are meeting the availability requirements.
+This test is done to ensure that the TextToMotion Database (brendanduke.ca/) is functioning as intended and available to the public. These tests will be done by first accessing the home page of brendanduke.ca/, and then navigating to other pages within the website. If the pages are available and contain functioning hyperlinks the test will be considered a pass.
 
 \subsubsection{Results}
 
-The website was accessible through the browser at brendanduke.ca with all buttons and URL's responsive the test has been passed.
+The website was accessible through the browser at brendanduke.ca with all buttons, URL's, and hyperlinks being responsive the test has been passed.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
@@ -149,8 +147,6 @@ The website was accessible through the browser at brendanduke.ca with all button
 \subsubsection{Description}
 
 The database allows users to upload images to the database through the website through brendanduke.ca/ImagePoseDraw. The test will be considered a pass if an image can be uploaded successfully and the user lands on ImagePoseDraw without error.
-
-In order to get to the URL brendanduke.ca/ImagePoseDraw/Create the user can navigate to brendanduke.ca/ImagePoseDraw and click the buttons associated with adding a new image or video.
 
 \subsubsection{Input Data}
 
@@ -177,7 +173,7 @@ All images uploaded without error and the user was redirected back to brendanduk
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
@@ -203,7 +199,7 @@ Each uploaded image had pose estimation run sucessfuly and resulted in a new ima
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
@@ -227,7 +223,7 @@ All three tests passed as it was successful to search through the entries and fi
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
@@ -251,7 +247,7 @@ In order to provide a proper demonstration of the deep learning mechanics that c
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{0.75cm}|p{7.5cm}|p{0.75cm}||}
+        \begin{tabular}{||p{0.75cm}|p{7.5cm}|p{1cm}||}
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Result\\
                 \hline\hline
@@ -307,7 +303,7 @@ Each test was successful in using the ReadFrames API to decode the MP4 files and
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
@@ -331,7 +327,7 @@ All three tests were able to match timestamps to the original video and the test
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
@@ -350,7 +346,7 @@ All three tests were able to match timestamps to the original video and the test
 Test to ensure the data quality produced by the human pose estimator component
 was acceptable.
 
-A set Charades videos will be processed by the human pose estimator, and
+A set of Charades videos will be processed by the human pose estimator, and
 skeleton animations corresponding to the generated human pose data will be
 created (this is a scoped part of the software pipeline). A double-blind test
 will be ran, wherein testers will be shown random mixed sets of the skeleton
@@ -384,7 +380,7 @@ We provide the ratio of Text-to-Motion images guessed as accurate compared to th
 \section{Database Output Full Range Coverage Test}
 \subsection{Description}
 
-Tests to be sure all entries in the database can be successfully searched for. The previous input data has been renamed in order to add specific names and descriptions which can be found below. In order for this test to be considered a pass each uploaded video will need to be found when searching for the name or description given.
+Tests to be sure all entries in the database can be successfully searched for. The previous input data has been renamed in order to specify names and descriptions which can be found below. In order for this test to be considered a pass each uploaded video will need to be found when searching for the name or description given.
 
 \subsection{Input Data}
 
@@ -483,15 +479,15 @@ When testing the colour scheme anything above a 6 was considered a pass. We chos
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{0.75cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}{||p{0.75cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{2.5cm}||}
                 \hline
-                \textbf Test \# & \textbf User & \textbf Rating & \textbf Result\\
+                \textbf Test \# & \textbf User & \textbf Initial State & \textbf Rating & \textbf Result\\
                 \hline\hline
-                5.1 & Nick & 7 & Pass \\
+                5.1 & Nick & brendanduke.ca & 7 & Pass \\
                 \hline
-                5.2 & Drew & 9 & Pass\\ %fill in these entries once we have them
+                5.2 & Drew & brendanduke.ca & 9 & Pass\\ %fill in these entries once we have them
                 \hline
-                5.3 & Sarah & 7 & Pass \\
+                5.3 & Sarah & brendanduke.ca & 7 & Pass \\
                 \hline
         \end{tabular}
 \end{table}
@@ -510,15 +506,15 @@ While testing the minimalistic design anything above a 7 was considered a pass. 
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{0.75cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}{||p{0.75cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{2.5cm}||}
                 \hline
-                \textbf Test \# & \textbf User & \textbf Rating & \textbf Result\\
+                \textbf Test \# & \textbf User & \textbf Initial State & \textbf Rating & \textbf Result\\
                 \hline\hline
-                5.4 & Nick & 9 & Pass \\
+                5.4 & Nick & brendanduke.ca & 9 & Pass \\
                 \hline
-                5.5 & Drew & 9 & Pass\\ %fill in these entries once we have them
+                5.5 & Drew & brendanduke.ca & 9 & Pass\\ %fill in these entries once we have them
                 \hline
-                5.6 & Sarah & 8 & Pass \\
+                5.6 & Sarah & brendanduke.ca & 8 & Pass \\
                 \hline
         \end{tabular}
 \end{table}
@@ -668,15 +664,15 @@ were executed fast enough for the test to pass.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{0.75cm}||}
+        \begin{tabular}[t]{||p{0.75cm}|p{3cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|p{1cm}|p{1cm}||}
                 \hline
-                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf End State & \textbf Time & \textbf Result\\
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected State & \textbf Actual State &\textbf Time & \textbf Result\\
                 \hline\hline
-                5.20 & Upload an image from a URL & .. /ImagePoseDraw/Create & phpMyAdmin with updated database & 52 seconds & Pass\\
+                5.20 & Upload an image from a URL & .. /ImagePoseDraw/Create & ImagePoseDraw with the new image & ImagePoseDraw with the new image & 52 seconds & Pass\\
                 \hline
-                5.21 & Upload a file stored within the Desktop & .. /ImagePoseDraw/Create & phpMyAdmin with updated database & 55 seconds & Pass\\
+                5.21 & Upload a file stored within the Desktop & .. /ImagePoseDraw/Create & ImagePoseDraw with the new image & ImagePoseDraw with the new image & 58 seconds & Pass\\
                 \hline
-                5.22 & Upload an image from a mobile device & .. /ImagePoseDraw/Create & phpMyAdmin with updated database & 56 seconds & Pass\\
+                5.22 & Upload an image from a mobile device & .. /ImagePoseDraw/Create & ImagePoseDraw with the new image & ImagePoseDraw with the new image & 56 seconds & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -720,15 +716,15 @@ performance of our deep learning model on single-person pose estimation.
 
 \begin{table}[H]
         \centering
-        \begin{tabular}{||p{0.75cm}|p{4cm}|p{2.5cm}|p{2.5cm}||}
+        \begin{tabular}{||p{0.75cm}|p{4cm}|p{3.5cm}|p{2.5cm}|p{1cm}||}
                 \hline
-                \textbf Test \# & \textbf Test & \textbf Tester & \textbf Result\\
+                \textbf Test \# & \textbf Test &  \textbf Test Location & \textbf Tester & \textbf Result\\
                 \hline\hline
-                6.1 & Verify the joint position of TomBrady.jpg & Jordan & Pass  \\
+                6.1 & Verify the joint position of TomBrady.jpg & .. /ImagePoseDraw/Details/30 & Jordan & Pass  \\
                 \hline\hline
-                6.2 & Verify the joint position of AverageGirl.jpg & Jordan & Pass  \\
+                6.2 & Verify the joint position of AverageGirl.jpg & .. /ImagePoseDraw/Details/26 & Jordan & Pass  \\
                 \hline\hline
-                6.3 & Verify the joint position of AverageGuy.jpg & Jordan & Pass  \\
+                6.3 & Verify the joint position of AverageGuy.jpg & .. /ImagePoseDraw/Details/27 &  Jordan & Pass  \\
                 \hline
         \end{tabular}
 \end{table}
