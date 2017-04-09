@@ -19,6 +19,10 @@
 \usepackage{titlesec}
 \usepackage{graphicx}
 \usepackage[section]{placeins}
+
+\usepackage{xr}
+\externaldocument{SoftwareRequirementsSpecification}
+
 \graphicspath{ {../data/} }
 
 \titleformat{\paragraph}
@@ -54,14 +58,16 @@
 % \listoffigures
 
 
+\chapter*{\bf Revision History}
+
 \begin{table}[bp]
-\caption*{\bf Revision History}
-\begin{tabularx}{\textwidth}{p{3.5cm}p{2cm}X}
-\toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
-\midrule
-January 5, 2017 & 0.0 & File created\\
-\bottomrule
-\end{tabularx}
+        \begin{tabularx}{\textwidth}{p{3.5cm}p{2cm}X}
+                \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
+                \midrule
+                January 5, 2017 & 0.0 & File created \\
+                April 9, 2017 & 1.0 & Final documentation revision \\
+                \bottomrule
+        \end{tabularx}
 \end{table}
 
 \newpage
@@ -70,12 +76,188 @@ January 5, 2017 & 0.0 & File created\\
 
 \chapter{Overview}
 
-This document will provide a general overview of how the McMaster Text to
-Motion Database will be constructed. The first chapter will talk about the
-changes that the Text to Motion Database may undergo during the development.
-The second chapter will contain high level component decomposition for the web
-interface and the options available to a user who has registered through the
-web interface.
+This document contains a top-down description of the system architecture of the
+Text-to-Motion Database/Software Suite (hereafter referred to as
+Text-to-Motion). Design decisions are described here at a high level, along
+with a module/component decomposition. Challenges from previous deliverables
+are discussed, and those challenges' solutions described.  Explicit
+traceability between modules and requirements is given.
+
+A detailed description of the components' specification and implementation is
+given in the ``Detailed Design'' document.
+
+\chapter{Component Decomposition}
+
+A high level, block-diagram style overview of the Text-to-Motion software
+architecture is shown in Figure~\ref{texttomotion_toplevel}. The modules are
+broken into four major components: the \verb|TextToMotionWeb| ASP.NET Core web
+server, the MySQL database for storing images, videos and human pose
+annotations, the \verb|tf-http-server| TensorFlow HTTP server, which serves
+human pose inference, and the \verb|human_pose_model| software module, which
+provides an entire solution for training and evaluating a human pose estimation
+model, and running inference with that model.
+
+\begin{figure}[!ht]
+        \centering
+        \caption{A top level view of the architecture of the Text-to-Motion
+                 software suite.}
+        \includegraphics[width=1.0\textwidth]{SoftwareDesign.png}
+        \label{texttomotion_toplevel}
+\end{figure}
+
+In the following sections, an overview of the top-down functionality of each
+module shown in Figure~\ref{texttomotion_toplevel} is given.
+
+\section{TextToMotion Web Server}
+
+The \verb|TextToMotion| web server, hosted at \verb|https://brendanduke.ca|,
+serves as the GUI (Graphical User Interface) to the entire project. The
+TextToMotion web server is also the component that connects the web interface,
+human pose inference model, and database together with controlling logic for
+user requests.
+
+The TextToMotion web server follows the MVC (Model View Controller)
+architecture in the manner encouraged by the ASP.NET Core framework. In the
+case of the Text-to-Motion project, the Model defines a model for video, human
+pose annotation, and associated rich text annotation data, which is stored in
+the database. The Views define the appearance of the different web pages. The
+Controller directs the flow of requests, which originate from the web
+interface, to the human pose inference or database components.
+
+The TextToMotion web server provides a web interface through which users can
+make requests to search, upload and retrieve human pose video data. Requests
+made to upload video data will cause the TextToMotion web server to communicate
+over HTTP interface to the \verb|tf-http-server| module, and thereby retrieve
+human pose annotations for the uploaded video data. The TextToMotion web server
+then converts the retrieved human pose annotations into HDF5 format and stores
+human pose data along with video and any uploaded text annotations into the
+database.
+
+A search query interface is also provided by the TextToMotion web server,
+whereby users can use a keyword search to retrieve videos with their respective
+human pose and text annotations. The TextToMotion web server retrieves these
+data through a query to the database.
+
+\section{tf-http-server Human Pose Inference HTTP Server}
+
+The \verb|tf-http-server| module provides and HTTP interface through which
+human pose inference can be done on images or video. The \verb|tf-http-server|
+module is stateless in the sense that it takes input and returns the output
+corresponding to that input, without storing or depending on any current state
+of the \verb|tf-http-server| module.
+
+The \verb|tf-http-server| module is written in Python, and interfaces directly
+with both TensorFlow and the \verb|human_pose_model| module.
+
+It is possible to run the \verb|tf-http-server| software on the same physical
+server as the \verb|TextToMotionWeb|, or, as is done in the current
+TextToMotion deployment, these two software modules can be run on distinct
+physical servers. In the current deployment, \verb|TextToMotionWeb| is run on a
+VM (Virtual Machine) rented from
+\href{https://digitalocean.com}{Digital Ocean}, while the \verb|tf-http-server|
+is run from a machine with a GPU in the Guelph lab.
+
+\section{human\_pose\_model Human Pose Model Training and Inference
+         Software Suite}
+
+The \verb|human_pose_model| module provides a completely standalone software
+suite for the training, evaluation and deployment of human pose inference
+models.
+
+A uses hierarchy for the \verb|human_pose_model| module and its sub-components
+is given in Figure~\ref{human_pose_model_arch}. In
+Figure~\ref{human_pose_model_arch}, the arrows from one module to another
+signify that the module at the tail end of the arrow uses, i.e. imports, the
+module that the head of the arrow is pointing to. The uses graph is a hierarchy
+because there are no cycles in the arrows formed by the uses relationships.
+
+In the following sub-sections the functional uses of each of the
+\verb|human_pose_model| sub-components is given.
+
+\begin{figure}[!ht]
+        \centering
+        \caption{human\_pose\_model uses hierarchy.}
+        \includegraphics[width=1.0\textwidth]{human_pose_model_architecture.png}
+        \label{human_pose_model_arch}
+\end{figure}
+
+\subsection{train}
+
+The \verb|train| submodule trains a human pose estimation network to detect
+and/or regress binary maps and/or confidence maps of joint co-ordinates
+(\verb|NUM_JOINTS| sets of (x, y) co-ordinates). A configuration file is
+expected, which specifies training parameters, which network to train, as well
+as the location and dimensions (width and height) of training and validation
+data.
+
+The \verb|train| sub-module calls the \verb|evaluate| sub-module once per epoch
+to compute an evaluation metric on the validation data, as well as the
+\verb|input_pipeline| module in order to setup a pipeline to retrieve and
+preprocess training data. The \verb|networks| module provides an interface to
+access by name the network chosen in the configuration file, as well as to do
+inference with the chosen network.
+
+\subsection{evaluate}
+
+The \verb|evaluate| sub-module computes an evaluation metric, namely the PCKh
+metric (an accuracy metric for human joint positions), using the latest
+checkpoint (saved automatically by the TensorFlow software) in a specified
+directory.
+
+The \verb|evaluate| sub-module uses \verb|input_pipeline| to create a data
+input pipeline for evaluation of the validation data, the \verb|networks|
+sub-module to do inference with the given network and the \verb|dataset|
+sub-module to gain access to the \verb|NUM_JOINTS| parameter for the dataset.
+
+\subsection{write\_tf\_record}
+
+\verb|write_tf_record| is a sub-module that creates set of TFRecords, which are
+a \href{https://www.tensorflow.org/programmers_guide/reading_data#file_formats}
+{standard format} for TensorFlow data. The TFRecords consist of ground truth
+human pose annotations along with their respective images.
+
+The \verb|write_tf_record| module uses the \verb|dataset| module to get
+information about the format of the human pose dataset.
+
+\subsection{input\_pipeline}
+
+\subsection{networks}
+
+\subsection{pose\_utils}
+
+\subsection{dataset}
+
+\chapter{Important Design Decisions and Reasoning}
+
+\section{Reason for Component Decomposition}
+
+The reason for the given module breakdown is to separate the responsibility of
+different modules amongst the clearly distinct tasks performed by the overall
+Text-to-Motion solution. The advantage of the separation of responsibility is
+that modules can be more easily unit tested, can be re-used as part of other
+software projects, and can be replaced with other modules with similar
+functionality.
+
+Specifically, the \verb|TextToMotion| ASP.NET Core web server component has
+been kept distinct from the data storage component and the human pose inference
+component. Throughout development this has enabled the complete switch of data
+storage module (from SQLite to MySQL) as well as the human pose inference
+module (from a C++ interface with a Caffe deep learning backend, to an HTTP
+interface that uses TensorFlow as the deep learning backend).
+
+The Text-to-Motion software architecture's specific module breakdown also
+allows for the flexibility of re-using the modules in different projects. For
+example, any project can re-use the \verb|human_pose_model| module to train
+their own human pose inference model on their own dataset. Furthermore, any
+software capable of interfacing with HTTP will be able to drop the
+\verb|tf-http-server| module into their project and use it without any changes.
+
+\section{Reason for HTTP Interface to Human Pose Estimation Backend}
+
+As mentioned above, a major motivation for using an HTTP interface to the human
+pose inference module is to make the module flexible enough to be used in any
+software project, as required by Requirement~\ref{req-product} (Productization
+Requirement).
 
 \chapter{Anticipated and Unlikely Changes}
 
@@ -117,83 +299,5 @@ database.
             is something that the Text to Motion Database should always provide
                   and will evolve when the full text search is implemented.
 \end{itemize}
-
-\chapter{Component Decomposition}
-
-\section{Web Interface}
-
-Figure 1 shows the user experience from landing on the Home page to options
-within the web interface.
-
-\begin{enumerate}
-  \item Home page for the Text to Motion Database provides information and is
-          the starting point for the journey.
-  \item Contact contains the contact information of the development group and
-          its supervisors.
-  \item About is about the Text to Motion Database and contains a more detailed
-          description of the application.
-  \item ImagePoseDraw accesses the database in order to create, display or
-          manipulate uploads.
-
-\begin{enumerate}
-    \item Create is used to take a user, who has logged in to the page in order
-            to upload a new image or video, to the database.
-    \item Searching through the current database entries is done through the
-            search bar located above the data table.
-    \item Details contains the description of the entry, and the options to
-            edit, view or delete the upload.
-\end{enumerate}
-
-  \item Login takes the user to the login page to sign in with a registered
-          account.
-  \item Register allows the user to register a new account in order to create
-          new uploads.
-  \item Text to Motion provides the user the ability to utilize full text
-          search to find associated tags.
-
-\begin{enumerate}
-    \item Search is in reference to the search bar that receives input and
-            searches the database.
-    \item Search returns the query results and displays the results to the
-            user.
-\end{enumerate}
-\end{enumerate}
-
-\begin{figure}[!ht]
-        \caption{User Journey for a new user}
-        \label{erDiagram}
-        \centering
-        \includegraphics[width=0.8\textwidth]{UserExperience.png}
-\end{figure}
-
-\section{Media Upload}
-
-Figure 2 displays the process that a verified user can go through in order to
-upload and interact with the Text to Motion Database.
-
-\begin{enumerate}
-  \item The user must first be logged into the website in order to upload an
-          image or video.
-  \item Using the web interface allows the user multiple options with respect
-          to uploading images and video.
-  \item The standalone HTTP server allows the user to access the database
-          remotely through the command line, or other application using HTTP
-                requests, in order to upload images and videos and perform
-                human pose estimation.
-  \item Both the web interface and HTTP server access the Tensorflow backend
-          process in order to run pose estimation and save the results to the
-                database for future use.
-  \item The database takes in search queries from the web interface and
-          receives uploads from the pose estimation process.
-\end{enumerate}
-
-
-\begin{figure}[!ht]
-        \caption{A top level view of the architecture of the Text-to-Motion
-                 software suite.}
-        \label{mediaUpload}
-        \centering
-        \includegraphics[width=0.8\textwidth]{SoftwareDesign.png}
-\end{figure}
 
 \end{document}
