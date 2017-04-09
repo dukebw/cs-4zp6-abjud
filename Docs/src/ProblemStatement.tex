@@ -98,22 +98,36 @@ the problem can be decomposed into the “independent” motion of these feature
 human form). \\ \\ Therefore in order to achieve this first step we
 hierarchically break this set of deliverables into 2 components
 
-\begin{enumerate} \item Web-Interface and Database \begin{itemize} \item The
-website allows users to upload media to be processed by the deep learning
-algorithm. The users are prompted to associate the processed media with some
-tags and save it to the database. \item The website allows users to search for
-media with certain actions by having a full-text search on the tags that people
-that associate their uploads with in the database \end{itemize}
+\begin{enumerate}
+        \item Web-Interface and Database
+        \begin{itemize}
+                \item The website allows users to upload media to be processed
+                        by the deep learning algorithm. The users are prompted to
+                        associate the processed media with some tags and save it to the
+                        database.
+                \item The website allows users to search for media with certain
+                        actions by having a full-text search on the tags that
+                        people that associate their uploads with in the
+                        database.
+        \end{itemize}
 
-    \item Tensorflow Deep Learning Model and HTTP Server \begin{itemize} \item
-    Will involve exploring pose estimation and tracking methods in Tensorflow
-    that can extract motion data out of images and videos \item Will use the
-    Python Request library to handle incoming requests containing images/videos
-    to process \item References we will use as starting points for our model:
-    \begin{enumerate}[i] \item (Pfister, Charles, and Zisserman 2015) \item
-    (Wei, Ramakrishna, and Kanade 2016) \item (Belagiannis and Zisserman 2016)
-    \item (Tekin et al. 2016) \item (Zhou et al. 2015) \end{enumerate}
-    \end{itemize} \end{enumerate}
+    \item Tensorflow Deep Learning Model and HTTP Server
+        \begin{itemize}
+                \item Will involve exploring pose estimation and tracking
+                        methods in Tensorflow that can extract motion data out of
+                        images and videos
+                \item Will use the Python Request library to handle
+                incoming requests containing images/videos to process
+                \item References we will use as starting points for our model:
+                \begin{enumerate}[i]
+                        \item (Pfister, Charles, and Zisserman 2015)
+                        \item (Wei, Ramakrishna, and Kanade 2016)
+                        \item (Belagiannis and Zisserman 2016)
+                        \item (Tekin et al. 2016)
+                        \item (Zhou et al.  2015)
+                \end{enumerate}
+        \end{itemize}
+\end{enumerate}
 
 These sub-goals reflect the requirement that we wish to create an interactive
 database that contains thousands of examples of our data structure (video motion
