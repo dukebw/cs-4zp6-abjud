@@ -860,8 +860,6 @@ a given image and draw a skeleton overlay on the image\href{http://caffe.berkele
 
 \end{itemize}
 
-\break
-
 \section{tf-http-server - Human Pose Interface Server}
 
 \subsection{Overview}
@@ -888,7 +886,7 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Description:}
 
-            This function does joint position inference on a single image, and stores the results in a JSON string. It uses an array of dictionaries relating the keys to joint names, and the values to the predicited positions with respects to the x and y axis. It follows the format: [{"r\_ankle": [0.5, 0.5], "r\_knee": [1.0, 2.0], ...}, {"r\_ankle": [0.25, 0.2], "r\_knee": [0.1, 0.5], ...}].
+            This function does joint position inference on a single image, and stores the results in a JSON string. It uses an array of dictionaries relating the keys to joint names, and the values to the predicted positions with respects to the x and y axis. It follows the format: [{"r\_ankle": [0.5, 0.5], "r\_knee": [1.0, 2.0], ...}, {"r\_ankle": [0.25, 0.2], "r\_knee": [0.1, 0.5], ...}].
 
 \end{itemize}
 
@@ -981,7 +979,7 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Returns:}
 
-            A JSON string that represents the infered joint position.
+            A JSON string that represents the inferred joint position.
 
     \item \textbf{Description:}
 
@@ -999,11 +997,11 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Returns:}
 
-            A constructed computation graph that will be used to run human pose inferrence on.
+            A constructed computation graph that will be used to run human pose inference on.
 
     \item \textbf{Description:}
 
-            The function sets up the computation graph that will decode a JPEG from the input \textit{image\_bytes\_feed} in order to pad and resize the image to the desired shape. Which is then used to run the human pose inferrence on it using the "Two VGG-16s cascade" model.
+            The function sets up the computation graph that will decode a JPEG from the input \textit{image\_bytes\_feed} in order to pad and resize the image to the desired shape. Which is then used to run the human pose inference on it using the "Two VGG-16s cascade" model.
 \end{itemize}
 
 \textbf{Function: run()}
@@ -1014,7 +1012,7 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Description:}
 
-            Starts the server in order to handle the HTTP request by listening on an SSL-wrapped socket at port 8765 of the localhost. On startup a joint inference computation graph is setup, all model weights are restored and a session where the graph can be run is initialized.
+            Starts the server in order to handle the HTTP request by listening on an SSL-wrapped socket at port 8765 of the localhost. On start-up a joint inference computation graph is setup, all model weights are restored and a session where the graph can be run is initialized.
 
 \end{itemize}
 
