@@ -76,11 +76,13 @@
 March 14, 2017 & 0.0 & File created\\
 March 23, 2017 & 0.1 & Initial template completed \\
 March 26, 2017 & 0.2 & Completed tables and organized sections\\
+April 7, 2017 & 1.0 & Added more detail to tests and tables\\
+April 9, 2017 & 1.1 & Added automated testing and PCKh figure\\
 \bottomrule
 \end{tabularx}
 \end{table}
 \section{List of Figures}
-This document does not utilize figures in order to display our results.
+This document contains one figure located within automated testing, labeled 7.1.
 \listoftables
 
 \chapter{Introduction}
@@ -1118,9 +1120,42 @@ as a base64, meaning it can be converted into any type.
 
 \chapter{Automated Testing}
 
-The majority of the tests preformed on the TextToMotion Database have been manual due to the state of deep learning and pose estimations requirement of human verification. With this in mind testing the http server and the correctness of the returned images can be automated through tf\_http\_server\_tests.py, located in tf-http-server.
+The majority of the tests preformed on the TextToMotion Database have been manual due to the state of deep learning and pose estimations requirement of human verification. The server and values within the deep learning algorithm had some level of automation to them as PCKh values were generated in order to verify the confidence maps, and server tests could be run to ensure there was a connection open with the tf-http-server.
 
-\section{HTTP-Server}
+\section{Server Tests}
+
+To automate the tests a python client was created that could send POST requests to the HTTP server.  The purpose of this test is to ensure that the JSON string values it returns are within the acceptable range $\left(-0.5 to 0.5\right)$ on a large range of inputs. A small scale of this can be seen within section $4.7$ with regards to how the data is output.
+
+The FLIC - Frames Labeled in Cinema - dataset is a set of 5000 pictures taken from popular Hollywood movies.  The automated test we ran involved sampling $100$ pictures from the FLIC database and sending $100$ post requests to the HTTP server.  One post request for each picture sampled from the FLIC dataset using the python client we coded.  Each HTTP post returned a JSON response which checked with an 'if' statement that the returned values are within the allowed range.  If the value was not within the allowed range then a 'fail' message would be printed on the terminal of the screen. The expected output of this test was that none of the $100$ POST requests would cause a 'FAIL' message to printed on the screen.  The result of running this test $3$ separate times yielded the expectation of no fail message.
+
+\begin{table}
+\caption{Automated Tests of HTTP Server}
+\begin{center}
+\begin{tabular}{p{3cm} p{4cm} p{4cm} p{4cm}}
+\hline
+\textbf Test \#  & Expected Result & Observed Result & Pass/Fail  \\
+\hline
+Test 1 & Pass message on console & Pass message on console & PASS \\
+\hline
+Test 2 & Pass message on console & Pass message on console & PASS \\
+\hline
+Test 3 & Pass message on console & Pass message on console & PASS \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\section{Optimization Tests}
+
+While training the network PCKh values are automatically stored and saved in order to see the progression of the deep learning algorithm. Below is a plot of the accuracy that was achieved versus the number of tests ran. 
+
+
+\begin{figure}[!ht]
+   \caption{Progression of Network Optimization}
+   \label{erDiagram}
+    \centering
+    \includegraphics[width=0.8\textwidth]{pckh.jpg}
+\end{figure}
 
 \chapter{Traceability} % FILL THIS IF WE HAVE TIME
 \begin{center}
