@@ -309,6 +309,22 @@ these entries have been dropped.
 {High}
 {Created October 3rd, 2016.}
 
+\requirement
+{Constraint_HumanPoseModel}
+{\ref{req-solution-constraint} Solution Constraint}
+{software-skeleton-event}
+{The Text-to-Motion Software Suite should provide a module that allows
+ end-to-end training of a human pose estimation model using state of the art
+ deep learning methods.}
+{The Guelph Machine Learning Research Group is interested in actively pursuing
+ research in the topic of human pose estimation and human action recognition.}
+{Dr.\ Graham Taylor}
+{A human pose estimation model should be trained and evaluated, using software
+ written for the Text-to-Motion Software Suite, on a current human pose dataset,
+ and achieve state of the art results.}
+{High}
+{Created April 9, 2017.}
+
 \subsection{Implementation Environment of the Current System}
 \label{req-implementation-environment}
 
@@ -796,7 +812,7 @@ module hierarchy during the design iterations of the project development.
 \label{req-appearance}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_ColorScheme}
 {\ref{req-appearance} Appearance Requirement}
 {web-skeleton-event} % add <web-text-to-motion-event>
 {The web interface shall have a color-scheme that is focused on contrast.}
@@ -810,7 +826,7 @@ module hierarchy during the design iterations of the project development.
 \label{req-style}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_MinimalisticStyle}
 {\ref{req-style} Style Requirement}
 {web-skeleton-event} % add <web-text-to-motion-event>
 {The web interface shall be designed to look minimalistic (in terms of text) and visually informative through graphs and other visual aides.}
@@ -826,7 +842,7 @@ module hierarchy during the design iterations of the project development.
 \label{req-ease-of-use}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_Understandable12}
 {\ref{req-ease-of-use} Ease of Use Requirement}
 {web-skeleton-event} % add <web-text-to-motion-event>
 {The functionalities of the web interface shall be easy to use for any casual internet user above the age of 12 who understands how to upload and download files to a website.}
@@ -837,7 +853,7 @@ module hierarchy during the design iterations of the project development.
 {Created October 10th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_EaseOfUseRemember}
 {\ref{req-ease-of-use} Ease of Use Requirement}
 {web-skeleton-event}
 {The user shall not be expected to remember anything to be able to interact with the Web Interface.}
@@ -848,7 +864,7 @@ module hierarchy during the design iterations of the project development.
 {Created October 10th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_EaseOfUseInput}
 {\ref{req-ease-of-use} Ease of Use Requirement}
 {web-text-to-motion-event}
 {The user shall be able to type in a descriptive word or phrase into a text box from the web interface.}
@@ -866,7 +882,7 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 \label{req-learning}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_LearningGenSkeleton}
 {\ref{req-learning} Learning Requirement}
 {web-skeleton-event}
 {Any end-user shall be able to use the web application and generate a skeleton-overlay without having any prior training.}
@@ -877,7 +893,7 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 {Created October 10th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_LearningTextToMotionEvent}
 {\ref{req-learning} Learning Requirement}
 {web-text-to-motion-event}
 {Any end-user shall be able to use the web application to instantiate a 'text-to-motion' event without having any prior training.}
@@ -888,7 +904,7 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 {Created October 10th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_LearningSoftwareAPIs}
 {\ref{req-learning} Learning Requirement}
 {software-skeleton-event} % ADD <database-text-to-motion-event>
 {The functionalities of the software interface shall be easily understood by programmers who have experience with APIs.}
@@ -902,7 +918,7 @@ As of Revision 0, there are no requirements for Language support. Since the web 
 \label{req-understandability-politeness}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_InnerWorkings}
 {\ref{req-understandability-politeness} Understandability and Politeness Requirement}
 {web-skeleton-event}
 {The end user of the web interface shall not be able to see the inner workings
@@ -920,7 +936,7 @@ processes.}
 {Created October 10th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_HiddenWordPoseMapping}
 {\ref{req-understandability-politeness} Understandability and Politeness Requirement}
 {database-text-to-motion-event}
 {The end user of the software interface shall not know how the program is able
@@ -947,7 +963,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 \label{req-speed-latency}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_QuerySpeed}
 {\ref{req-speed-latency} Speed and Latency Requirement}
 {web-skeleton-event}
 {The web interface shall be able to connect to an external database with no problems and be able to store items and query for them quickly }
@@ -958,7 +974,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 {Created October 11th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_ModelSpeed}
 {\ref{req-speed-latency} Speed and Latency Requirement}
 {software-skeleton-event}
 {The software interface's deep learning model shall be able to process an image (RGB format) in a span of one minute or a set of frames in relative time (ex. 5 frames = 5 minutes)}
@@ -969,7 +985,7 @@ mechanisms, there is no need to provide any accessibility requirements for now
 {Created October 11th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_WebInterfaceWordSpeed}
 {\ref{req-speed-latency} Speed and Latency Requirement}
 {web-text-to-motion-event}
 {The web interface, given a word or phrase as input, shall be able to respond with an output of an image/video detailing a pose or action within 2 minutes}
@@ -986,7 +1002,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \subsection{Precision or Accuracy Requirements}
 \label{req-precision-accuracy}
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_BonePositionAccuracy}
 {\ref{req-precision-accuracy} Precision and Accuracy Requirement}
 {database-text-to-motion-event}
 {The software interface shall be able to deliver a data object that can accurately encapsulate the bone positions and joint angles of a human being's skeleton}
@@ -997,7 +1013,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 {Created October 11th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_BonePositionAccuracy2}
 {\ref{req-precision-accuracy} Precision and Accuracy Requirement}
 {web-skeleton-event}
 {Given an image or a set of frames as its input, the web interface shall be able to accurately draw a skeleton overlay around a human being, if one is found in the given image or set of frames}
@@ -1010,7 +1026,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \subsection{Reliability and Availability Requirements}
 \label{req-reliability-availability}
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_Availability}
 {\ref{req-reliability-availability} Reliability and Availablilty Requirement}
 {software-skeleton-event}
 {The software interface shall be available for use 24 hours a day, 365 days a year.}
@@ -1021,7 +1037,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 {Created October 11th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_AvailabilityAudited}
 {\ref{req-reliability-availability} Reliability and Availablilty Requirement}
 {web-skeleton-event}
 {The web interface shall be available for use 24 hours a day, 365 days a year, except for when the system has to be audited, tested or migrated to a different environment}
@@ -1035,7 +1051,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 
 \label{req-robustness}
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_ErrorThrowing}
 {\ref{req-robustness} Robustness or Fault-Tolerance Requirement}
 {web-skeleton-event}
 {The web interface shall throw error messages for every possible exception or error caught}
@@ -1046,7 +1062,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 {Created October 11th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_FilterUnintelligible}
 {\ref{req-robustness} Robustness or Fault-Tolerance Requirement}
 {web-text-to-motion-event}
 {The web interface shall filter the input word or phrase before passing the text to the database, where it can be processed}
@@ -1060,7 +1076,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \label{req-capacity}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_MultipleConnections}
 {\ref{req-capacity} Capacity Requirement}
 {web-skeleton-event}
 {The web interface shall be able to serve multiple connections}
@@ -1071,7 +1087,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 {Created October 11th, 2016.}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_StoreRelationPoseAction}
 {\ref{req-capacity} Capacity Requirement}
 {web-text-to-motion-event}
 {The web interface shall use a database that stores a lot of information about the relation of words and phrases to human poses and actions}
@@ -1086,7 +1102,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \label{req-scaling}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_MoreData}
 {\ref{req-capacity} Scaling of Extensibility Requirement}
 {software-skeleton-event}
 {The deep learning model that is used by the software interface shall be put through rigorous training so that it can predict the correct skeleton-overlay position more accurately}
@@ -1101,7 +1117,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \subsection{Longevity Requirements}
 \label{req-longevity}
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_Longevity}
 {\ref{req-longevity} Longevity Requirement}
 {web-skeleton-event}
 {The web interface shall be able to last for years to come}
@@ -1118,10 +1134,10 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \label{req-op-env}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_Physical}
 {\ref{req-op-env} Expected Physical Requirement}
 {web-skeleton-event}
-{The web interface shall operate on a Linux-friendly server that can access a tensorflow model, either directly or indirectly}
+{The web interface shall operate on a Linux-friendly server that can access a TensorFlow model, either directly or indirectly}
 {The web application will need a runtime environment and will use up resources, so a server is the tool to use }
 {Udip Patel}
 {The web interface shall be able to operate on an ngnix or Apache server with no problems}
@@ -1133,7 +1149,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \label{req-interfacing}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_Interfacing}
 {\ref{req-interfacing} Requirement for Interfacing with Adjacent Systems}
 {web-skeleton-event}
 {The web interface shall interface with the Tensorflow library and a pre-trained Tensorflow model specialized in image processing}
@@ -1149,7 +1165,7 @@ As of Revision 0, there are no safety critical requirements. Both of the interfa
 \label{req-product}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_AllOperatingSystems}
 {\ref{req-product} Productization Requirement}
 {software-skeleton-event}
 {The software interface shall export the resulting output (an image or set of images with a skeleton outline over a human being's silhouette, if one exists) to all major operating systems }
@@ -1178,7 +1194,7 @@ As of revision 0, there are no maintenance requirements. This is because a simpl
 \label{req-supportability}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_Supportability}
 {\ref{req-supportability} Supportablility Requirement}
 {web-skeleton-event}
 {The web interface shall provide a small 'tour' of the functionalities with simple examples}
@@ -1193,7 +1209,7 @@ As of revision 0, there are no maintenance requirements. This is because a simpl
 \label{req-adaptability}
 
 \requirement
-{Req_RetrievedVideoRelevance}
+{Req_Adaptability}
 {\ref{req-adaptability} Adaptability Requirement}
 {web-skeleton-event}
 {The web interface shall be available for use from all the major browsers}
