@@ -1026,12 +1026,20 @@ directly.
 
 \section{human\_pose\_model - Training and Inference Software Suite}
 
-<<<<<<< HEAD
 \subsection{Overview}
-The human\_pose\_model module provides a completely standalone software suite for the training, evaluation and deployment of human pose inference models. In order to provide this software suite the human\_pose\_model is set up in a hierachy that utilizes train.py, evaluate.py, write_tf_record.py, input_pipeline.py, networks.py, dataset.py, and pose_utils.py.
 
-\subsection{input_pipeline.py}
-Sets up an input pipeline that reads example protobufs from all TFRecord files, decodes and preprocesses the images. The input pipeline is setup with a sequence of queues so that preprocessing and file-reading can be parallelized across many hardware threads.
+The human\_pose\_model module provides a completely standalone software suite
+for the training, evaluation and deployment of human pose inference models. In
+order to provide this software suite the human\_pose\_model is set up in a
+hierachy that utilizes \verb|train.py|, \verb|evaluate.py|, \verb|write_tf_record.py|,
+\verb|input_pipeline.py|, \verb|networks.py|, \verb|dataset.py|, and \verb|pose_utils.py|.
+
+\subsection{input\_pipeline.py}
+
+Sets up an input pipeline that reads example protobufs from all TFRecord files,
+decodes and preprocesses the images. The input pipeline is setup with a
+sequence of queues so that preprocessing and file-reading can be parallelized
+across many hardware threads.
 
 \textbf{Function: \_setup\_example\_queue(args)}
 \begin{itemize}
@@ -1047,11 +1055,13 @@ Sets up an input pipeline that reads example protobufs from all TFRecord files, 
 
     \item \textbf{Returns:}
 
-            A dequeue operation that will dequeue one Tensor containing  an input example from 'examples\_queue'.        
+            A dequeue operation that will dequeue one Tensor containing  an
+                input example from \verb|examples_queue|.
 
     \item \textbf{Description:}
 
-            Sets up a randomly shuffled queue containing example protobufs, read from the TFRecord files in `filename\_queue`.
+            Sets up a randomly shuffled queue containing example protobufs,
+                read from the TFRecord files in \verb|filename_queue|.
 
 \end{itemize}
 
@@ -1228,7 +1238,8 @@ Sets up an input pipeline that reads example protobufs from all TFRecord files, 
 
     \item \textbf{Description:}
 
-            Works as '\_parse\_and\_preprocess\_example\_train' without the image distortion or heatmap creation.
+            Works as \verb|_parse_and_preprocess_example_train| without the
+                image distortion or heatmap creation.
 
 \end{itemize}
 
@@ -1250,7 +1261,9 @@ Sets up an input pipeline that reads example protobufs from all TFRecord files, 
 
     \item \textbf{Description:}
 
-            Creates the set of 1-D Normal distributions with means equal to the elements of 'dense\_joints' and deviations equal to the value of 'std\_dev'.
+            Creates the set of 1-D Normal distributions with means equal to the
+                elements of \verb|dense_joints| and deviations equal to the
+                value of \verb|std_dev|.
 
 \end{itemize}
 
@@ -1272,7 +1285,7 @@ Sets up an input pipeline that reads example protobufs from all TFRecord files, 
 
     \item \textbf{Description:}
 
-            Calculates a set of confidence maps for the joints given by 'x\_dense\_joints' and 'y\_dense\_joints'.
+            Calculates a set of confidence maps for the joints given by \verb|x_dense_joints| and \verb|y_dense_joints|.
 \end{itemize}
 
 \textbf{Function: \_get\_is\_visible\_weights(args)}
@@ -1390,22 +1403,33 @@ Sets up an input pipeline that reads example protobufs from all TFRecord files, 
 
     \item \textbf{Returns:}
 
-            (images, heatmaps, weights, batch_size): List of image tensors with first dimension (shape[0]) equal to batch_size, along with lists of dense vectors of heatmaps, ground truth vectors (joints), dense vecotrs and the batch size. 
+            \verb|(images, heatmaps, weights, batch_size)|: List of image tensors with
+                first dimension (\verb|shape[0]|) equal to \verb|batch_size|, along with
+                lists of dense vectors of heatmaps, ground truth vectors
+                (\verb|joints|), dense vectors and the batch size. 
 
     \item \textbf{Description:}
 
-            Sets up an input pipeline that reads example protobufs from all TFRecord files, assumed to be named train*.tfrecord (e.g. train0.tfrecord), decodes and preprocesses the images.
-            There are three queues: `filename\_queue`, contains the TFRecord filenames, and feeds "examples\_queue" with serialized example protobufs.
-            Then, serialized examples are dequeued from `examples\_queue`, preprocessed in parallel by `num\_preprocess\_threads` and the result is enqueued into the queue created by `batch\_join`. A dequeue operation from the `batch\_join` queue is what is returned from `preprocess\_images`. What is dequeued is a batch of size `batch\_size` containing a set of, for example, 32 images in
-            the case of `images` or a sparse vector of floating-point joint
-            co-ordinates (in range [0,1]) in the case of `joints`.
+            Sets up an input pipeline that reads example protobufs from all
+                TFRecord files, assumed to be named \verb|train*.tfrecord| (e.g.
+                \verb|train0.tfrecord|), decodes and preprocesses the images.
+
+            There are three queues: \verb|filename_queue|, contains the TFRecord
+                filenames, and feeds \verb|examples_queue| with serialized example
+                protobufs.  Then, serialized examples are dequeued from
+                \verb|examples_queue|, preprocessed in parallel by
+                \verb|num_preprocess_threads| and the result is enqueued into the
+                queue created by \verb|batch_join|. A dequeue operation from the
+                \verb|batch_join| queue is what is returned from
+                \verb|preprocess_images|. What is dequeued is a batch of size
+                \verb|batch_size| containing a set of, for example, 32 images in
+                the case of \verb|images| or a sparse vector of floating-point joint
+                co-ordinates (in range \verb|[0,1]|) in the case of \verb|joints|.
 
 \end{itemize}
 
 \break
-=======
 \subsection{train}
->>>>>>> f2dd48a8cb46b7b3c5692835e826b09ab7151f5e
 
 This sub-module of \verb|human_pose_model| does human pose inference model
 training.
@@ -1443,15 +1467,7 @@ functions as well as a function to do inference. Besides \verb|inference|, the
         \textit{images}: Mini-batch of preprocessed examples dequeued from the
                 input pipeline.
 
-<<<<<<< HEAD
-Since a video can be considered as just a set (or array) of images, this pose
-estimation algorithm can be executed on videos as well as images. At this point
-in the project, a C++ program does exist that references a function from the
-file \textbf{``estimate\_pose.cpp''} to analyze videos, but the code has not
-been finalized. It is also far too slow to be used from a web interface.
-=======
         \textit{heatmaps}: Confidence maps of ground truth joints.
->>>>>>> f2dd48a8cb46b7b3c5692835e826b09ab7151f5e
 
         \textit{weights}: Weights of heatmaps (tensors of all 1s if joint
                 present, all 0s if not present).
@@ -1512,18 +1528,18 @@ reading the \href{http://human-pose.mpi-inf.mpg.de/}{MPII Human Pose Dataset}.
 
         \textit{mpii\_dataset\_mat}: A dictionary of MATLAB structures loaded using
             \verb|scipy.io.loadmat|. The arguments \verb|struct_as_record = False| and
-            \verb|squeeze_me = True| must be set in the `loadmat` call.
+            \verb|squeeze_me = True| must be set in the \verb|loadmat| call.
 
         \textit{mpii\_images\_dir}: The path of the directory where all the
                 MPII images are stored.
 
         \textit{is\_train}: Parse training data (True), or test data (False)?
 
-        \item \textbf{Returns:} Returns: An `MpiiDataset` Python object
+        \item \textbf{Returns:} Returns: An \verb|MpiiDataset| Python object
                 corresponding to \verb|mpii_dataset_mat|.
 
         \item \textbf{Description:} Parses the training data out of
-                \verb|mpii_dataset_mat| into a `MpiiDataset` Python object.
+                \verb|mpii_dataset_mat| into a \verb|MpiiDataset| Python object.
 
                 To save time during debugging sessions, you can manually get
                 \verb|mpii_dataset_mat| using \verb|scipy.io.loadmat| once, and
