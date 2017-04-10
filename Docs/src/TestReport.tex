@@ -315,7 +315,7 @@ A test to be sure out HTTP server can recieve a get request for an image, and re
         \end{tabular}
 \end{table}
 
-\subection{Output Data}
+\subsection{Output Data}
 \begin{table}[H]
     \centering
     \begin{tabular}{||p{2cm}|p{6.5cm}||}
@@ -556,6 +556,187 @@ returned, meaning that the test passed.
                 4.14 & Search for "Exponent" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
                 \hline
                 4.15 & Search for "Glasses" within ../ImagePoseDraw & .. /ImagePoseDraw & A list of results that don't contain the input data & No results were returned & Pass\\
+                \hline
+        \end{tabular}
+\end{table}
+
+\section{HTTP Get test}
+\subsection{Description}
+
+A test to be sure out HTTP server can recieve a get request for an image, and return the Json string of values. WE present the values as an array, where each vertex has two components. If every value is between -0.5 and 0.5 then the data returned is accurate, and the test is a pass. The GET requests were created using curl with the -X option and attempting to reach the server brendanduke.ca:8765
+\subsection{Input Data}
+
+\begin{table}[H]
+        \centering
+        \begin{tabular}{p{3cm}p{6cm}}
+                \hline\hline
+                Input & Description\\
+                \hline\hline
+                \href {http://st2.depositphotos.com/1912333/10089/i/950/depositphotos_100892946-stock-photo-sporty-woman-waving-hands.jpg}{Sporty Woman} &  A picture of a woman standing and waving her hands\\
+                \hline
+                \href {https://www.drawingnow.com/file/videos/image/how-to-draw-a-running-person.jpg}{Running Man} & An Illustration of a man running\\
+                \hline
+                \href {https://www.formfonts.com/files/1/13470/four-low-poly-models-people-sitting-different-poses_FF_Model_ID13470_1_LPMAD_20_00.jpg}{Sitting Man} & A 3d model of a person sitting\\
+                \hline
+        \end{tabular}
+\end{table}
+
+\subsection{Results}
+\begin{table}[H]
+        \centering
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+                \hline
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \hline\hline
+                4.16 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Sporty Woman image & curl is installed and functioanl & An array of values fitting the described criteria & See section below & Pass\\
+                \hline
+                4.17 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Running Man image & curl is installed and functioanl & An array of values fitting the described criteria & See section below & Pass\\
+                \hline
+                4.18 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Sitting Man image & curl is installed and functioanl & An array of values fitting the described criteria & See section below & Pass\\
+                \hline
+        \end{tabular}
+\end{table}
+
+\subsection{Output Data}
+
+\begin{table}[H]
+    \centering
+    \caption{For test 4.16 (r is for left and l is for right)}
+    \begin{tabular}{||p{2cm}|p{6.5cm}||}
+        \hline
+        \textbf{Body Part} & \textbf {Json Values}\\
+         \hline\hline
+        r ankle & [-0.0736842105263, 0.328947368421] \\
+        \hline
+        r knee & [-0.0315789473684, 0.157894736842] \\
+        \hline
+        r hip & [-0.0526315789474, 0.0105263157895] \\
+        \hline
+        l hip & [-0.0315789473684, 0.0315789473684] \\
+        \hline
+        l knee & [-0.0315789473684, 0.157894736842] \\
+        \hline
+        l ankle & [-0.0315789473684, 0.157894736842] \\
+        \hline
+        pelvis & [-0.0342105263158, 0.0105263157895]\\
+        \hline
+        thorax & [-0.0105263157895, -0.223684210526] \\
+        \hline
+        upper neck & [0.0105263157895, -0.244736842105] \\
+        \hline
+        head top & [0.0105263157895, -0.394736842105] \\
+        \hline
+        r wrist & [-0.223684210526, -0.328947368421] \\
+        \hline
+        r elbow & [-0.202631578947, -0.244736842105] \\
+        \hline
+        r shoulder & [-0.0526315789474, -0.223684210526] \\
+        \hline
+        l shoulder & [0.0526315789474, -0.223684210526] \\
+        \hline
+        l elbow & [0.181578947368, -0.265789473684] \\
+        \hline
+        l wrist & [0.160526315789, -0.371052631579] \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{For test 4.17 (r is for left and l is for right)}
+    \begin{tabular}{||p{2cm}|p{6.5cm}||}
+        \hline
+        \textbf{Body Part} & \textbf {Json Values}\\
+         \hline\hline
+        r ankle & [-0.157894736842, 0.244736842105] \\
+        \hline
+        r knee & [-0.0736842105263, 0.0947368421053] \\
+        \hline
+        r hip & [0.0315789473684, -0.0315789473684] \\
+        \hline
+        l hip & [0.0315789473684, -0.0526315789474] \\
+        \hline
+        l knee & [0.0526315789474, 0.118421052632] \\
+        \hline
+        l ankle & [0.223684210526, 0.0736842105263] \\
+        \hline
+        pelvis & [0.0315789473684, -0.0342105263158]\\
+        \hline
+        thorax & [-0.0315789473684, -0.157894736842] \\
+        \hline
+        upper neck & [-0.0315789473684, -0.157894736842] \\
+        \hline
+        head top & [-0.0526315789474, -0.328947368421] \\
+        \hline
+        r wrist & [-0.0105263157895, -0.0315789473684] \\
+        \hline
+        r elbow & [-0.0315789473684, -0.0736842105263] \\
+        \hline
+        r shoulder & [-0.0526315789474, -0.157894736842] \\
+        \hline
+        l shoulder & [-0.0526315789474, -0.160526315789]\\
+        \hline
+        l elbow & [0.0526315789474, -0.157894736842] \\
+        \hline
+        l wrist & [0.0526315789474, -0.0315789473684] \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{For test 4.18 (r is for left and l is for right)}
+    \begin{tabular}{||p{2cm}|p{6.5cm}||}
+        \hline
+        \textbf{Body Part} & \textbf {Json Values}\\
+         \hline\hline
+        r ankle & [-0.139473684211, 0.328947368421]\\
+        \hline
+        r knee & [-0.221052631579, 0.0526315789474]\\
+        \hline
+        r hip & [-0.0315789473684, -0.0105263157895] \\
+        \hline
+        l hip & [0.0763157894737, 0.0315789473684] \\
+        \hline
+        l knee & [-0.0315789473684, 0.202631578947] \\
+        \hline
+        l ankle & [-0.0736842105263, 0.371052631579]\\
+        \hline
+        pelvis & [0.0315789473684, 0.0105263157895] \\
+        \hline
+        thorax & [0.0947368421053, -0.265789473684] \\
+        \hline
+        upper neck & [0.0763157894737, -0.328947368421] \\
+        \hline
+        head top & [0.0526315789474, -0.5] \\
+        \hline
+        r wrist & [-0.118421052632, -0.0736842105263]\\
+        \hline
+        r elbow & [-0.0736842105263, -0.118421052632]\\
+        \hline
+        r shoulder & [-0.0105263157895, -0.265789473684] \\
+        \hline
+        l shoulder & [0.202631578947, -0.244736842105] \\
+        \hline
+        l elbow & [0.178947368421, -0.0736842105263] \\
+        \hline
+        l wrist & [0.0315789473684, -0.0552631578947] \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{False Positive Test}
+\subsection{Description}
+
+Tests whether the HTTP server will return a 404 error when we attempt to make an empty GET request. To do this we do call ssl to the server (openssl s_client -connect brendanduke.ca:8765) and then, when asked for an input, hit enter/return twice to create an empty request.
+\subsection{Results}
+\begin{table}[H]
+        \centering
+        \begin{tabular}[t]{||p{0.75cm}|p{4cm}|p{2.5cm}|p{3cm}|p{2.5cm}|p{1cm}||}
+                \hline
+                \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
+                \hline\hline
+                4.19 & Using Sending a bad request with SSL & curl is installed and functioanl & An indication the request was bad & HTTP/1.0 400 Bad Request  Server: BaseHTTP/0.6 Python/3.5.2 & Pass\\
                 \hline
         \end{tabular}
 \end{table}

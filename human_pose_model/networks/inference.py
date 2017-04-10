@@ -6,7 +6,6 @@ from tensorflow.contrib.slim.nets import vgg
 import tensorflow as tf
 from tensorflow.python.ops import control_flow_ops
 import tensorflow.contrib.slim as slim
-from dataset.mpii_datatypes import Person
 from networks import vgg_bulat
 from networks import resnet_bulat
 from networks import gvgg
