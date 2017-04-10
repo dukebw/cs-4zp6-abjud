@@ -1,0 +1,52 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using TextToMotionWeb.Models
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+
+
+<div class="row no-margins grey darken-2">
+    <div class="col s10 offset-s2">
+        <h3 class="white-text">
+            <i class="fa fa-user-circle-o"></i> Dashboard
+            <span class="right-align chip indigo darken-2 white-text lg-font">@UserManager.GetUserName(User)</span>
+        </h3>
+    </div>
+</div>
+<div class="transition-edge blue lighten-2"></div>
+<div class="row no-margins">
+    <div class="col m10 s12 offset-m1">
+        <br />
+        <div class="row">
+            <div class="col m10 s12 offset-m1 center-align">
+                <span class="spaced-from-bot">
+                    <a href="/Dashboard/ProcessImage" class="waves-effect waves-light btn-large blue padded-from-bot"><i class="fa fa-file-image-o"></i> <i class="fa fa-plus"></i> Process New Image...</a>
+                </span>
+                <span class="spaced-from-bot">
+                    <a href="/Dashboard/ProcessVideo" class="waves-effect waves-light btn-large teal lighten-2"><i class="fa fa-file-video-o"></i> <i class="fa fa-plus"></i> Process New Video...</a>
+                </span>
+                <span class="padded-from-top">
+                    <a href="/Dashboard/ProcessStream" class="waves-effect waves-light btn-large indigo lighten-2"><i class="fa fa-video-camera"></i> <i class="fa fa-plus"></i> Capture Camera Stream...</a>
+                </span>
+            </div>
+        </div>
+        <hr class="faded" />
+        <div class="row">
+            <div class="col s12 m10 offset-m1">
+                <div class="card">
+                    <div class="card-tabs">
+                        <ul class="tabs tabs-fixed-width indigo-text">
+                            <li class="tab"><a class="active" href="#user-posts">My Posts</a></li>
+                            <li class="tab"><a href="#rated-posts">My Rated Posts</a></li>
+                        </ul>
+                    </div>
+                    <div class="card-content grey lighten-4">
+                        <div id="user-posts">My Posts...</div>
+                        <div id="rated-posts">Rated Posts...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

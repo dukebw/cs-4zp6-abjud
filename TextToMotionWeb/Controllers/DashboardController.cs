@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel.DataAnnotations;
@@ -13,26 +13,28 @@ using Microsoft.AspNetCore.Http;
 
 namespace TextToMotionWeb.Controllers
 {
-    public class HomeController : Controller
+    public class DashboardController:Controller
     {
+        [Authorize]
         public IActionResult Index()
         {
-            var dbcontext = new ApplicationDbContext();
-            dbcontext.Database.EnsureCreated();
             return View();
         }
 
-        public IActionResult About()
+        [Authorize]
+        public IActionResult ProcessImage()
         {
             return View();
         }
 
-        public IActionResult Contact()
+        [Authorize]
+        public IActionResult ProcessVideo()
         {
             return View();
         }
 
-        public IActionResult Error()
+        [Authorize]
+        public IActionResult ProcessStream()
         {
             return View();
         }

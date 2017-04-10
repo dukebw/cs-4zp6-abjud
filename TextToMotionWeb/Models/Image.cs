@@ -17,6 +17,7 @@ namespace TextToMotionWeb.Models
     public Media Media {get; set;}
 
     public string Original_image {get; set;}
+    public string Processed_image { get; set; }
     public string Joint_positions {get; set;}
 
     public List<ImageTag> ImageTags {get; set;}

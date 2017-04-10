@@ -5,7 +5,7 @@
     "jquery": "2.2.3",
     "jquery-validation": "1.15.0",
     "jquery-validation-unobtrusive": "3.2.6",
-    "font-awesome": "4.6.1",
+    "font-awesome": "4.7.0",
     "materialize": "0.98.0",
     "knockout": "3.4.0"
   }
