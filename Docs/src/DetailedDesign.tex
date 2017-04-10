@@ -1018,6 +1018,381 @@ This component of the project actually provides an HTTP interface through which 
 
 \section{human\_pose\_model - Training and Inference Software Suite}
 
+\subsection{Overview}
+The human\_pose\_model module provides a completely standalone software suite for the training, evaluation and deployment of human pose inference models. In order to provide this software suite the human\_pose\_model is set up in a hierachy that utilizes train.py, evaluate.py, write_tf_record.py, input_pipeline.py, networks.py, dataset.py, and pose_utils.py.
+
+\subsection{input_pipeline.py}
+Sets up an input pipeline that reads example protobufs from all TFRecord files, decodes and preprocesses the images. The input pipeline is setup with a sequence of queues so that preprocessing and file-reading can be parallelized across many hardware threads.
+
+\textbf{Function: \_setup\_example\_queue(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{filename\_queue}
+
+            \quad\textit{num\_readers}
+
+            \quad\textit{input\_queue\_memory\_factor}
+
+            \quad\textit{batch\_size}
+
+    \item \textbf{Returns:}
+
+            A dequeue operation that will dequeue one Tensor containing  an input example from 'examples\_queue'.        
+
+    \item \textbf{Description:}
+
+            Sets up a randomly shuffled queue containing example protobufs, read from the TFRecord files in `filename\_queue`.
+
+\end{itemize}
+
+\textbf{Function: \_parse\_example\_proto(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{example\_serialized}
+
+            \quad\textit{image\_dim}
+
+    \item \textbf{Returns:}
+
+            Returns a tuple containing a raw image reshaped to the image dimensions in float32 format, sparse indices, and sparse joints.
+
+    \item \textbf{Description:}
+
+            Parses an example proto in order to return the tuple above.
+
+\end{itemize}
+
+\textbf{Function: \_distort\_colour(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{distorted\_image}
+
+            \quad\textit{thread\_id}
+
+    \item \textbf{Returns:}
+
+            The image after being distorted.
+
+    \item \textbf{Description:}
+
+            Distorts the brightness, saturation, hue and contrast of an image randomly using the \textit{thread\_id}. 
+\end{itemize}
+
+\textbf{Function: \_decode\_binary\_maps(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{binary\_maps}
+
+            \quad\textit{image\_dim}
+
+    \item \textbf{Returns:}
+
+            The input with a reshaped tensor so that TensorFlow can utilize the input.
+
+    \item \textbf{Description:}
+
+            Decodes a binary map from its post-decompression format and reshapes the tensor.
+
+\end{itemize}
+
+\textbf{Function: \_flip\_with\_left\_right\_permutation(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{maps}
+
+    \item \textbf{Returns:}
+
+            A flipped map of the input.
+
+    \item \textbf{Description:}
+
+            Flips the ground truth maps, accounting for the fact that when mirrored the images left and right will already have been swapped.
+
+\end{itemize}
+
+\textbf{Function: \_maybe\_flip\_maps(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{maps}
+
+            \quad\textit{should\_flip}
+
+    \item \textbf{Returns:}
+
+            The input map that may be flipped.
+
+    \item \textbf{Description:}
+
+            Conditionally flip ground truth maps left-right.
+
+\end{itemize}
+
+\textbf{Function: \_randomly\_flip(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{image}
+
+            \quad\textit{binary\_maps}
+
+            \quad\textit{heatmaps}
+
+    \item \textbf{Returns:}
+
+            The (possibly) flipped map.
+
+    \item \textbf{Description:}
+
+            Randomly flips the input and set of joint-maps left or right.
+
+\end{itemize}
+
+\textbf{Function: \_randomly\_rotate(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{image}
+
+            \quad\textit{binary\_maps}
+
+            \quad\textit{heatmaps}
+
+            \quad\textit{max\_rotation\_angle}
+
+    \item \textbf{Returns:}
+
+            The randomly rotated input.
+
+    \item \textbf{Description:}
+
+            Randomly rotates inputs between +/- of the "max\_rotation\_angle".
+
+\end{itemize}
+
+\textbf{Function: \_distort\_image(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{decoded\_image}
+
+            \quad\textit{binary\_maps}
+
+            \quad\textit{heatmaps}
+
+            \quad\textit{image\_dim}
+
+            \quad\textit{thread\_id}
+
+            \quad\textit{max\_rotation\_angle}
+
+    \item \textbf{Returns:}
+
+            A tuple containing joint-maps and image post slipping, rotation, and colour distortion.
+
+    \item \textbf{Description:}
+
+            Randomly distorts the image from 'parse\_example' by randomly rotating, randomly flipping left and right, and randomly distorting the colour of the image.
+
+\end{itemize}
+
+\textbf{Function: \_parse\_and\_preprocess\_example\_eval(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{heatmap\_stddev\_pixels}
+
+            \quad\textit{example\_serialized}
+
+            \quad\textit{num\_preprocessed\_threads}
+
+            \quad\textit{image\_dim}
+
+    \item \textbf{Returns:}
+
+            The x and y joints.
+
+    \item \textbf{Description:}
+
+            Works as '\_parse\_and\_preprocess\_example\_train' without the image distortion or heatmap creation.
+
+\end{itemize}
+
+\textbf{Function: \_get\_joints\_normal\_pdf(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{dense\_joints}
+
+            \quad\textit{std\_dev}
+
+            \quad\textit{coords}
+
+            \quad\textit{expand\_axis}
+
+    \item \textbf{Returns:}
+
+            A set of 1-D Normal distributions.
+
+    \item \textbf{Description:}
+
+            Creates the set of 1-D Normal distributions with means equal to the elements of 'dense\_joints' and deviations equal to the value of 'std\_dev'.
+
+\end{itemize}
+
+\textbf{Function: \_get\_joint\_heatmaps(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{heatmap\_stddev\_pixels}
+
+            \quad\textit{image\_dim}
+
+            \quad\textit{x\_dense\_joints}
+
+            \quad\textit{y\_dense\_joints}
+
+    \item \textbf{Returns:}
+
+            Joint heatmaps.
+
+    \item \textbf{Description:}
+
+            Calculates a set of confidence maps for the joints given by 'x\_dense\_joints' and 'y\_dense\_joints'.
+\end{itemize}
+
+\textbf{Function: \_get\_is\_visible\_weights(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{parse\_joint\_indices}
+
+            \quad\textit{is\_visible\_list}
+
+            \quad\textit{weights}
+
+    \item \textbf{Returns:}
+
+            A set of per-joint weights.
+
+    \item \textbf{Description:}
+
+            Calculates a set of per-joint weights, which are 1 if the joint annotation is both and present and unoccluded.
+
+\end{itemize}
+
+\textbf{Function: \_maybe\_flip\_weights(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{weights}
+
+            \quad\textit{should\_flip}
+
+    \item \textbf{Returns:}
+
+            Weight joints that were conditionally flipped.
+
+    \item \textbf{Description:}
+
+            Conditionally permutes weights left-right.
+
+\end{itemize}
+
+\textbf{Function: \_parse\_and\_preprocess\_example\_train(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{example\_serialized}
+
+            \quad\textit{num\_preprocess\_threads}
+
+            \quad\textit{image\_dim}
+
+            \quad\textit{heatmap\_stddev\_pixels}
+
+            \quad\textit{max\_rotation\_angle}
+
+    \item \textbf{Returns:}
+
+            A list of lists, one for each thread, where each inner list contains decoded image with colours scaled to range [-1,1] as well as the sprase joint ground truth vectors.
+
+    \item \textbf{Description:}
+
+            Parses Example protobufs containing input images and their ground truth vectors and preprocesses those images, returning a vector with one preprocessed tensor per thread.
+
+\end{itemize}
+
+\textbf{Function: \_setup\_batch\_queue(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{images\_and\_joint\_maps}
+
+            \quad\textit{batch\_size}
+
+            \quad\textit{num\_preprocess\_threads}
+
+    \item \textbf{Returns:}
+
+            A batch queue of images, binary\_maps, heatmaps, and weights.
+
+    \item \textbf{Description:}
+
+            Sets up a batch queue that returns.
+
+\end{itemize}
+
+\textbf{Function: setup\_eval\_input\_pipeline(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{batch\_size}
+
+            \quad\textit{num\_preprocess\_threads}
+
+            \quad\textit{image\_dim}
+
+            \quad\textit{heatmap\_stddev\_pixels}
+
+            \quad\textit{data\_filenames}
+
+    \item \textbf{Returns:}
+
+            The input pipeline to be used for model evaluation.
+
+    \item \textbf{Description:}
+
+            Sets up an input pipeline for model evaluation.
+\end{itemize}
+
+\textbf{Function: setup\_train\_input\_pipeline(args)}
+\begin{itemize}
+    \item \textbf{Expected Arguments:}
+
+            \quad\textit{FLAGS}
+
+            \quad\textit{data\_filename}
+
+    \item \textbf{Returns:}
+
+            (images, heatmaps, weights, batch_size): List of image tensors with first dimension (shape[0]) equal to batch_size, along with lists of dense vectors of heatmaps, ground truth vectors (joints), dense vecotrs and the batch size. 
+
+    \item \textbf{Description:}
+
+            Sets up an input pipeline that reads example protobufs from all TFRecord files, assumed to be named train*.tfrecord (e.g. train0.tfrecord), decodes and preprocesses the images.
+            There are three queues: `filename\_queue`, contains the TFRecord filenames, and feeds "examples\_queue" with serialized example protobufs.
+            Then, serialized examples are dequeued from `examples\_queue`, preprocessed in parallel by `num\_preprocess\_threads` and the result is enqueued into the queue created by `batch\_join`. A dequeue operation from the `batch\_join` queue is what is returned from `preprocess\_images`. What is dequeued is a batch of size `batch\_size` containing a set of, for example, 32 images in
+            the case of `images` or a sparse vector of floating-point joint
+            co-ordinates (in range [0,1]) in the case of `joints`.
+
+\end{itemize}
+
 \break
 
 \section{Features In Development}
@@ -1026,7 +1401,7 @@ This component of the project actually provides an HTTP interface through which 
 
 Since a video can be considered as just a set (or array) of images, this pose
 estimation algorithm can be executed on videos as well as images. At this point
-in the project,a C++ program does exist that references a function from the
+in the project, a C++ program does exist that references a function from the
 file \textbf{``estimate\_pose.cpp''} to analyze videos, but the code has not
 been finalized. It is also far too slow to be used from a web interface.
 
