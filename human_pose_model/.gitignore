@@ -1,0 +1,15 @@
+*.swp
+*.swo
+*.ipynb_checkpoints/
+checkpoints/
+config_test_gpu1.json
+data/
+datasets/
+debug_data/
+debug_log/
+log/
+train/
+*.tfrecord
+train_vgg_fcn/
+valid_vgg_fcn/
+../thor_examples/*

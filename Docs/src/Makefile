@@ -1,14 +1,22 @@
+PROBSTMT=ProblemStatement
 SRS=SoftwareRequirementsSpecification
 POC=ProofOfConceptPlan
 TEST=TestPlan
-DESIGNDOC=DesignDoc
+DETAILEDDESIGN=DetailedDesign
 TESTREPORT=TestReport
 SYSARCHITECTURE=SystemArchitecture
 USERMANUAL=UserManual
 
 .phony: srs poc test_plan user_manual
 
-all: srs poc test_plan user_manual
+all: prob_stmt srs poc test_plan test_report user_manual design_doc
+
+prob_stmt:
+	xelatex $(PROBSTMT).tex
+	xelatex $(PROBSTMT).tex
+	$(MAKE) clean
+	mv $(PROBSTMT).pdf ..
+
 
 srs:
 	xelatex $(SRS).tex
@@ -43,13 +51,17 @@ user_manual:
 	mv $(USERMANUAL).pdf ..
 
 design_doc:
-	xelatex $(DESIGNDOC).tex
-	xelatex $(DESIGNDOC).tex
-	$(MAKE) clean
-	mv $(DESIGNDOC).pdf ..
+	xelatex $(SRS).tex
+	bibtex $(SRS).aux
+	xelatex $(SRS).tex
+	xelatex $(SRS).tex
+	xelatex $(DETAILEDDESIGN).tex
+	xelatex $(DETAILEDDESIGN).tex
 	xelatex $(SYSARCHITECTURE).tex
 	xelatex $(SYSARCHITECTURE).tex
 	$(MAKE) clean
+	mv $(SRS).pdf ..
+	mv $(DETAILEDDESIGN).pdf ..
 	mv $(SYSARCHITECTURE).pdf ..
 
 clean:
