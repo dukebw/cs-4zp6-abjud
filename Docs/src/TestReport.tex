@@ -563,7 +563,7 @@ returned, meaning that the test passed.
 \section{HTTP Get test}
 \subsection{Description}
 
-A test to be sure out HTTP server can recieve a get request for an image, and return the Json string of values. WE present the values as an array, where each vertex has two components. If every value is between -0.5 and 0.5 then the data returned is accurate, and the test is a pass. The GET requests were created using curl with the -X option and attempting to reach the server brendanduke.ca:8765
+A test to be sure out HTTP server can recieve a get request with an image, and return the Json string of values. We present the values as an array, where each vertex has two components. If every value is between -0.5 and 0.5 then the data returned is accurate, and the test is a pass. The GET requests were created using curl with the -X GET option and attempting to reach the server brendanduke.ca:8765
 \subsection{Input Data}
 
 \begin{table}[H]
@@ -574,7 +574,7 @@ A test to be sure out HTTP server can recieve a get request for an image, and re
                 \hline\hline
                 \href {http://st2.depositphotos.com/1912333/10089/i/950/depositphotos_100892946-stock-photo-sporty-woman-waving-hands.jpg}{Sporty Woman} &  A picture of a woman standing and waving her hands\\
                 \hline
-                \href {https://www.drawingnow.com/file/videos/image/how-to-draw-a-running-person.jpg}{Running Man} & An Illustration of a man running\\
+                \href {https://www.drawingnow.com/file/videos/image/how-to-draw-a-running-person.jpg}{Running Man} & An illustration of a man running\\
                 \hline
                 \href {https://www.formfonts.com/files/1/13470/four-low-poly-models-people-sitting-different-poses_FF_Model_ID13470_1_LPMAD_20_00.jpg}{Sitting Man} & A 3d model of a person sitting\\
                 \hline
@@ -588,11 +588,11 @@ A test to be sure out HTTP server can recieve a get request for an image, and re
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
-                4.16 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Sporty Woman image & curl is installed and functioanl & An array of values fitting the described criteria & See section below & Pass\\
+                4.16 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Sporty Woman image & curl is installed and functional & An array of values fitting the described criteria & See section below & Pass\\
                 \hline
-                4.17 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Running Man image & curl is installed and functioanl & An array of values fitting the described criteria & See section below & Pass\\
+                4.17 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Running Man image & curl is installed and functional & An array of values fitting the described criteria & See section below & Pass\\
                 \hline
-                4.18 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Sitting Man image & curl is installed and functioanl & An array of values fitting the described criteria & See section below & Pass\\
+                4.18 & Using curl -X GET with parameters of brendenduke.ca:8765 and the Sitting Man image & curl is installed and functional & An array of values fitting the described criteria & See section below & Pass\\
                 \hline
         \end{tabular}
 \end{table}
@@ -736,7 +736,7 @@ Tests whether the HTTP server will return a 404 error when we attempt to make an
                 \hline
                 \textbf Test \# & \textbf Test & \textbf Initial State & \textbf Expected Output & \textbf Actual Output & \textbf Result\\
                 \hline\hline
-                4.19 & Using Sending a bad request with SSL & curl is installed and functioanl & An indication the request was bad & HTTP/1.0 400 Bad Request  Server: BaseHTTP/0.6 Python/3.5.2 & Pass\\
+                4.19 & Sending a bad request with SSL & curl is installed and functioanl & An indication the request was bad & HTTP/1.0 400 Bad Request  Server: BaseHTTP/0.6 Python/3.5.2 & Pass\\
                 \hline
         \end{tabular}
 \end{table}
