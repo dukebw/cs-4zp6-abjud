@@ -1145,9 +1145,16 @@ Test 3 & Pass message on console & Pass message on console & PASS \\
 \end{center}
 \end{table}
 
+
 \section{Optimization Tests}
 
-While training the network PCKh values are automatically stored and saved in order to see the progression of the deep learning algorithm. Below is a plot of the accuracy that was achieved versus the number of tests ran. 
+In this section the improvement of the pose estimating neural network is documented as the optimization algorithm is performed.  The training procedure to improve the performance of the network involves starting the network randomly.  The network has parameters in it and the training procedure iteratively changes these parameters to optimize the network's performance.
+
+In Figure 7.1 the change in the performance of the network is shown at each iteration in the training algorithm.  The performance of the network is measured using a metric called PCKh.  This metric is discussed in the Deep Learning section of this manual.
+
+After each epoch interval of training (an interval where each labelled picture in the dataset is analyzed) a measurement of the PCKh value was documented.  The PCKh value was calculated separately for each of the joints.  However in this graph only $6$ joints are displayed.  The joints that are shown well represent the performance of the network because they are joints from all different areas of the body (upper and lower body, limbs, head and mid-section).  The performance of the network is shown in \ref{graph} starting from its random initialization to the $56$ epoch.
+
+The network was trained using the MPII Human Pose Dataset consists of around $17,000$ jpeg images.  So $17000$ pictures had to be passed through the network for each iteration.  Clearly for the training procedure to be considered successful the value of the PCKh value should increase steadily and as rapidly as possible as training proceeds.  A value above a PCKh of $0.8$ for any joint is considered a success.  For this training procedure it is clear that all the joints made it above this value except the right knee.
 
 
 \begin{figure}[!ht]
