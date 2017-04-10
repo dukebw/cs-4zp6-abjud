@@ -61,6 +61,7 @@
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 January 5, 2017 & 0.0 & File created\\
+April 9, 2017 & 1.0 & Final document revision \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1477,6 +1478,57 @@ been finalized. It is also far too slow to be used from a web interface.
                 (\verb|slim.model_variable|) in CPU memory. See the training
                 procedure block diagram in the TF Inception
                 \href{https://github.com/tensorflow/models/tree/master/inception}{README}.
+\end{itemize}
+
+\subsection{dataset}
+
+The dataset contains the \verb|mpii_read| sub-module, which is a module for
+reading the \href{http://human-pose.mpi-inf.mpg.de/}{MPII Human Pose Dataset}.
+
+\textbf{Function: mpii\_read()}
+
+\begin{itemize}
+        \item \textbf{Expected Arguments:}
+
+        \textit{mpii\_dataset\_filepath}: The filepath to the .mat file provided from the
+            MPII Human Pose website.
+
+        \textit{is\_train}: Read training data (True), or test data (False)?
+
+        \item \textbf{Returns:} Parsed \verb|MpiiDataset| object from
+                \verb|parse_mpii_data_from_mat|.
+
+        \item \textbf{Description:} Reads the MPII dataset from its provided
+                \verb|.mat| format.
+
+                Note that the images are assumed to reside in a folder one up from the .mat
+                file that is being parsed (i.e. ../images).
+\end{itemize}
+
+\textbf{parse\_mpii\_data\_from\_mat}
+
+\begin{itemize}
+        \item \textbf{Expected Arguments:}
+
+        \textit{mpii\_dataset\_mat}: A dictionary of MATLAB structures loaded using
+            \verb|scipy.io.loadmat|. The arguments \verb|struct_as_record = False| and
+            \verb|squeeze_me = True| must be set in the `loadmat` call.
+
+        \textit{mpii\_images\_dir}: The path of the directory where all the
+                MPII images are stored.
+
+        \textit{is\_train}: Parse training data (True), or test data (False)?
+
+        \item \textbf{Returns:} Returns: An `MpiiDataset` Python object
+                corresponding to \verb|mpii_dataset_mat|.
+
+        \item \textbf{Description:} Parses the training data out of
+                \verb|mpii_dataset_mat| into a `MpiiDataset` Python object.
+
+                To save time during debugging sessions, you can manually get
+                \verb|mpii_dataset_mat| using \verb|scipy.io.loadmat| once, and
+                then iteratively call this function as you make changes,
+                without reloading the .mat file.
 \end{itemize}
 
 \section{Features In Development}
