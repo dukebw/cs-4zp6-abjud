@@ -257,18 +257,6 @@ implementation of the database is still underway.
 	\includegraphics[width=0.8\textwidth]{../data/ER-Diagram.png}
 \end{figure}
 
-\subsection{Note For Diagram:}
-
-Note that there is an issue with the image above, the diagram has a redundancy.
-The 'Media' and 'Tags' table should not have a column for ``media\_tag\_id''.
-This column will not be mentioned in the table description and this image will
-be updated.
-
-There is also a discrepancy with the arrow mapping the 'Media' table to the
-'Media\_Tags' table. This relationship is a Many-to-Many relationship and not a
-one-to-many.
-
-
 \section{Table Description}
 
 \subsection{Intro}
@@ -449,8 +437,7 @@ About and Contact pages.
 
 The AccountController is used in order to verify Register and Login information
 for a user, using the HTTP Get and Post. It utilizes built in functions of
-'ASP.net' but a majority are not being used for revision 0, so they are omitted
-below.
+'ASP.net'.
 
 \subsubsection{Function: HTTP[Get] Login(args)}
 
@@ -864,21 +851,26 @@ a given image and draw a skeleton overlay on the image\href{http://caffe.berkele
 
 \subsection{Overview}
 
-This component of the project actually provides an HTTP interface through which human pose estimation can be run on images and video. The tf-http-server is written in python and interfaces with the TensorFlow and the human\_pose\_model directly.
+This component of the project actually provides an HTTP interface through which
+human pose estimation can be run on images and video. The tf-http-server is
+written in python and interfaces with the TensorFlow and the human\_pose\_model
+directly.
 
 \subsection{tf\_http\_server.py}
 
 \textbf{Function: \_get\_image\_joint\_predictions(args)}
 \begin{itemize}
-    \item \textbf{Expected Arguments:}
+        \item \textbf{Expected Arguments:}
 
-            \quad\textit{image}
+                \textit{image}: JPEG image in raw bytes format.
 
-            \quad\textit{session}
+                \textit{session}: TF session to run inference in.
 
-            \quad\textit{image\_bytes\_feed}
+                \textit{image\_bytes\_feed}: Placeholder tensor to feed image
+                into.
 
-            \quad\textit{logits\_tensor}
+                \textit{logits\_tensor}: Output logits tensor, corresponding to
+                heatmaps of joint positions inferred by the network.
 
     \item \textbf{Returns:}
 
@@ -886,32 +878,25 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Description:}
 
-            This function does joint position inference on a single image, and stores the results in a JSON string. It uses an array of dictionaries relating the keys to joint names, and the values to the predicted positions with respects to the x and y axis. It follows the format: [{"r\_ankle": [0.5, 0.5], "r\_knee": [1.0, 2.0], ...}, {"r\_ankle": [0.25, 0.2], "r\_knee": [0.1, 0.5], ...}].
+            This function does joint position inference on a single image, and returns
+                the resultant joint predictions in a JSON string.
 
-\end{itemize}
+                The returned JSON string has the following format:
 
-\textbf{Function: \_get\_heatmaps\_for\_batch(args)}
-\begin{itemize}
-    \item \textbf{Expected Arguments:}
+\begin{verbatim}
+[{"r_ankle": [0.5, 0.5], "r\_knee": [1.0, 2.0], ...},
+ {"r_ankle": [0.25, 0.2], "r\_knee": [0.1, 0.5], ...}].
+\end{verbatim}
 
-            \quad\textit{frames}
+                I.e. it is a JSON array of dictionaries, where the keys are
+                names of joints from \verb|JOINT_NAMES_NO_SPACE|, and the
+                values are two-element arrays containing the \verb|[x, y]|
+                coordinates of the joint prediction.
 
-            \quad\textit{logits\_tensor}
-
-            \quad\textit{resized\_image\_tensor}
-
-            \quad\textit{session}
-
-            \quad\textit{image\_bytes\_feed}
-
-            \quad\textit{endpoints}
-
-            \quad\textit{batch\_size}
-
-    \item \textbf{Returns:}
-
-
-    \item \textbf{Description:}
+                These \verb|[x, y]| coordinates are in a space where the range
+                \verb|[-0.5, 0.5]| represent the range, in the padded image,
+                from the far left to the far right in the case of x, and from
+                the top to the bottom in the case of y.
 
 \end{itemize}
 
@@ -929,11 +914,15 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Returns:}
 
-            This function returns a subclass of the 'http.server.BaseHTTPrequestHandler'.
+            This function returns a subclass of the \verb|http.server.BaseHTTPrequestHandler|.
 
     \item \textbf{Description:}
 
-            This function is required to call the subclass of the 'http.server.BaseHTTPrequestHandler' as it allows the function to call extra parameters which are local to the class. All of this is required as the constructor expects a certain function signature.
+            This function is required to call the subclass of the
+                \verb|http.server.BaseHTTPrequestHandler| as it allows the function
+                to call extra parameters which are local to the class. All of
+                this is required as the constructor expects a certain function
+                signature.
 
 \end{itemize}
 
@@ -947,11 +936,14 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Returns:}
 
-            Returns a 200 OK HTTP response message with response data as a JSON string containing the inferred joint position.
+            Returns a 200 OK HTTP response message with response data as a JSON
+                string containing the inferred joint position.
 
     \item \textbf{Description:}
 
-            Takes the image and preforms joint inference on it in order to store it within the JSON that is returned containing the inferred joint position.
+            Takes the image and performs joint inference on it in order to
+                store it within the JSON that is returned containing the
+                inferred joint position.
 
 \end{itemize}
 
@@ -963,11 +955,14 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Returns:}
 
-            A JSON string of the estimated joints for the image URL that has been passed as an option parameter.
+            A JSON string of the estimated joints for the image URL that has
+                been passed as an option parameter.
 
     \item \textbf{Description:}
 
-            This representation of an HTTP GET request will take an image URL as a JPEG and preform joint inference on the image in order to save it in as a JSON string that will later be returned.
+            This representation of an HTTP GET request will take an image URL
+                as a JPEG and perform joint inference on the image in order to
+                save it in as a JSON string that will later be returned.
 
 \end{itemize}
 
@@ -983,7 +978,10 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Description:}
 
-            This function is a HTTP POST request containing a JPEG in base 64 in order to decode the base 64 image and preform joint inference in order to store it as a JSON string representing the joint position.
+            This function is a HTTP POST request containing a JPEG in base 64
+                in order to decode the base 64 image and perform joint
+                inference in order to store it as a JSON string representing
+                the joint position.
 
 \end{itemize}
 
@@ -997,11 +995,16 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Returns:}
 
-            A constructed computation graph that will be used to run human pose inference on.
+            A constructed computation graph that will be used to run human pose
+                inference on.
 
     \item \textbf{Description:}
 
-            The function sets up the computation graph that will decode a JPEG from the input \textit{image\_bytes\_feed} in order to pad and resize the image to the desired shape. Which is then used to run the human pose inference on it using the "Two VGG-16s cascade" model.
+            The function sets up the computation graph that will decode a JPEG
+                from the input \textit{image\_bytes\_feed} in order to pad and
+                resize the image to the desired shape. Which is then used to
+                run the human pose inference on it using the ``Two VGG-16s
+                cascade'' model.
 \end{itemize}
 
 \textbf{Function: run()}
@@ -1012,12 +1015,17 @@ This component of the project actually provides an HTTP interface through which 
 
     \item \textbf{Description:}
 
-            Starts the server in order to handle the HTTP request by listening on an SSL-wrapped socket at port 8765 of the localhost. On start-up a joint inference computation graph is setup, all model weights are restored and a session where the graph can be run is initialized.
+            Starts the server in order to handle the HTTP request by listening
+                on an SSL-wrapped socket at port 8765 of the localhost. On
+                start-up a joint inference computation graph is setup, all
+                model weights are restored and a session where the graph can be
+                run is initialized.
 
 \end{itemize}
 
 \section{human\_pose\_model - Training and Inference Software Suite}
 
+<<<<<<< HEAD
 \subsection{Overview}
 The human\_pose\_model module provides a completely standalone software suite for the training, evaluation and deployment of human pose inference models. In order to provide this software suite the human\_pose\_model is set up in a hierachy that utilizes train.py, evaluate.py, write_tf_record.py, input_pipeline.py, networks.py, dataset.py, and pose_utils.py.
 
@@ -1394,34 +1402,96 @@ Sets up an input pipeline that reads example protobufs from all TFRecord files, 
 \end{itemize}
 
 \break
+=======
+\subsection{train}
+>>>>>>> f2dd48a8cb46b7b3c5692835e826b09ab7151f5e
 
-\section{Features In Development}
+This sub-module of \verb|human_pose_model| does human pose inference model
+training.
 
-\subsection{Pose Estimation For Videos (C++)}
+\textbf{Function: train()}
 
+\begin{itemize}
+        \item \textbf{Expected Arguments:} None.
+
+        \item \textbf{Returns:} None.
+
+        \item \textbf{Description:} Trains a human pose estimation network to
+                detect and/or regress binary maps and/or confidence maps of
+                joint co-ordinates (\verb|NUM_JOINTS| sets of $(x, y)$ co-ordinates).
+
+                Here we only take files $0-N$.  For now files are manually renamed as
+                \verb|train[0-N].tfrecord| and \verb|valid[N-M].tfrecord|,
+                where there are $N + 1$ train records, $(M - N)$ validation
+                records and M + 1 records in total.
+\end{itemize}
+
+\subsection{networks}
+
+The \verb|networks| sub-module contains a sub-module called \verb|inference|,
+which contains all of the human pose inference model imports, various loss
+functions as well as a function to do inference. Besides \verb|inference|, the
+\verb|networks| sub-module also contains model definitions themselves (e.g.
+\verb|vgg_bulat| for the VGG-16 model).
+
+\textbf{Function: inference()}
+
+\begin{itemize}
+        \item \textbf{Expected Arguments:}
+
+        \textit{images}: Mini-batch of preprocessed examples dequeued from the
+                input pipeline.
+
+<<<<<<< HEAD
 Since a video can be considered as just a set (or array) of images, this pose
 estimation algorithm can be executed on videos as well as images. At this point
 in the project, a C++ program does exist that references a function from the
 file \textbf{``estimate\_pose.cpp''} to analyze videos, but the code has not
 been finalized. It is also far too slow to be used from a web interface.
+=======
+        \textit{heatmaps}: Confidence maps of ground truth joints.
+>>>>>>> f2dd48a8cb46b7b3c5692835e826b09ab7151f5e
 
-Since this functionality is not a part of the system yet, this module was not
-given a formal declaration/definition. In addition to the reasons mentioned
-above, the Caffe submodule as a whole will soon be replaced by a newer deep
-learning framework described in the section below (TensorFlow). So this module
-is not going to be included in the final revision of this document
+        \textit{weights}: Weights of heatmaps (tensors of all 1s if joint
+                present, all 0s if not present).
+
+        \textit{is\_visible\_weights}: Weights of heatmaps/binary maps, with
+                occluded joints zero'ed out.
+
+        \textit{gpu\_index}: Index of GPU calculating the current loss.
+
+        \textit{scope}: Name scope for ops, which is different for each tower
+                (tower\_N).
+
+        \item \textbf{Returns:} Tensor giving the total loss (combined loss
+                from auxiliary and primary logits, added to regularization
+                losses).
+
+        \item \textbf{Description:} Sets up a human pose inference model,
+                computes predictions on input images and calculates loss on
+                those predictions based on an input dense vector of joint
+                location confidence maps and binary maps (the ground truth
+                vector).
+
+                TF-slim's \verb|arg_scope| is used to keep variables
+                (\verb|slim.model_variable|) in CPU memory. See the training
+                procedure block diagram in the TF Inception
+                \href{https://github.com/tensorflow/models/tree/master/inception}{README}.
+\end{itemize}
+
+\section{Features In Development}
 
 \subsection{TensorFlow}
 
-Moving Forward, the Caffe deep learning framework (C++) will be replaced by
+The Caffe deep learning framework (C++) has already been replaced by
 TensorFlow. TensorFlow is a newer framework with more support for developers
 compared to Caffe. TensorFlow is a library in Python that can generate dataflow
 graphs needed for neural networks and deep learning algorithms.
 
 Thanks to the modularity of the project design, replacing the deep learning
-framework will not drastically change the logic of the web application. The web
-application would just refer to a different kind of executable when processing
-an uploaded image (it refers to a shared object file as of now).
+framework has not drastically changed the logic of the web application. The web
+application refers to a different kind of executable when processing
+an uploaded image (it previously referred to a shared object).
 
 Current development of the TensorFlow backend is focused on training a neural
 network from scratch, or re-training a standard network such as VGG-16. The
@@ -1433,7 +1503,7 @@ network on the larger dataset.
 
 The focus of the TensorFlow backend is to improve the existing methods by
 experimenting with state of the art results in human pose estimation using a
-common framework (that being TensorFlow). Once completed this code could be
+common framework (that being TensorFlow). Once completed, this code could be
 contributed back to the open source community, so that others can also run the
 TensorFlow implementation of current human pose estimation research methods.
 
@@ -1447,29 +1517,27 @@ individual frames.
 \subsection{Standalone HTTP Server}
 
 In addition to the ASP.NET website, the idea is to have a dedicated HTTP server
-that is separate from the .net website that can take in HTTP requests and run
+that is separate from the .NET website that can take in HTTP requests and run
 the pose estimation algorithm and save the image/video to the database.
 
-The main purpose of this dedicated server is to optimize mass-uploads of large
-sets of images/videos. This server would not have to deal with the overhead of
-running an entire MVC framework, and would be better suited for uploads that
-take longer. This server could also be configured to be optimized for GPU-based
-execution of the pose estimation algorithm.
+The main purpose of this server, which is configured to be optimized for
+GPU-based execution of the pose estimation algorithm, is to off-load human pose
+inference computations from the MVC web server.
 
 Having a separate site would also prevent the possibility of overloading the
 main website with too many long-polling requests. This is a definite
 possibility if there are a lot of users and activity.
 
-There is no module or code for this standalone server yet, but it might be
-implemented using Python and HTTP Requests
-
-
 \chapter{Communication Protocol}
 
-This application uses the HTTP (HyperText Transfer Protocol) to communicate
-between the web interface and the server. There is the possibility of using
-HTTPS for securse communication, but this is not a strong requirement
+This application uses the HTTPS (HyperText Transfer Protocol Secure) to
+communicate between the web interface and the server. HTTP over SSL is used due
+to browser requirements of HTTPS in order to use the webcam.
 
+The browser's webcam is needed for development of the human pose estimation
+app, which is a simple demo of the Text-to-Motion human pose estimation
+technology as suggested by Dr.\ He. The web app demo is currently under
+development.
 
 \chapter{Development Details}
 
@@ -1477,7 +1545,7 @@ HTTPS for securse communication, but this is not a strong requirement
 
 \begin{itemize}
     \item \textbf{C\#}: ASP.NET Core MVC Framework
-    \item \textbf{C++}: Pose Estimation program based on research paper
+    \item \textbf{Python}: Pose Estimation program based on research paper
     \item \textbf{C}: used to wrap the C++ function so that it can be made into a shared object file that can be called from the web app
     \item \textbf{SQLite}: to store database of images
 \end{itemize}
@@ -1495,27 +1563,27 @@ HTTPS for securse communication, but this is not a strong requirement
 \begin{itemize}
     \item \textbf{Python}: Tensorflow
     \item \textbf{MySQL}: for the database schema described in \textbf{section 3}
-
 \end{itemize}
 
 \section{Software}
 
 \begin{itemize}
-    \item \textbf{Caffe}: to run pose estimation on heatmaps generated from images
-    \item \textbf{OpenCV}: for image manipulation so that uploaded images can be converted into types accepted by Caffe
+    \item \textbf{Tensorflow:} to replace Caffe as the deep learning framework
+    \item \textbf{OpenCV}: for image manipulation so that uploaded images can
+            be converted into types accepted by Caffe
 \end{itemize}
 
 \section{Software - for features in development}
 
 \begin{itemize}
-    \item \textbf{Tensorflow:} to replace Caffe as the deep learning framework
     \item \textbf{Sphinx Search:} indexing tool for SQL databases that can speed up search queries. will be included once the SQL database is up and running
 \end{itemize}
 
 \section{Hardware}
 
 \begin{itemize}
-    \item \textbf{Ubuntu Server - 16.0.4:} hosts the live website at \href{159.203.10.112}{this link}
+    \item \textbf{Ubuntu Server - 16.0.4:} hosts the live website at
+            \url{https://brendanduke.ca}.
 \end{itemize}
 
 \chapter{Reference Links}
