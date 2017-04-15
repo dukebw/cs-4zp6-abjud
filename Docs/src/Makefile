@@ -2,7 +2,7 @@ PROBSTMT=ProblemStatement
 SRS=SoftwareRequirementsSpecification
 POC=ProofOfConceptPlan
 TEST=TestPlan
-DESIGNDOC=DesignDoc
+DETAILEDDESIGN=DetailedDesign
 TESTREPORT=TestReport
 SYSARCHITECTURE=SystemArchitecture
 USERMANUAL=UserManual
@@ -51,13 +51,17 @@ user_manual:
 	mv $(USERMANUAL).pdf ..
 
 design_doc:
-	xelatex $(DESIGNDOC).tex
-	xelatex $(DESIGNDOC).tex
-	$(MAKE) clean
-	mv $(DESIGNDOC).pdf ..
+	xelatex $(SRS).tex
+	bibtex $(SRS).aux
+	xelatex $(SRS).tex
+	xelatex $(SRS).tex
+	xelatex $(DETAILEDDESIGN).tex
+	xelatex $(DETAILEDDESIGN).tex
 	xelatex $(SYSARCHITECTURE).tex
 	xelatex $(SYSARCHITECTURE).tex
 	$(MAKE) clean
+	mv $(SRS).pdf ..
+	mv $(DETAILEDDESIGN).pdf ..
 	mv $(SYSARCHITECTURE).pdf ..
 
 clean:

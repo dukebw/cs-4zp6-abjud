@@ -8,7 +8,6 @@ from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.framework import ops
 from pose_utils import pose_util
 from pose_utils.pose_flags import FLAGS
-from dataset.mpii_datatypes import Person
 from input_pipeline import setup_train_input_pipeline
 from networks.inference import inference
 from evaluate import setup_evaluation, evaluate_single_epoch
