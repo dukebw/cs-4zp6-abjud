@@ -9,7 +9,7 @@ main{
 }
 
 body{
-    background-image: url("https://www.transparenttextures.com/patterns/xv.png") !important;
+    background-image: url("/images/xv.png") !important;
 /* This is mostly intended for prototyping; please download the pattern and re-host for production environments. Thank you! */
 }
 
@@ -76,6 +76,20 @@ body{
 padded-from-right{
     padding-right: 10px !important;
 }
+
+.no-padding-top{
+    padding-top: 0px !important;
+}
+.no-padding-bot {
+    padding-bottom: 0px !important;
+}
+.no-padding-left {
+    padding-left: 0px !important;
+}
+.no-padding-right {
+    padding-right: 0px !important;
+}
+
 
 .spaced-from-bot{
     margin-bottom: 5px !important;
@@ -294,8 +308,12 @@ div + div {
 
 
 .user-avatar-img{
-    height: 10em !important;
-    width: 70% !important;
-    background-color: #909090 !important;
-    margin-left: 15% !important;
+    height: 6em !important;
+    width: 100% !important;
+    border: solid 1px grey;
+}
+
+
+.transparent-grey{
+    background-color: rgba(200, 200, 200, 0.4) !important;
 }

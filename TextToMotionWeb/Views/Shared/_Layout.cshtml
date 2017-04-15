@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 @using Microsoft.AspNetCore.Identity
 @using TextToMotionWeb.Models
@@ -15,16 +15,12 @@
             <link rel="stylesheet" href="~/lib/font-awesome/css/font-awesome.min.css" />
             <link rel="stylesheet" href="~/lib/materialize/dist/css/materialize.min.css" />
             <link rel="stylesheet" href="~/css/site.css" />
-
-            <script src="~/lib/knockout/dist/knockout.js"></script>
         </environment>
         <environment names="Staging, Production">
             <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
             <link rel="stylesheet" href="~/lib/font-awesome/css/font-awesome.min.css" />
             <link rel="stylesheet" href="~/lib/materialize/dist/css/materialize.min.css" />
             <link rel="stylesheet" href="~/css/site.css" />
-
-            <script src="~/lib/knockout/dist/knockout.js"></script>
         </environment>
         @RenderSection("preloaded", required: false)
     </head>
@@ -59,41 +55,7 @@
                 <br /><br />
             </main>
             <div class="nav-transition grey lighten-1"></div>
-            <footer class="page-footer grey darken-4">
-                @if (SignInManager.IsSignedIn(User))
-                {
-                    <ul id="slide-out" class="side-nav">
-                        <li>
-                            <div class="userView">
-                                <img class="circle user-avatar-img" src="https://robohash.org/@UserManager.GetUserName(User)">
-                                <h5 class="center-align">@UserManager.GetUserName(User)</h5>
-                                <a href="#!email"><span class="white-text email">jdandturk@gmail.com</span></a>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="card-panel grey lighten-2">
-                                <div class="card-content">
-                                    <form method="post" action="/User/SaveName">
-                                        <div class="input-field col s12 padded-from-bot">
-                                            <input type="text" name="first_name" required />
-                                            <label>First Name</label>
-                                        </div>
-                                        <div class="input-field col s12 padded-from-top">
-                                            <input type="text" name="last_name" required/>
-                                            <label>Last Name</label>
-                                        </div>
-                                        <br />
-                                        <div>
-                                            <a class="btn waves-effect green darken-1"><i class="fa fa-edit"></i> Save Changes</a>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </li>
-                    </ul>
-                }
-                <br>
-            </footer>
+            <footer class="page-footer grey darken-4"></footer>
 
         </div>
         <environment names="Development">
@@ -110,7 +72,6 @@
         <script>
             $(document).ready(function () {
                 $(".button-collapse").sideNav();
-                $('.side-nav-trigger').sideNav();
                 $(".dropdown-button").dropdown();
 
            });

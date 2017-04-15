@@ -15,9 +15,26 @@ namespace TextToMotionWeb.Controllers
 {
     public class DashboardController:Controller
     {
-        [Authorize]
-        public IActionResult Index()
+        private readonly UserManager<ApplicationUser> manager;
+
+
+        public DashboardController(UserManager<ApplicationUser> UserManager)
         {
+            manager = UserManager;
+        }
+
+        public async Task<ApplicationUser> GetCurrentUser()
+        {
+            return await manager.GetUserAsync(HttpContext.User);
+        }
+
+
+
+        [Authorize]
+        public async Task<IActionResult> Index()
+        {
+            var user = await GetCurrentUser();
+            ViewData["user"] = user;
             return View();
         }
 
