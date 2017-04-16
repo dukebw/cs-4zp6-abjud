@@ -1,31 +1,38 @@
 ﻿
-<ul id='project-dropdown' class='dropdown-content grey lighten-2' style="margin-top:64px">
-    <li><a class="teal-text text-darken-1 center-align" asp-area="" asp-controller="Home" asp-action="About"><b>About</b></a></li>
-    <li><a class="teal-text text-darken-1 center-align" asp-area="" asp-controller="Home" asp-action="Contact"><b>Contact</b></a></li>
-</ul>
-<ul class="right hide-on-med-and-down">
-    <li><a href="/" class="center-align"><b class="bordered-bottom-teal"><i class="fa fa-search"></i> Search</></b></a></li>
-    <li><a href="/Dashboard" class="center-align"><b>Dashboard</b></a></li>
-    <li><a class='dropdown-button center-align' href='#' data-activates='project-dropdown'><b>Project Details</b><i class="material-icons right">arrow_drop_down</i></a></li>
-    <li>
-        <form asp-area="" asp-controller="Account" asp-action="LogOff" method="post" id="logoutForm" class="center-align">
-            <button class="btn navbar-btn red darken-3 waves-effect waves-light" type="submit">Log Off</button>
-        </form>
-    </li>
-</ul>
+<div class="col s12">
+    <a href="/Search" class="brand-logo padded-from-left heading-font"><b>Text-To-Motion</b></a>
+    <a data-activates="mobile-nav" class="button-collapse cursorPointer">
+        <i class="fa fa-bars"></i>
+    </a>
+
+    <ul id='project-dropdown' class='dropdown-content grey lighten-2' style="margin-top:64px">
+        <li><a class="teal-text text-darken-1 center-align" asp-area="" asp-controller="Home" asp-action="About"><b>About</b></a></li>
+        <li><a class="teal-text text-darken-1 center-align" asp-area="" asp-controller="Home" asp-action="Contact"><b>Contact</b></a></li>
+    </ul>
+    <ul class="right hide-on-med-and-down">
+        <li><a href="/" class="center-align"><b class="bordered-bottom-teal"><i class="fa fa-search"></i> Search</b></a></li>
+        <li><a href="/Dashboard" class="no-padding-right"><div id="user-avatar" class="user-avatar-nav" style="background-image: url('//evatar.io/admin@ttm')"></div></a></li>
+        <li><a href="/Dashboard" class="center-align min-padding-left"><b>Dashboard</b></a></li>
+        <li><a class='dropdown-button center-align' href='#' data-activates='project-dropdown'><b>Project Details</b><i class="material-icons right">arrow_drop_down</i></a></li>
+        <li>
+            <form asp-area="" asp-controller="Account" asp-action="LogOff" method="post" id="logoutForm" class="center-align">
+                <button class="btn navbar-btn red darken-3 waves-effect waves-light" type="submit">Log Off</button>
+            </form>
+        </li>
+    </ul>
 
 
-<ul id="mobile-nav" class="side-nav">
-    <li><a href="/" class="center-align"><b><i class="fa fa-search"></i> Search</b></a></li>
-    <li><a href="/Dashboard" class="center-align"><b>Dashboard</b></a></li>
-    <li><a class="center-align" asp-area="" asp-controller="Home" asp-action="About"><b>About</b></a></li>
-    <li><a class="center-align" asp-area="" asp-controller="Home" asp-action="Contact"><b>Contact</b></a></li>
-    <li>
-        <form asp-area="" asp-controller="Account" asp-action="LogOff" method="post" id="logoutForm" class="center-align">
-            <button class="btn navbar-btn red darken-3 waves-effect waves-light" type="submit">Log Off</button>
-        </form>
-    </li>
-</ul>
-
+    <ul id="mobile-nav" class="side-nav">
+        <li><a href="/" class="center-align"><b><i class="fa fa-search"></i> Search</b></a></li>
+        <li><a href="/Dashboard" class="center-align"><b>Dashboard</b></a></li>
+        <li><a class="center-align" asp-area="" asp-controller="Home" asp-action="About"><b>About</b></a></li>
+        <li><a class="center-align" asp-area="" asp-controller="Home" asp-action="Contact"><b>Contact</b></a></li>
+        <li>
+            <form asp-area="" asp-controller="Account" asp-action="LogOff" method="post" id="logoutForm" class="center-align">
+                <button class="btn navbar-btn red darken-3 waves-effect waves-light" type="submit">Log Off</button>
+            </form>
+        </li>
+    </ul>
+</div>
 
 

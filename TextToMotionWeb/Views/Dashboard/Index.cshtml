@@ -6,6 +6,7 @@
 <div class="row no-margins">
     <br />
     <div class="col l3 m4">
+        <br /><br />
         <div class="row">
             <div class="card rounded z-depth-2 hoverable col s12">
                 <div class="card-title">
@@ -22,7 +23,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="card-panel grey lighten-3">
+                        <div class="card-panel grey lighten-3 z-depth-1">
                             @if (user.FirstName == null && user.LastName == null)
                             {
                                 <p class="lg-font"><span><b>Name:</b> <u>(Not Set)</u></span></p>
@@ -49,27 +50,27 @@
     </div>
     <div class="col l8 m7 padded-from-top">
         <div class="row padded-from-top">
-            <div class="col s12">
+            <div class="col s12 center-align">
                 <span class="spaced-from-bot">
-                    <a href="/Dashboard/ProcessImage" class="waves-effect waves-light btn-large blue lighten-2 padded-from-bot hoverable"><i class="fa fa-file-image-o"></i> <i class="fa fa-plus"></i> Process New Image...</a>
+                    <a href="/Dashboard/ProcessImage" class="waves-effect waves-light btn-large teal lighten-2 padded-from-bot hoverable"><i class="fa fa-file-image-o"></i> <i class="fa fa-plus"></i> Process New Image...</a>
                 </span>
                 <span class="spaced-from-bot">
-                    <a href="/Dashboard/ProcessVideo" class="waves-effect waves-light btn-large teal lighten-2 hoverable"><i class="fa fa-file-video-o"></i> <i class="fa fa-plus"></i> Process New Video...</a>
+                    <a href="/Dashboard/ProcessVideo" class="waves-effect waves-light btn-large indigo lighten-2 hoverable"><i class="fa fa-file-video-o"></i> <i class="fa fa-plus"></i> Process New Video...</a>
                 </span>
                 <span class="padded-from-top">
-                    <a href="/Dashboard/ProcessStream" class="waves-effect waves-light btn-large indigo lighten-2 hoverable"><i class="fa fa-video-camera"></i> <i class="fa fa-plus"></i> Capture Camera Stream...</a>
+                    <a href="/Dashboard/ProcessStream" class="waves-effect waves-light btn-large blue lighten-2 hoverable"><i class="fa fa-video-camera"></i> <i class="fa fa-plus"></i> Capture Camera Stream...</a>
                 </span>
             </div>
         </div>
         <div class="row">
-            <div class="card col s12 z-depth-1">
+            <div class="card col s12 z-depth-2">
                 <div class="card-tabs grey lighten-2">
                     <ul class="tabs tabs-fixed-width indigo-text">
                         <li class="tab"><a class="active" href="#user-posts">My Posts</a></li>
                         <li class="tab"><a href="#rated-posts">My Rated Posts</a></li>
                     </ul>
                 </div>
-                <div class="card-content grey lighten-4">
+                <div class="card-content grey lighten-4 z-depth-1">
                     <div id="user-posts">
                         My Posts...
                     </div>

@@ -1,1 +1,121 @@
-﻿<p>...</p>
+﻿<div class="container">
+    <br />
+    <div class="row">
+        <div class="col s12">
+            <div class="card">
+                <div class="card-content teal lighten-2">
+                    <h4 class="center-align no-margins white-text"><i class="fa fa-cloud-upload"></i> Upload Image</h4>
+                </div>
+                <div class="card-content grey lighten-4">
+                    <div id="process-image">
+                        <div class="row">
+                            <div class="col m10 s12 offset-m1">
+                                <h5 class="no-margins"><i class="fa fa-image"></i> Image Upload</h5>
+                                <form id="image-upload-form" method="post" action="/Upload/ProcessImage" enctype="multipart/form-data">
+                                    <div class="card-panel grey lighten-2 z-depth-2">
+                                        <div class="file-field input-field no-margins">
+                                            <div class="btn cyan">
+                                                <span>File</span>
+                                                <input id="image-upload" type="file" name='image-upload' onchange="readURL(this);">
+                                            </div>
+                                            <div class="file-path-wrapper">
+                                                <input class="file-path validate" type="text">
+                                            </div>
+                                        </div>
+                                        <div class="row no-margins">
+                                            <div class="card-panel indigo lighten-4">
+                                                <div id="spinner" class="loader" style="display:none">
+                                                    <div class="a">
+                                                        <div class="dot"></div>
+                                                        <div class="dot"></div>
+                                                        <div class="dot"></div>
+                                                        <div class="dot"></div>
+                                                        <div class="dot"></div>
+                                                        <div class="dot"></div>
+                                                        <div class="dot"></div>
+                                                    </div>
+                                                    <div class="b">
+                                                        <div class="dotb"></div>
+                                                        <div class="dotb"></div>
+                                                        <div class="dotb"></div>
+                                                        <div class="dotb"></div>
+                                                        <div class="dotb"></div>
+                                                        <div class="dotb"></div>
+                                                        <div class="dotb"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="row no-margins">
+                                                    <div id="image-preview-container" class="col m6 s12 image-container">
+                                                        <img id="image-preview" class="uploaded-image-preview z-depth-3 hoverable" src="~/images/placeholders/image.png" />
+                                                    </div>
+                                                    <div id="processed-image-container" class="col m6 s12 image-container">
+                                                        <img id="processed-image" class="uploaded-image-preview z-depth-3 hoverable" src="http://www.freebiesgallery.com/wp-content/uploads/2014/02/blurred-background-2.jpg" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <a id="process-image-btn" onclick="processImage()" class="btn orange darken-2 col m4 s12 offset-m1">Process Image</a>
+                                            <a id="save-btn" class="btn amber darken-2 col s4 offset-s2" href="#save-image-modal">Save Processed Image</a>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Structure -->
+    <div id="save-image-modal" class="modal bottom-sheet">
+        <div class="modal-content">
+            <h4>Modal Header</h4>
+            <p>A bunch of text</p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Agree</a>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts{
+    <script>
+        function toggleForms(option) {
+            console.log(option.html());
+        }
+
+        function readURL(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#image-preview').attr('src', e.target.result);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+            else ($("#image-preview").attr('src', 'http://placehold.it/180'));
+        }
+
+
+        function processImage() {
+            var imageInput = document.getElementById('image-upload');
+            if (imageInput.files && imageInput.files[0]) {
+                
+                setTimeout(function () {
+                    sendRequestToTFServer($('#image-preview').attr('src'));
+                }, 2000);
+                
+            }
+            else {
+                var $toastContent = $('<h5 class="text-center"><i class="fa fa-exclamation-triangle"></i> Please Upload an Image or Add a Link</h5>');
+                Materialize.toast($toastContent, 5000);
+            }
+        }
+
+
+        function showSaveImageModal() {
+            $('#show-image-modal').modal('show');
+        }
+    </script>
+}

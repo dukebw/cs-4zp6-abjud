@@ -28,17 +28,11 @@
         <div class="page-flex-box-wrapper">
             <header>
                 <nav>
-                    <div class="nav-wrapper row black">
-                        <div class="col s12">
-                            <a href="/" class="brand-logo padded-from-left heading-font"><b>Text-To-Motion</b></a>
-                            <a data-activates="mobile-nav" class="button-collapse cursorPointer">
-                                <i class="fa fa-bars"></i>
-                            </a>
+                    <div class="nav-wrapper row black">                        
                             @if (SignInManager.IsSignedIn(User))
                             {
                                 @await Html.PartialAsync("AuthorizedNavLinks")
                                 <div class="nav-transition padded-from-top">
-                                    <p>@UserManager.GetUserName(User)</p>
                                 </div>
 
                             }
@@ -46,7 +40,6 @@
                             {
                                 @await Html.PartialAsync("NavLinks")
                             }
-                        </div>
                     </div>
                 </nav>
             </header>
@@ -74,7 +67,15 @@
                 $(".button-collapse").sideNav();
                 $(".dropdown-button").dropdown();
 
-           });
+            });
+
+            @if (SignInManager.IsSignedIn(User))
+            {
+                <text>
+                    $('#user-avatar').css('background-image', 'url("https://evatar.io/@UserManager.GetUserName(User)")');
+                </text>
+
+            }
         </script>
     </body>
 </html>
