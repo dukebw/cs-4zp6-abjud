@@ -39,8 +39,11 @@ namespace TextToMotionWeb.Controllers
         }
 
         [Authorize]
-        public IActionResult ProcessImage()
+        //GET
+        public async Task<IActionResult> ProcessImage()
         {
+            var user = await GetCurrentUser();
+            ViewData["user"] = user;
             return View();
         }
 

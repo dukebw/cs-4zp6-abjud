@@ -1,65 +1,55 @@
-﻿<div class="container">
+﻿@using TextToMotionWeb.Models
+@{
+    var user = ViewData["User"] as ApplicationUser;
+}
+
+
+@section PreLoaded{
+    <link href="~/css/spinner.css" rel="stylesheet"/>
+    <script type="text/javascript" src="~/lib/knockout/dist/knockout.js"></script>
+}
+<div data-bind="fadeVisible: !vm.pageLoaded()">
+    <div class="spinner">
+        <div class="cube1"></div>
+        <div class="cube2"></div>
+    </div>
+</div>
+
+<div id="page-content" style="display:none">
     <br />
     <div class="row">
-        <div class="col s12">
+        <div class="col s12 m12 l10 offset-l1">
             <div class="card">
-                <div class="card-content teal lighten-2">
-                    <h4 class="center-align no-margins white-text"><i class="fa fa-cloud-upload"></i> Upload Image</h4>
+                <div class="teal lighten-2 card-content">
+                    <h4 class="center-align no-margins white-text"><i class="fa fa-image"></i> Process Image</h4>
                 </div>
                 <div class="card-content grey lighten-4">
-                    <div id="process-image">
-                        <div class="row">
-                            <div class="col m10 s12 offset-m1">
-                                <h5 class="no-margins"><i class="fa fa-image"></i> Image Upload</h5>
-                                <form id="image-upload-form" method="post" action="/Upload/ProcessImage" enctype="multipart/form-data">
-                                    <div class="card-panel grey lighten-2 z-depth-2">
-                                        <div class="file-field input-field no-margins">
-                                            <div class="btn cyan">
-                                                <span>File</span>
-                                                <input id="image-upload" type="file" name='image-upload' onchange="readURL(this);">
-                                            </div>
-                                            <div class="file-path-wrapper">
-                                                <input class="file-path validate" type="text">
-                                            </div>
+                    <div class="row">
+                        <div class="col s12 m3 l2">
+                            <label class="xl-font">Add Image Via: </label><br />
+                            <input id="file-upload" class="with-gap" value="File Upload" data-bind="checked: vm.optionForUpload" name="option" type="radio" checked/>
+                            <label for="file-upload"><i class="fa fa-upload"></i> File Upload</label>
+                            <input id="image-url" class="with-gap" value="Image URL" data-bind="checked: vm.optionForUpload" name="option" type="radio" />
+                            <label for="image-url"><i class="fa fa-link"></i> Image URL</label>
+                        </div>
+                        <div class="col s12 m9 l10">
+                            <div class="card-panel grey lighten-3">
+                                <div class="row">
+                                    <div class="file-field input-field col s12" data-bind="fadeVisible: vm.optionForUpload() == 'File Upload'">
+                                        <div class="btn cyan">
+                                            <span><i class="fa fa-file-o"></i> File</span>
+                                            <input id="image-upload" type="file" name='image-upload' onchange="readURL(this);">
                                         </div>
-                                        <div class="row no-margins">
-                                            <div class="card-panel indigo lighten-4">
-                                                <div id="spinner" class="loader" style="display:none">
-                                                    <div class="a">
-                                                        <div class="dot"></div>
-                                                        <div class="dot"></div>
-                                                        <div class="dot"></div>
-                                                        <div class="dot"></div>
-                                                        <div class="dot"></div>
-                                                        <div class="dot"></div>
-                                                        <div class="dot"></div>
-                                                    </div>
-                                                    <div class="b">
-                                                        <div class="dotb"></div>
-                                                        <div class="dotb"></div>
-                                                        <div class="dotb"></div>
-                                                        <div class="dotb"></div>
-                                                        <div class="dotb"></div>
-                                                        <div class="dotb"></div>
-                                                        <div class="dotb"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="row no-margins">
-                                                    <div id="image-preview-container" class="col m6 s12 image-container">
-                                                        <img id="image-preview" class="uploaded-image-preview z-depth-3 hoverable" src="~/images/placeholders/image.png" />
-                                                    </div>
-                                                    <div id="processed-image-container" class="col m6 s12 image-container">
-                                                        <img id="processed-image" class="uploaded-image-preview z-depth-3 hoverable" src="http://www.freebiesgallery.com/wp-content/uploads/2014/02/blurred-background-2.jpg" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <a id="process-image-btn" onclick="processImage()" class="btn orange darken-2 col m4 s12 offset-m1">Process Image</a>
-                                            <a id="save-btn" class="btn amber darken-2 col s4 offset-s2" href="#save-image-modal">Save Processed Image</a>
+                                        <div class="file-path-wrapper">
+                                            <input class="file-path validate" type="text">
                                         </div>
                                     </div>
-                                </form>
+                                    <div class="input-field col s12" data-bind="fadeVisible: vm.optionForUpload() == 'Image URL'">
+                                        <i class="material-icons prefix">link</i>
+                                        <input id="icon_prefix" type="text" class="validate">
+                                        <label for="icon_prefix">Please enter the URL of the image to process...</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -81,6 +71,7 @@
 
 
 @section Scripts{
+    @{ await Html.RenderPartialAsync("ProcessImageViewModel"); }
     <script>
         function toggleForms(option) {
             console.log(option.html());

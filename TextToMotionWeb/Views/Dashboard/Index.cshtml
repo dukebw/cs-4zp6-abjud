@@ -5,33 +5,35 @@
 <div class="transition-edge blue-grey lighten-3"></div>
 <div class="row no-margins">
     <br />
-    <div class="col l3 m4">
-        <br /><br />
+    <div class="col l3 m4 hide-on-small-and-down">
+        <br />
         <div class="row">
             <div class="card rounded z-depth-2 hoverable col s12">
                 <div class="card-title">
                     <h5 class="center-align"><i class="fa fa-user-circle-o"></i> Dashboard</h5>
-                    <hr class="faded"/>
+                    <hr class="faded no-margins"/>
                 </div>
                 <div class="card-content no-padding-bot">
+                    <div class="row">
+                        <p class="chip fullWidth center-align lg-font indigo darken-2 white-text">@user.UserName</p>
+                    </div>
                     <div class="row">
                         <div class="col m5">
                             <img class="user-avatar-img responsive-img" src="https://evatar.io/@user.UserName">
                         </div>
                         <div class="col m7 center-align">
-                            <p class="chip lg-font indigo darken-2 white-text">@user.UserName</p>
+                            @if (user.FirstName == null && user.LastName == null)
+                            {
+                                <p class="lg-font"><span><b>Name</b><br /><u>(Not Set)</u></span></p>
+                            }
+                            else
+                            {
+                                <p class="lg-font"><b><span>Name</span></b><br /><u><span>@user.FirstName</span> <span>@user.LastName</span></u></p>
+                            }                        
                         </div>
                     </div>
                     <div class="row">
                         <div class="card-panel grey lighten-3 z-depth-1">
-                            @if (user.FirstName == null && user.LastName == null)
-                            {
-                                <p class="lg-font"><span><b>Name:</b> <u>(Not Set)</u></span></p>
-                            }
-                            else
-                            {
-                                <p class="lg-font"><b><span>Name: </span></b><u><span>@user.FirstName</span> <span>@user.LastName</span></u></p>                    
-                            }
                             <blockquote>
                                 <div class="chip teal lighten-1">0</div> Total Posts
                                 <br />
@@ -48,7 +50,7 @@
             </div>
         </div>
     </div>
-    <div class="col l8 m7 padded-from-top">
+    <div class="col s12 l8 m7 padded-from-top">
         <div class="row padded-from-top">
             <div class="col s12 center-align">
                 <span class="spaced-from-bot">
@@ -63,7 +65,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="card col s12 z-depth-2">
+            <div class="card col s12 z-depth-2 rounded">
                 <div class="card-tabs grey lighten-2">
                     <ul class="tabs tabs-fixed-width indigo-text">
                         <li class="tab"><a class="active" href="#user-posts">My Posts</a></li>
