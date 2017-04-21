@@ -8,18 +8,20 @@
     </div>
 </div>
 
-<div>
-    <video autoplay></video>
-</div>
 
-<div>
-    <button class="btn btn-success col-lg-offset-1" onclick="captureScreen()">
+<div class="row">
+    <div class="col s6">
+        <video autoplay></video>
+    </div>
+    <div class="col s6">
+        <canvas></canvas>
+    </div>
+</div>
+<br />
+<div class="row">
+    <button class="btn btn-success col-lg-offset-1">
         <b>Capture Screen</b>
     </button>
-</div>
-
-<div>
-    <canvas></canvas>
 </div>
 
 @section Scripts {
