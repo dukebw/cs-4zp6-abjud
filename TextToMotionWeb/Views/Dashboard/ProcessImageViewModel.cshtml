@@ -1,15 +1,91 @@
 ﻿<script>
+    function elemByID(id) { return document.getElementById(id); }
+
     var ProcessImageVM = function () {
         var self = this;
 
         self.pageLoaded = ko.observable(false);
         self.optionForUpload = ko.observable('File Upload');
 
-        
+        self.showEmptyBaseImage = ko.observable(true);
+        self.showSpinnerForBaseImage = ko.observable(false);
+        self.showBaseImage = ko.observable(false);
+        self.resultCSSForBaseImage = ko.observable('');
 
+        self.showProcessBtn = ko.observable(false);
+
+        self.showEmptyProcessedImage = ko.observable(true);
+        self.showSpinnerWhileProcessingImage = ko.observable(false);
+        self.showProcessedImage = ko.observable(false);
+
+        self.showSaveBtn = ko.observable(false);
+
+
+        //whenever the user switches b/w upload & url, restore to empty base state
+        self.handlingToggleForInputFormat = self.optionForUpload.subscribe(function () {
+            self.restoreToEmptyBaseState();
+            $('#image-url').val('');
+            $('#upload-file-path').val('');
+            $('#image-upload').val('');
+        })
+
+
+
+        self.restoreToEmptyBaseState = function () {
+            self.showBaseImage(false);
+            self.showSpinnerForBaseImage(false);
+            self.showEmptyBaseImage(true);
+            self.resultCSSForBaseImage('');
+            self.showProcessBtn(false);
+            self.showProcessedImage(false);
+            self.showSpinnerWhileProcessingImage(false);
+            self.showEmptyProcessedImage(true);
+            self.showSaveBtn(false);
+        }
+
+        self.showSpinnerForBaseState = function () {
+            self.showBaseImage(false);
+            self.showEmptyBaseImage(false);
+            self.resultCSSForBaseImage('');
+            self.showSpinnerForBaseImage(true);
+            self.showProcessBtn(false);
+        }
+        self.showValidResultForBaseState = function () {
+            self.showEmptyBaseImage(false);
+            self.showSpinnerForBaseImage(false);
+            self.resultCSSForBaseImage('valid');
+            self.showBaseImage(true);
+            self.showProcessBtn(true);
+        }
+        self.showInvalidResultForBaseState = function () {
+            self.showBaseImage(false);
+            self.showSpinnerForBaseImage(false);
+            self.showProcessBtn(false);
+            self.resultCSSForBaseImage('invalid');
+            self.showEmptyBaseImage(true);
+        }
+
+
+        self.showSpinnerForProcessingState = function () {
+            self.showProcessedImage(false);
+            self.showEmptyProcessedImage(false);
+            self.showSpinnerWhileProcessingImage(true);
+            self.showSaveBtn(false);
+        }
+        self.showValidResultForProcessedState = function () {
+            self.showEmptyProcessedImage(false);
+            self.showSpinnerWhileProcessingImage(false);
+            self.showProcessedImage(true);
+            self.showProcessBtn(false);
+            self.showSaveBtn(true);
+        }
+        
     }
 
-    //custom bindings and funcs 
+
+
+
+    //custom bindings and helper funcs 
     ko.bindingHandlers.fadeVisible = {
         init: function (element, valueAccessor) {
             // Initially set the element to be instantly visible/hidden depending on the value
@@ -23,22 +99,111 @@
         }
     };
 
+    ko.bindingHandlers.fadeVisibleAlt = {
+        init: function (element, valueAccessor) {
+            // Initially set the element to be instantly visible/hidden depending on the value
+            var value = valueAccessor();
+            $(element).toggle(ko.utils.unwrapObservable(value)); // Use "unwrapObservable" so we can handle values that may or may not be observable
+        },
+        update: function (element, valueAccessor) {
+            // Whenever the value subsequently changes, slowly fade the element in or out
+            var value = valueAccessor();
+            ko.utils.unwrapObservable(value) ? $(element).show() : $(element).hide();
+        }
+    }
 
 
-    //init 
 
+    //init
     window.vm = new ProcessImageVM();
     ko.applyBindings(vm);
 
-
     function showPage() {
-        $('#page-content').fadeIn();
         vm.pageLoaded(true);
+        $('#page-content').fadeIn();
+        $('#image-url').val('');
+        $('#upload-file-path').val('');
     }
 
+    function loadBaseImageViaURL() {
+        vm.restoreToEmptyBaseState();
+
+        var url = $('#image-url').val();
+
+        if (url.indexOf('//') != -1 || url.indexOf('www.') != -1) {
+            vm.showSpinnerForBaseImage();
+
+            $('#image-preview').attr('src', url).load(function () {
+                vm.showValidResultForBaseState();
+            }).error(function () {
+                vm.showInvalidResultForBaseState();
+            }); 
+        }
+        else {
+            vm.showInvalidResultForBaseState();
+        }
+    }
+
+
+    function loadBaseImageViaUpload() {
+        vm.restoreToEmptyBaseState();
+        console.log(this);
+        if (this != null && this.files && this.files[0]) {
+            vm.showSpinnerForBaseState();
+
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $('#image-preview').attr('src', e.target.result).load(function () {
+                    vm.showValidResultForBaseState();
+                }).error(function () {
+                    vm.showInvalidResultForBaseState();
+                });
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+        else vm.showInvalidResultForBaseState();
+    }
+
+
+
+
+
+
+    //NEED TO PORT IN the code from democontroller
+    function sendRequestToTFHttpServer() {
+        vm.showSpinnerForProcessingState();
+        setTimeout(vm.showValidResultForProcessedState, 1500);
+        setTimeout(drawProcessedImage, 1501);
+
+    }
+
+
+    function drawProcessedImage() {
+        var canvas = elemByID('processed-image');
+        
+
+        var ctx = canvas.getContext('2d');
+        var img = elemByID('image-preview');
+                
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+
+
+
+    //define all event handlers
+    $('#update-base-image-btn').on('click', loadBaseImageViaURL);
+    $('#image-upload').change(loadBaseImageViaUpload);
+    $('#process-image-btn').on('click', sendRequestToTFHttpServer);
+
+
     $(document).ready(function () {
+        $('.modal').modal();
         setTimeout(showPage, 1200);
+        $('#upload-file-path').val('');
+
+        $('.chips').material_chip({
+            placeholder: '+Tag'
+        });
 
     });
-
 </script>

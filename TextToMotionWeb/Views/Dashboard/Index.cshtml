@@ -21,7 +21,7 @@
                         <div class="col m5">
                             <img class="user-avatar-img responsive-img" src="https://evatar.io/@user.UserName">
                         </div>
-                        <div class="col m7 center-align">
+                        <div class="col m7 center-align grey lighten-3">
                             @if (user.FirstName == null && user.LastName == null)
                             {
                                 <p class="lg-font"><span><b>Name</b><br /><u>(Not Set)</u></span></p>
@@ -29,7 +29,8 @@
                             else
                             {
                                 <p class="lg-font"><b><span>Name</span></b><br /><u><span>@user.FirstName</span> <span>@user.LastName</span></u></p>
-                            }                        
+                            }
+                            <br />
                         </div>
                     </div>
                     <div class="row">
@@ -52,15 +53,15 @@
     </div>
     <div class="col s12 l8 m7 padded-from-top">
         <div class="row padded-from-top">
-            <div class="col s12 center-align">
+            <div class="col s12 left-align">
                 <span class="spaced-from-bot">
-                    <a href="/Dashboard/ProcessImage" class="waves-effect waves-light btn-large teal lighten-2 padded-from-bot hoverable"><i class="fa fa-file-image-o"></i> <i class="fa fa-plus"></i> Process New Image...</a>
+                    <a href="/Dashboard/ProcessImage" class="dashboard-btn waves-effect waves-light btn-large teal lighten-2 padded-from-bot"><i class="fa fa-file-image-o"></i> <i class="fa fa-plus"></i> Process New Image...</a>
                 </span>
-                <span class="spaced-from-bot">
-                    <a href="/Dashboard/ProcessVideo" class="waves-effect waves-light btn-large indigo lighten-2 hoverable"><i class="fa fa-file-video-o"></i> <i class="fa fa-plus"></i> Process New Video...</a>
-                </span>
+                <!--<span class="spaced-from-bot">
+                    <a href="/Dashboard/ProcessVideo" class="waves-effect waves-light btn-large indigo lighten-2"><i class="fa fa-file-video-o"></i> <i class="fa fa-plus"></i> Process New Video...</a>
+                </span>-->
                 <span class="padded-from-top">
-                    <a href="/Dashboard/ProcessStream" class="waves-effect waves-light btn-large blue lighten-2 hoverable"><i class="fa fa-video-camera"></i> <i class="fa fa-plus"></i> Capture Camera Stream...</a>
+                    <a href="/Dashboard/ProcessStream" class="dashboard-btn waves-effect waves-light btn-large blue lighten-2"><i class="fa fa-video-camera"></i> <i class="fa fa-plus"></i> Capture Camera Stream...</a>
                 </span>
             </div>
         </div>

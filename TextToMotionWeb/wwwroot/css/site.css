@@ -108,6 +108,14 @@ padded-from-right{
     margin-top: -1.25em;
 }
 
+.pushed-down-extra{
+    margin-top: 7em !important;
+}
+
+.pushed-left-extra{
+    margin-left: 10em !important;
+}
+
 .moved-down{
     padding-top: 2em;
 }
@@ -332,4 +340,37 @@ div + div {
 
 .transparent-grey{
     background-color: rgba(200, 200, 200, 0.4) !important;
+}
+
+/* label focus color */
+.input-field input[type=text]:focus + label {
+    color: #000;
+}
+/* label underline focus color */
+.input-field input[type=text]:focus {
+    border-bottom: 1px solid #000;
+    box-shadow: 0 1px 0 0 #000;
+}
+
+.manual-offset{
+    margin-left: 7.5em !important;
+}
+
+
+@media only screen and (max-width: 500px) {
+    .manual-offset{
+        margin-left: 0 !important;
+    }
+}
+
+
+.file-btn-height{
+    height: 3.2em !important;
+}
+
+
+
+
+.dashboard-btn{
+    border-radius: 10px 0 10px 0 !important;
 }

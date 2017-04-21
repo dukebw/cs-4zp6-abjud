@@ -1,1 +1,82 @@
-﻿<p>...</p>
+﻿@{
+    ViewData["Title"] = "ScreencapDemo";
+}
+
+<div class="row">
+    <div class="card page-heading col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1">
+        <h2 class="text-center"><b>@ViewData["Title"]</b></h2>
+    </div>
+</div>
+
+<div>
+    <video autoplay></video>
+</div>
+
+<div>
+    <button class="btn btn-success col-lg-offset-1" onclick="captureScreen()">
+        <b>Capture Screen</b>
+    </button>
+</div>
+
+<div>
+    <canvas></canvas>
+</div>
+
+@section Scripts {
+    <script>
+        function captureScreen() {
+                var canvas = $('canvas')[0];
+                var video = $('video')[0];
+
+                canvas.width = video.clientWidth;
+                canvas.height = video.clientHeight;
+                canvas.fillStyle = 'red';
+
+                var canvasContext = canvas.getContext('2d');
+                canvasContext.drawImage(video, 0, 0, video.clientWidth, video.clientHeight);
+
+                var serverUrl = 'https://brendanduke.ca:8765/';
+                var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
+
+                $.post(serverUrl,
+                       imageJpeg,
+                       function (jointCoords) {
+                               $.each(jointCoords[0],
+                                      function(propertyName, value) {
+                                              var maxDim = Math.max(canvas.width, canvas.height);
+                                              var x = maxDim*value[0] + canvas.width/2;
+                                              var y = maxDim*value[1] + canvas.height/2;
+
+                                              canvasContext.beginPath();
+                                              var circle = canvasContext.arc(x, y, 10, 0, 2*Math.PI);
+                                              canvasContext.fill(circle);
+                                      });
+                       },
+                       "json");
+        }
+
+        function handleSuccessFact(video) {
+                return function(stream) {
+                        window.stream = stream;
+                        video.srcObject = stream;
+                }
+        }
+
+        function handleError(error, video) {
+                console.log('navigator.getUserMedia error: ', error);
+        }
+
+        $(document).ready(function() {
+                var video = $('video')[0];
+
+                var constraints = {
+                        audio: false,
+                        video: true
+                };
+
+                navigator.mediaDevices.getUserMedia(constraints)
+                        .then(handleSuccessFact(video))
+                        .catch(handleError);
+        });
+    </script>
+}
