@@ -14,6 +14,7 @@ import imageio
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from human_pose_model.networks import resnet_bulat
+from human_pose_model.pose_utils.timethis import timethis
 
 JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'r_knee',
@@ -34,8 +35,9 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
 
 RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/resnet_brendan/regressor/8'
 IMAGE_DIM = 384
-BATCH_SIZE = 10
+BATCH_SIZE = 16
 
+@timethis
 def _get_image_joint_predictions(image,
                                  session,
                                  image_bytes_feed,
