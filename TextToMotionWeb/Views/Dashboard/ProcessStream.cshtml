@@ -2,6 +2,11 @@
     ViewData["Title"] = "ScreencapDemo";
 }
 
+@section PreLoaded{
+    <script type="text/javascript" src="~/lib/knockout/dist/knockout.js"></script>
+}
+
+
 <div class="row">
     <div class="card page-heading col-lg-10 col-md-10 col-sm-12 col-xs-12 col-lg-offset-1 col-md-offset-1">
         <h2 class="text-center"><b>@ViewData["Title"]</b></h2>
@@ -18,44 +23,55 @@
     </div>
 </div>
 <br />
-<div class="row">
-    <button class="btn btn-success col-lg-offset-1">
-        <b>Capture Screen</b>
-    </button>
-</div>
 
 @section Scripts {
+    @{ await Html.RenderPartialAsync("ProcessStreamViewModel"); }
     <script>
-        function captureScreen() {
-                var canvas = $('canvas')[0];
-                var video = $('video')[0];
+        
+        function mockPost() {
+            vm.disableSendingOfFrames(true);
 
-                canvas.width = video.clientWidth;
-                canvas.height = video.clientHeight;
-                canvas.fillStyle = 'red';
-
-                var canvasContext = canvas.getContext('2d');
-                canvasContext.drawImage(video, 0, 0, video.clientWidth, video.clientHeight);
-
-                var serverUrl = 'https://brendanduke.ca:8765/';
-                var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
-
-                $.post(serverUrl,
-                       imageJpeg,
-                       function (jointCoords) {
-                               $.each(jointCoords[0],
-                                      function(propertyName, value) {
-                                              var maxDim = Math.max(canvas.width, canvas.height);
-                                              var x = maxDim*value[0] + canvas.width/2;
-                                              var y = maxDim*value[1] + canvas.height/2;
-
-                                              canvasContext.beginPath();
-                                              var circle = canvasContext.arc(x, y, 10, 0, 2*Math.PI);
-                                              canvasContext.fill(circle);
-                                      });
-                       },
-                       "json");
         }
+
+        function getBase64StringFromVideo() {
+            var video = $('video')[0];
+            if (video.clientHeight == 320) return;
+
+
+            var canvas = document.createElement('canvas')
+            //var canvas = $('canvas')[0];
+            var canvasContext = canvas.getContext('2d');
+
+            var batch_size = 10;// num of images to send/expect back per request
+
+            canvas.width = video.clientWidth;
+            canvas.height = video.clientHeight;
+            canvas.fillStyle = 'red';
+
+            var expectedDim = 384;
+            var offsetX = (video.clientWidth - video.clientHeight) / 2;
+
+            canvas.width = expectedDim;
+            canvas.height = expectedDim;
+            canvasContext.drawImage(
+                video, offsetX, 0, video.clientHeight, video.clientHeight,
+                0, 0, expectedDim, expectedDim
+            );
+
+
+            var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
+            vm.addFrameToQueue(imageJpeg);
+
+            if (!vm.disableSendingOfFrames() && (vm.framesToSend().length == batch_size)) {
+                vm.disableSendingOfFrames(true);
+                setTimeout(vm.sendFramesToBeProcessed, 3000);
+
+            }
+
+        }
+
+
+
 
         function handleSuccessFact(video) {
                 return function(stream) {
@@ -78,7 +94,10 @@
 
                 navigator.mediaDevices.getUserMedia(constraints)
                         .then(handleSuccessFact(video))
-                        .catch(handleError);
+                    .catch(handleError);
+
+
+                setInterval(getBase64StringFromVideo, 100);
         });
     </script>
 }

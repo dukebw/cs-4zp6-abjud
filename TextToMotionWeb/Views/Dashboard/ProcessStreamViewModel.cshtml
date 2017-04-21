@@ -1,0 +1,84 @@
+﻿<script>
+    function elemByID(id) { return document.getElementById(id); }
+
+    var ProcessStreamVM = function () {
+        var self = this;
+
+        self.disableSendingOfFrames = ko.observable(false);
+
+        self.framesToSend = ko.observableArray([]);
+        self.framesToDisplay = ko.observableArray([]);
+
+        self.isDisplayBufferFull = ko.computed(function () {
+            if (self.framesToDisplay().length == 0) return false;
+            else return true;
+        });
+
+
+        self.addFrameToQueue = function (base64Image) {
+            if (self.framesToSend().length == 10) {
+                self.framesToSend.shift();
+                self.framesToSend.push(base64Image);
+            }
+            else self.framesToSend.push(base64Image);
+        }
+
+
+        self.sendFramesToBeProcessed = function () {
+            //once you get a response, SET disableSendingOfFrames to false again
+            
+            self.disableSendingOfFrames(false);            
+            var serverUrl = 'https://brendanduke.ca:8765/';
+            $.post(serverUrl,
+                ko.toJSON(self.framesToSend()),
+                function (jointCoords) {
+                    console.log(jointCoords);
+                    /*$.each(jointCoords[0],
+                        function (propertyName, value) {
+                            var maxDim = Math.max(canvas.width, canvas.height);
+                            var x = maxDim * value[0] + canvas.width / 2;
+                            var y = maxDim * value[1] + canvas.height / 2;
+
+                            canvasContext.beginPath();
+                            var circle = canvasContext.arc(x, y, 10, 0, 2 * Math.PI);
+                            canvasContext.fill(circle);
+                        });*/
+                },
+                "json");
+        }
+    }
+
+
+    //custom bindings and helper funcs 
+    ko.bindingHandlers.fadeVisible = {
+        init: function (element, valueAccessor) {
+            // Initially set the element to be instantly visible/hidden depending on the value
+            var value = valueAccessor();
+            $(element).toggle(ko.utils.unwrapObservable(value)); // Use "unwrapObservable" so we can handle values that may or may not be observable
+        },
+        update: function (element, valueAccessor) {
+            // Whenever the value subsequently changes, slowly fade the element in or out
+            var value = valueAccessor();
+            ko.utils.unwrapObservable(value) ? $(element).fadeIn() : $(element).hide();
+        }
+    };
+
+    ko.bindingHandlers.fadeVisibleAlt = {
+        init: function (element, valueAccessor) {
+            // Initially set the element to be instantly visible/hidden depending on the value
+            var value = valueAccessor();
+            $(element).toggle(ko.utils.unwrapObservable(value)); // Use "unwrapObservable" so we can handle values that may or may not be observable
+        },
+        update: function (element, valueAccessor) {
+            // Whenever the value subsequently changes, slowly fade the element in or out
+            var value = valueAccessor();
+            ko.utils.unwrapObservable(value) ? $(element).show() : $(element).hide();
+        }
+    }
+
+
+
+    //init
+    window.vm = new ProcessStreamVM();
+    ko.applyBindings(vm);
+</script>
