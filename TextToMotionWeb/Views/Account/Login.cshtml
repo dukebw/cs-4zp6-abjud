@@ -5,62 +5,51 @@
 @inject SignInManager<ApplicationUser> SignInManager
 
 @{
-    ViewData["Title"] = "Log in";
+    ViewData["Title"] = "Login";
 }
 
-<br /><br /><br />
 <div class="row">
-    <div class="col-lg-6 col-md-6 col-sm-8 col-xs-10 col-lg-offset-3 col-md-offset-3 col-sm-offset-2 col-xs-offset-1">
-        <div class="card">
-            <div class="card-content">
-                <form asp-controller="Account" asp-action="Login" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post" class="form-horizontal">
-                    <h2 class="text-center">@ViewData["Title"]</h2>
-                    <hr />
-                    <div class="row">
-                        <div class="col-lg-offset-2">
-                            <div asp-validation-summary="All" class="text-danger"></div>
-                            <div class="form-group">
-                                <label asp-for="Email" class="col-md-2 control-label"></label>
-                                <div class="col-md-10">
-                                    <input asp-for="Email" class="form-control" />
-                                    <span asp-validation-for="Email" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label asp-for="Password" class="col-md-2 control-label"></label>
-                                <div class="col-md-10">
-                                    <input asp-for="Password" class="form-control" />
-                                    <span asp-validation-for="Password" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="col-md-offset-2 col-md-10">
-                                    <div class="checkbox">
-                                        <label asp-for="RememberMe">
-                                            <input asp-for="RememberMe" />
-                                            @Html.DisplayNameFor(m => m.RememberMe)
-                                        </label>
+    <div class="col m10 s12 offset-m1 padded-from-top">
+        <div class="card indigo lighten-2 z-depth-1">
+            <div class="card-content white-text">
+                <h4 class="center-align no-margins padded-from-bot"><b>@ViewData["Title"]</b></h4>
+                <div class="col m6 s12 offset-m3">
+                    <div class="card-panel white z-depth-3 black-text">
+                        <form asp-controller="Account" asp-action="Login" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post">
+                            <div asp-validation-summary="All" class="red darken-1 white-text center-align pushed-up bold rounded"></div>
+                            <div class='row'>
+                                <div class='col m10 offset-m1 col s12'>
+                                    <div class="input-field">
+                                        <i class="material-icons prefix">account_circle</i>
+                                        <input id="email"   asp-for="Email" type="email" />
+                                        <label for="email">Email</label>
+                                    </div>
+                                    <div class="input-field">
+                                        <i class="material-icons prefix">lock</i>
+                                        <input id="password" asp-for="Password" type="password" />
+                                        <label for="password">Password</label>
+                                    </div>
+                                    <div class="row">
+                                        <div class="">
+                                            <input id="remember" asp-for="RememberMe" type="checkbox"/>
+                                            <label for="remember" asp-for="RememberMe"></label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-6 col-lg-offset-3">
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-danger fullWidth">Log in</button>
+                            <div class="row no-margins">
+                                <button class="btn waves-effect waves-light col s10 offset-s1" type="submit">
+                                    Sign In
+                                    <i class="fa fa-arrow-circle-right"></i>
+                                </button>
                             </div>
-                            <p>
-                                <a asp-action="ForgotPassword">Forgot your password?</a>
-                            </p>
-                        </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 }

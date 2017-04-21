@@ -1,47 +1,227 @@
-body {
-    padding-top: 50px;
-    padding-bottom: 20px;
+.page-flex-box-wrapper{
+    display:flex;
+    min-height: 100vh;
+    flex-direction: column;
 }
 
-/* Wrapping element */
-/* Set some basic padding to keep content from hitting the edges */
-.body-content {
-    padding-left: 15px;
-    padding-right: 15px;
+main{
+    flex: 1;
 }
 
-/* Set widths on the form inputs since otherwise they're 100% wide */
-input,
-select,
-textarea {
-    max-width: 280px;
+body{
+    background-image: url("/images/xv.png") !important;
+/* This is mostly intended for prototyping; please download the pattern and re-host for production environments. Thank you! */
 }
 
-/* Carousel */
-.carousel-caption p {
-    font-size: 20px;
-    line-height: 1.4;
+.warning-bg{
+    background-color: #d58a00 !important;
 }
 
-/* buttons and links extension to use brackets: [ click me ] */
-.btn-bracketed::before {
-    display:inline-block;
-    content: "[";
-    padding-right: 0.5em;
+
+.btn {
+  overflow: hidden;
 }
-.btn-bracketed::after {
-    display:inline-block;
-    content: "]";
-    padding-left: 0.5em;
+.btn:hover:before {
+  opacity:0.5;
 }
 
-/* Hide/rearrange for smaller screens */
-@media screen and (max-width: 767px) {
-  /* Hide captions */
-  .carousel-caption {
-    display: none
-  }
+.btn:before {
+    content: '';
+    opacity: 0;
+    background-color: rgba(0,0,0,.6);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    transition: opacity .2s;
+    z-index: -1;
 }
+
+
+.ghost-button-rounded-corners {
+  display: inline-block;
+  width: 200px;
+  padding: 8px;
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 5px;
+  text-align: center;
+  outline: none;
+  text-decoration: none;
+}
+.ghost-button-rounded-corners:hover,
+.ghost-button-rounded-corners:active {
+  background-color: #fff;
+  color: #000;
+}
+
+
+.card-content-less-padding{
+    padding: -24px;
+
+}
+
+
+.padded-from-top{
+    padding-top: 5px !important;
+}
+
+.padded-from-bot{
+    padding-bottom: 5px !important;
+}
+.padded-from-left{
+    padding-left: 10px !important;
+}
+padded-from-right{
+    padding-right: 10px !important;
+}
+
+.no-padding-top{
+    padding-top: 0px !important;
+}
+.no-padding-bot {
+    padding-bottom: 0px !important;
+}
+.no-padding-left {
+    padding-left: 0px !important;
+}
+.no-padding-right {
+    padding-right: 0px !important;
+}
+
+.min-padding-left{
+    padding-left:5px !important;
+}
+
+
+.spaced-from-bot{
+    margin-bottom: 5px !important;
+}
+
+
+.pushed-left{
+    padding-left:2em;
+}
+
+.pushed-up{
+    margin-top: -1.25em;
+}
+
+.pushed-down-extra{
+    margin-top: 7em !important;
+}
+
+.pushed-left-extra{
+    margin-left: 10em !important;
+}
+
+.moved-down{
+    padding-top: 2em;
+}
+
+.cursorPointer{
+    cursor:pointer;
+}
+
+.heading-font{
+    font-size: 26px !important;
+}
+
+
+
+.banner-image{
+    background-image: url('/images/banner.jpg');
+    height: 18em;
+    width: 100%;
+}
+@media(max-width:767px){
+    .banner-image{
+        height: 22em;
+    }
+}
+
+
+hr.faded {
+  border: 0;
+  height: 1px;
+  background-image: -webkit-linear-gradient(left, #f0f0f0, #8c8b8b, #f0f0f0);
+  background-image: -moz-linear-gradient(left, #f0f0f0, #8c8b8b, #f0f0f0);
+  background-image: -o-linear-gradient(left, #f0f0f0, #8c8b8b, #f0f0f0);
+}
+
+
+
+.no-margins{
+    margin: 0;
+}
+
+
+.nav-transition{
+    width: 100%;
+    height: 0.5em;
+}
+.transition-edge{
+    width: 100% !important;
+    height: 0.2em !important;
+}
+
+
+.panel-head-img{
+    height: 10em !important;
+}
+
+
+.fullWidth{
+    width:100% !important;
+}
+
+.bold{
+    font-weight: bold !important;
+}
+
+.rounded{
+    border-radius: 10px;
+}
+
+
+.bordered-left-red{
+    border-left: solid 10px #E57373 !important
+}
+.bordered-left-indigo{
+    border-left: solid 10px #7986cb !important;
+}
+.bordered-left-teal{
+    border-left: solid 10px #4db6ac !important;
+}
+
+
+.group-contact-avatar{
+    height: 80px !important;
+}
+
+.lg-font{
+    font-size: 16px !important;
+}
+
+.xl-font{
+    font-size: 18px !important;
+}
+
+.xxl-font{
+    font-size: 25px !important;
+}
+
+
+
+
+
+
+
+
+
+
+/*unsure if i should delete the following css just yet */
 
 .input-file {
     width: 0.1px;
@@ -93,4 +273,104 @@ video {
 
 div + div {
     margin-bottom: 5px;
+}
+
+.bordered-bottom-teal {
+    border-bottom: solid 5px #00796b !important;
+}
+
+
+.uploaded-image-preview {
+    height: 20em !important;
+    width: 100% !important;
+    background-color: ghostwhite !important;
+    border: 1px dashed grey;
+}
+
+
+
+
+
+
+
+
+
+.image-container {
+    padding-left: 25px !important;
+    padding-right: 25px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+
+
+@media only screen and (max-width: 500px) {
+   .uploaded-image-preview{
+       height: 12em !important;
+       width: 100% !important;
+       background-color: ghostwhite !important;
+       border: 1px dashed grey;
+   }
+    .image-container {
+        padding-left: 0px !important;
+        padding-right: 0px !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+}
+
+
+.user-avatar-img{
+    height: 6em !important;
+    width: 100% !important;
+    border: solid 1px grey;
+}
+
+.user-avatar-nav{
+    height: 22px !important;
+    width: 22px !important;
+    margin-top: 20px !important;
+    background-size: 100% !important;
+}
+
+.mobile-thumbnail{
+    height: 1.2em !important;
+    padding-right: 5px;
+    padding-top: 5px;
+}
+
+.transparent-grey{
+    background-color: rgba(200, 200, 200, 0.4) !important;
+}
+
+/* label focus color */
+.input-field input[type=text]:focus + label {
+    color: #000;
+}
+/* label underline focus color */
+.input-field input[type=text]:focus {
+    border-bottom: 1px solid #000;
+    box-shadow: 0 1px 0 0 #000;
+}
+
+.manual-offset{
+    margin-left: 7.5em !important;
+}
+
+
+@media only screen and (max-width: 500px) {
+    .manual-offset{
+        margin-left: 0 !important;
+    }
+}
+
+
+.file-btn-height{
+    height: 3.2em !important;
+}
+
+
+
+
+.dashboard-btn{
+    border-radius: 10px 0 10px 0 !important;
 }
