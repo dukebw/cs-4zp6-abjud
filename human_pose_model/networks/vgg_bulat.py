@@ -954,4 +954,3 @@ def two_vgg_16s_cascade(inputs,
                                            scope='vgg_16_regression')
 
     return regression_logits, detect_endpoints
-
