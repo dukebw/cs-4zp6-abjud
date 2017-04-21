@@ -237,8 +237,6 @@ def _vgg_16_bn_relu(inputs,
                 return a9, end_points
 
 
-
-
 def _vgg_bulat_regression(inputs,
                           num_classes=16,
                           is_training=True,
