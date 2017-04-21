@@ -6,6 +6,7 @@ from tensorflow.contrib.slim.nets import vgg
 import tensorflow as tf
 from tensorflow.python.ops import control_flow_ops
 import tensorflow.contrib.slim as slim
+from dataset.mpii_datatypes import Person
 from networks import vgg_bulat
 from networks import resnet_bulat
 from networks import gvgg
@@ -316,7 +317,7 @@ def _sigmoid_cross_entropy_loss(logits, binary_maps, weights):
                                                      logits=logits,
                                                      name='cross_entropy_bulat')
 
-    _add_weighted_loss_to_collection(losses, weights)
+    _add_weighted_loss_to_collection(66667*losses, weights)
 
 
 def _mean_squared_error_loss(logits, heatmaps, weights):
@@ -440,13 +441,18 @@ NETS = {'vgg': (vgg.vgg_16, vgg.vgg_arg_scope),
         'vgg_bulat_cascade_conv3x3_c2c3c4': (vgg_bulat.vgg_bulat_cascade_conv3x3_c2c3c4, vgg_bulat.vgg_arg_scope),
         'two_vgg_16s_cascade': (vgg_bulat.two_vgg_16s_cascade, vgg_bulat.vgg_arg_scope),
         'vgg_bulat_bn_relu': (vgg_bulat.vgg_16_bn_relu, vgg_bulat.vgg_arg_scope),
-        'resnet_bulat': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
+        'resnet_bulat': (resnet_bulat.resnet_152_detector, resnet_bulat.resnet_arg_scope),
         'resnet_50': (resnet_bulat.resnet_50_detector, resnet_bulat.resnet_arg_scope),
         'resnet_50_cascade': (resnet_bulat.resnet_50_cascade, resnet_bulat.resnet_arg_scope),
+        'resnet_50_two_heads': (resnet_bulat.resnet_50_two_heads_parallel, resnet_bulat.resnet_arg_scope),
+        'resnet_50_two_heads_parallel': (resnet_bulat.resnet_50_two_heads_parallel, resnet_bulat.resnet_arg_scope),
+        'resnet_50_two_heads_serial': (resnet_bulat.resnet_50_two_heads_serial, resnet_bulat.resnet_arg_scope),
+        'resnet_152_detector': (resnet_bulat.resnet_152_detector, resnet_bulat.resnet_arg_scope),
+        'resnet_152_two_heads_parallel': (resnet_bulat.resnet_152_two_heads_parallel, resnet_bulat.resnet_arg_scope),
         'graham_vgg': (gvgg.gvgg, gvgg.gvgg_arg_scope),
         'gvgg_vae': (gvgg.gvgg_vae, gvgg.gvgg_vae_arg_scope),
         'graham_cascade': (gvgg.gvgg, gvgg.gvgg_arg_scope),
-        'resnet_detector': (resnet_bulat.resnet_detector, resnet_bulat.resnet_arg_scope),
+        'resnet_detector': (resnet_bulat.resnet_152_detector, resnet_bulat.resnet_arg_scope),
         'vgg_vae': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope),
         'vgg_debug': (vgg_vae.vgg_16_vae_v0, vgg_vae.vgg_vae_arg_scope)}
 

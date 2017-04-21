@@ -5,6 +5,7 @@ import re
 import base64
 import urllib
 import http.server
+import ssl
 import requests
 import numpy as np
 import cv2
@@ -12,9 +13,6 @@ import imageio
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from human_pose_model.networks import vgg_bulat
-
-# @debug
-from matplotlib import pylab
 
 JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'r_knee',
@@ -33,9 +31,9 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'l_elbow',
                         'l_wrist']
 
-RESTORE_PATH = '/home/mlrg/mcmaster-text-to-motion-database/tensorflow_models/human_pose_model/deployment_files/vgg_16_cascade'
+RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/vgg_bulat/both_nets_xentropy_regression/23/'
 IMAGE_DIM = 380
-BATCH_SIZE = 32
+BATCH_SIZE = 1
 
 def _get_image_joint_predictions(image,
                                  session,
@@ -67,10 +65,8 @@ def _get_image_joint_predictions(image,
     Returns:
         JSON string of joint positions, as described above.
     """
-    feed_dict = {
-        image_bytes_feed: image
-    }
-    logits = session.run(fetches=logits_tensor, feed_dict=feed_dict)
+    logits = session.run(fetches=logits_tensor,
+                         feed_dict={image_bytes_feed: image})
 
     batch_size = logits.shape[0]
     num_joints = logits.shape[-1]
@@ -151,7 +147,10 @@ def _get_heatmaps_for_batch(frames,
     return batch_heatmaps, batch_endpoints
 
 
-def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resized_image_tensor):
+def TFHttpRequestHandlerFactory(session,
+                                image_bytes_feed,
+                                logits_tensor,
+                                resized_image_tensor):
     """This function returns subclasses of
     `http.server.BaseHTTPRequestHandler`, using the closure of the function
     call to allow extra parameters (namely the session to run a computation
@@ -171,8 +170,10 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
             HTTP response with the response data set being a JSON string
             containing inferred joint positions.
             """
+            image = tf.image.decode_jpeg(image)
+            image = tf.expand_dims(input=image, axis=0)
             joint_predictions_json = _get_image_joint_predictions(
-                image,
+                session.run(image),
                 session,
                 image_bytes_feed,
                 logits_tensor)
@@ -233,7 +234,11 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
             else:
                 image_url = urllib.parse.unquote(image_url)
                 image_url = re.match('/\?image_url=(.*)', image_url)
-                assert image_url is not None
+                if image_url is None:
+                    self.send_response(400)
+                    self.send_header('Access-Control-Allow-Origin', 'https://brendanduke.ca')
+                    self.end_headers()
+                    return
 
                 image_url = image_url.groups()[0]
 
@@ -293,7 +298,7 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
     return TFHttpRequestHandler
 
 
-def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
+def _get_joint_position_inference_graph(image_bytes_feed):
     """This function sets up a computation graph that will decode from JPEG the
     input placeholder image `image_bytes_feed`, pad and resize it to shape
     [IMAGE_DIM, IMAGE_DIM], then run human pose inference on the image using
@@ -324,7 +329,7 @@ def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
     normalized_image = tf.multiply(x=normalized_image, y=2.0)
 
     normalized_image = tf.reshape(tensor=normalized_image,
-                                  shape=[batch_size, IMAGE_DIM, IMAGE_DIM, 3])
+                                  shape=[BATCH_SIZE, IMAGE_DIM, IMAGE_DIM, 3])
 
     with tf.device(device_name_or_function='/gpu:0'):
         with slim.arg_scope([slim.model_variable], device='/cpu:0'):
@@ -351,8 +356,8 @@ def run():
         with tf.device('/cpu:0'):
             image_bytes_feed = tf.placeholder(dtype=tf.uint8)
 
-            logits, resized_image = _get_joint_position_inference_graph(
-                image_bytes_feed, BATCH_SIZE)
+            logits, resized_image, _ = _get_joint_position_inference_graph(
+                image_bytes_feed)
 
             session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
@@ -366,8 +371,12 @@ def run():
                                                           image_bytes_feed,
                                                           logits,
                                                           resized_image)
-            server_address = ('localhost', 8246)
+            server_address = ('localhost', 8765)
             httpd = http.server.HTTPServer(server_address, request_handler)
+            httpd.socket = ssl.wrap_socket(httpd.socket,
+                                           keyfile='./domain.key',
+                                           certfile='./signed.crt',
+                                           server_side=True)
             httpd.serve_forever()
 
 
