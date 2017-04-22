@@ -6,9 +6,19 @@
 
         self.disableSendingOfFrames = ko.observable(false);
 
+        self.mode = ko.observable('joints');
+        self.serverURL = ko.computed(function () {
+            if (self.mode() == 'joints') return 'https://brendanduke.ca:8765/';
+            else if (self.mode() == 'heatmap') return 'https://brendanduke.ca:8765/heatmap';
+            else return 'https://brendanduke.ca:8765/activation_map'
+
+        });
+
         self.batchSize = ko.observable(16);
         self.framesToSend = ko.observableArray([]);
         self.framesToDisplay = ko.observableArray([]);
+        self.currentFrameToDisplay = ko.observable('/images/placeholders/blurred.jpg');
+
 
         self.isDisplayBufferFull = ko.computed(function () {
             if (self.framesToDisplay().length == 0) return false;
@@ -26,13 +36,23 @@
 
 
         self.sendFramesToBeProcessed = function () {
-            //once you get a response, SET disableSendingOfFrames to false again      
-            var serverUrl = 'https://brendanduke.ca:8765/';
-            $.post(serverUrl,
+            $.post(self.serverURL(),
                 ko.toJSON(self.framesToSend()),
-                function (jointCoords) {
-                    console.log(jointCoords);
-                    self.disableSendingOfFrames(false);      
+                function (response) {
+                    self.disableSendingOfFrames(false);
+
+                    if (self.mode() == 'joints') {
+
+
+                    }
+                    else if (self.mode() == 'heatmap') {
+                        response.forEach(function (heatmap) {
+                            self.framesToDisplay.push('data:image/png;base64,' + heatmap);
+                        });
+
+                    }
+                    //based on mode, draw joints onto a canvas OR just display an image
+
                     /*$.each(jointCoords[0],
                         function (propertyName, value) {
                             var maxDim = Math.max(canvas.width, canvas.height);
@@ -81,4 +101,93 @@
     //init
     window.vm = new ProcessStreamVM();
     ko.applyBindings(vm);
+
+
+
+
+
+
+
+
+    //func defs and main event loop...
+
+    function eventLoop() {
+        var video = $('video')[0];
+        if (video.clientHeight == 320) return;
+        //var canvas = $('canvas')[0];
+        var canvas = document.createElement('canvas');
+        var canvasContext = canvas.getContext('2d');
+
+        canvas.width = video.clientWidth;
+        canvas.height = video.clientHeight;
+        canvas.fillStyle = 'red';
+
+        var expectedDim = 384;
+        var offsetX = (video.clientWidth - video.clientHeight) / 2;
+
+        canvas.width = expectedDim;
+        canvas.height = expectedDim;
+        canvasContext.drawImage(
+            video, offsetX, 0, video.clientHeight, video.clientHeight,
+            0, 0, expectedDim, expectedDim
+        );
+
+
+        var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
+        vm.addFrameToQueue(imageJpeg);
+
+        //this if can be updated to have another condition for : !vm.disableSendingOfFrames() -> might come into play when actually rendering the images
+        if (!vm.disableSendingOfFrames() && (vm.framesToSend().length == vm.batchSize())) {
+            vm.disableSendingOfFrames(true);
+            vm.sendFramesToBeProcessed();
+        }
+        canvas.remove();
+
+
+
+        //showing the image preview if mode is heatmap
+        if (vm.mode() == 'heatmap') {
+            if (vm.framesToDisplay().length > 1) {
+                vm.currentFrameToDisplay(vm.framesToDisplay()[0]);
+                vm.framesToDisplay.shift();
+            }
+            else vm.currentFrameToDisplay('/images/placeholders/blurred.jpg');
+        }
+        
+
+    }
+
+
+
+
+    function handleSuccessFact(video) {
+        return function (stream) {
+            window.stream = stream;
+            video.srcObject = stream;
+        }
+    }
+
+    function handleError(error, video) {
+        console.log('navigator.getUserMedia error: ', error);
+    }
+
+
+
+
+
+
+    $(document).ready(function () {
+        var video = $('video')[0];
+        var constraints = {
+            audio: false,
+            video: true
+        };
+
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(handleSuccessFact(video))
+            .catch(handleError);
+
+
+        setInterval(eventLoop, 333);
+    });
 </script>
