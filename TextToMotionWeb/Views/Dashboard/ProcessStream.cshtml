@@ -13,7 +13,20 @@
     </div>
 </div>
 
+<div class="row">
+    <div class="col s12">
+        Please Select a Mode:
+        
+        <input type="radio" class="with-gap" name="mode" id="joints_mode" value="joints" checked data-bind="checked: vm.mode"/>
+        <label for="joints_mode">Render Joints</label>
 
+        <input type="radio" class="with-gap" name="mode" id="heatmap_mode" value="heatmap" data-bind="checked: vm.mode"/>
+        <label for="heatmap_mode">Render Heatmaps</label>
+
+        <input type="radio" class="with-gap" name="mode" id="activation_map_mode" value="activation_map" data-bind="checked: vm.mode"/>
+        <label for="activation_map_mode">Render Activation Maps</label>
+    </div>
+</div>
 <div class="row">
     <div class="col s6">
         <video autoplay></video>
@@ -22,82 +35,11 @@
         <canvas></canvas>
     </div>
 </div>
+<div class="row">
+    <img id="image-to-show" data-bind="attr: {src: vm.currentFrameToDisplay()}"/>
+</div>
 <br />
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("ProcessStreamViewModel"); }
-    <script>
-        
-        function mockPost() {
-            vm.disableSendingOfFrames(true);
-
-        }
-
-        function getBase64StringFromVideo() {
-            var video = $('video')[0];
-            if (video.clientHeight == 320) return;
-
-
-            var canvas = document.createElement('canvas')
-            //var canvas = $('canvas')[0];
-            var canvasContext = canvas.getContext('2d');
-
-            var batch_size = 10;// num of images to send/expect back per request
-
-            canvas.width = video.clientWidth;
-            canvas.height = video.clientHeight;
-            canvas.fillStyle = 'red';
-
-            var expectedDim = 384;
-            var offsetX = (video.clientWidth - video.clientHeight) / 2;
-
-            canvas.width = expectedDim;
-            canvas.height = expectedDim;
-            canvasContext.drawImage(
-                video, offsetX, 0, video.clientHeight, video.clientHeight,
-                0, 0, expectedDim, expectedDim
-            );
-
-
-            var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
-            vm.addFrameToQueue(imageJpeg);
-
-            if (!vm.disableSendingOfFrames() && (vm.framesToSend().length == batch_size)) {
-                vm.disableSendingOfFrames(true);
-                setTimeout(vm.sendFramesToBeProcessed, 3000);
-
-            }
-
-        }
-
-
-
-
-        function handleSuccessFact(video) {
-                return function(stream) {
-                        window.stream = stream;
-                        video.srcObject = stream;
-                }
-        }
-
-        function handleError(error, video) {
-                console.log('navigator.getUserMedia error: ', error);
-        }
-
-        $(document).ready(function() {
-                var video = $('video')[0];
-
-                var constraints = {
-                        audio: false,
-                        video: true
-                };
-
-                navigator.mediaDevices.getUserMedia(constraints)
-                        .then(handleSuccessFact(video))
-                    .catch(handleError);
-
-
-                setInterval(getBase64StringFromVideo, 100);
-        });
-    </script>
 }
