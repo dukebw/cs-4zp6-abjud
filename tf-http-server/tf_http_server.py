@@ -4,6 +4,7 @@ server that is able to handle HTTP requests to do TensorFlow operations.
 import re
 import json
 import base64
+import threading
 import urllib
 import http.server
 import ssl
@@ -103,6 +104,7 @@ def _get_image_joint_predictions(image,
     return joint_predictions_json
 
 
+@timethis
 def _get_heatmaps_for_batch(frames,
                             logits_tensor,
                             resized_image_tensor,
@@ -119,7 +121,7 @@ def _get_heatmaps_for_batch(frames,
     batch_heatmaps = []
     for image_index in range(batch_size):
         _, threshold = cv2.threshold(logits[image_index, ...],
-                                     40,
+                                     -0.5,
                                      255,
                                      cv2.THRESH_BINARY)
 
@@ -153,7 +155,8 @@ def _get_heatmaps_for_batch(frames,
 def TFHttpRequestHandlerFactory(session,
                                 image_bytes_feed,
                                 logits_tensor,
-                                resized_image_tensor):
+                                resized_image_tensor,
+                                endpoints):
     """This function returns subclasses of
     `http.server.BaseHTTPRequestHandler`, using the closure of the function
     call to allow extra parameters (namely the session to run a computation
@@ -168,24 +171,60 @@ def TFHttpRequestHandlerFactory(session,
         def __init__(self, *args, **kwargs):
             super(TFHttpRequestHandler, self).__init__(*args, **kwargs)
 
-        def _respond_with_joints(self, image):
-            """Takes `image` and does joint inference on it, returning a 200 OK
-            HTTP response with the response data set being a JSON string
-            containing inferred joint positions.
+        def _send_response_headers(self, json_string):
             """
-            joint_predictions_json = _get_image_joint_predictions(
-                image,
-                session,
-                image_bytes_feed,
-                logits_tensor)
-
+            """
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             # self.send_header('Access-Control-Allow-Origin', 'https://brendanduke.ca')
             self.send_header('Access-Control-Allow-Origin', 'http://localhost:5000')
             self.end_headers()
 
-            self.wfile.write(joint_predictions_json.encode('utf8'))
+            self.wfile.write(json_string.encode('utf8'))
+
+        def _respond_with_joints(self, frames):
+            """Takes `frames` and does joint inference on it, returning a 200 OK
+            HTTP response with the response data set being a JSON string
+            containing inferred joint positions.
+            """
+            joint_predictions_json = _get_image_joint_predictions(
+                frames,
+                session,
+                image_bytes_feed,
+                logits_tensor)
+            self._send_response_headers(joint_predictions_json)
+
+        @timethis
+        def _respond_with_heatmaps(self, frames):
+            """
+            """
+            batch_heatmaps, batch_endpoints = _get_heatmaps_for_batch(
+                frames,
+                logits_tensor,
+                resized_image_tensor,
+                session,
+                image_bytes_feed,
+                endpoints,
+                BATCH_SIZE)
+
+            # heatmap_jpegs = tf.map_fn(
+            #     fn=lambda image: tf.image.encode_jpeg(image=image),
+            #     elems=batch_heatmaps,
+            #     parallel_iterations=len(batch_heatmaps))
+
+            # heatmap_jpegs = session.run(heatmap_jpegs)
+            heatmap_jpegs = batch_heatmaps
+
+            b64_heatmap_jpegs = []
+            for heatmap in heatmap_jpegs:
+                # b64_heatmap_jpegs.append(base64.b64encode(heatmap_jpegs))
+                with tf.Graph().as_default():
+                    with tf.Session() as encode_sess:
+                        heatmap_jpeg = encode_sess.run(tf.image.encode_jpeg(image=heatmap))
+                b64_heatmap_jpeg = base64.b64encode(heatmap_jpeg).decode('utf-8')
+                b64_heatmap_jpegs.append(b64_heatmap_jpeg)
+
+            self._send_response_headers(json.dumps(b64_heatmap_jpegs))
 
         def do_GET(self):
             """This implementation of an HTTP GET request handler will take an
@@ -213,6 +252,7 @@ def TFHttpRequestHandlerFactory(session,
 
             self._respond_with_joints(image_request.content)
 
+        @timethis
         def do_POST(self):
             """HTTP POST requests should contain a JPEG image encoded in base
             64 as the request data.
@@ -224,14 +264,17 @@ def TFHttpRequestHandlerFactory(session,
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode('utf-8')
 
-            post_url = self.requestline.split()[1]
-
             jpeg_images = json.loads(post_data)
-            images = []
+            frames = []
             for image in jpeg_images:
                 decoded_img = base64.b64decode(image)
-                images.append(decoded_img)
-            self._respond_with_joints(images)
+                frames.append(decoded_img)
+
+            post_url = self.requestline.split()[1]
+            if re.match('/heatmap', post_url) is not None:
+                self._respond_with_heatmaps(frames)
+            else:
+                self._respond_with_joints(frames)
 
     return TFHttpRequestHandler
 
@@ -284,7 +327,7 @@ def run():
         with tf.device('/cpu:0'):
             image_bytes_feed = tf.placeholder(dtype=tf.string)
 
-            logits, resized_image, _ = _get_joint_position_inference_graph(
+            logits, resized_image, endpoints = _get_joint_position_inference_graph(
                 image_bytes_feed)
 
             session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
@@ -301,7 +344,8 @@ def run():
             request_handler = TFHttpRequestHandlerFactory(session,
                                                           image_bytes_feed,
                                                           logits,
-                                                          resized_image)
+                                                          resized_image,
+                                                          endpoints)
             server_address = ('localhost', 8765)
             httpd = http.server.HTTPServer(server_address, request_handler)
             httpd.socket = ssl.wrap_socket(httpd.socket,
