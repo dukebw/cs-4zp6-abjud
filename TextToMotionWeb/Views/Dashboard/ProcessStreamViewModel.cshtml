@@ -6,6 +6,7 @@
 
         self.disableSendingOfFrames = ko.observable(false);
 
+        self.batchSize = ko.observable(16);
         self.framesToSend = ko.observableArray([]);
         self.framesToDisplay = ko.observableArray([]);
 
@@ -16,7 +17,7 @@
 
 
         self.addFrameToQueue = function (base64Image) {
-            if (self.framesToSend().length == 10) {
+            if (self.framesToSend().length == self.batchSize()) {
                 self.framesToSend.shift();
                 self.framesToSend.push(base64Image);
             }
@@ -25,14 +26,13 @@
 
 
         self.sendFramesToBeProcessed = function () {
-            //once you get a response, SET disableSendingOfFrames to false again
-            
-            self.disableSendingOfFrames(false);            
+            //once you get a response, SET disableSendingOfFrames to false again      
             var serverUrl = 'https://brendanduke.ca:8765/';
             $.post(serverUrl,
                 ko.toJSON(self.framesToSend()),
                 function (jointCoords) {
                     console.log(jointCoords);
+                    self.disableSendingOfFrames(false);      
                     /*$.each(jointCoords[0],
                         function (propertyName, value) {
                             var maxDim = Math.max(canvas.width, canvas.height);

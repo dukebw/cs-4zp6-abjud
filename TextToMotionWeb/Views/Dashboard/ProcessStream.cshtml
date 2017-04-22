@@ -36,13 +36,9 @@
         function getBase64StringFromVideo() {
             var video = $('video')[0];
             if (video.clientHeight == 320) return;
-
-
-            var canvas = document.createElement('canvas')
             //var canvas = $('canvas')[0];
+            var canvas = document.createElement('canvas');
             var canvasContext = canvas.getContext('2d');
-
-            var batch_size = 10;// num of images to send/expect back per request
 
             canvas.width = video.clientWidth;
             canvas.height = video.clientHeight;
@@ -62,11 +58,12 @@
             var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
             vm.addFrameToQueue(imageJpeg);
 
-            if (!vm.disableSendingOfFrames() && (vm.framesToSend().length == batch_size)) {
+            if ((vm.framesToSend().length == vm.batchSize())) {
                 vm.disableSendingOfFrames(true);
-                setTimeout(vm.sendFramesToBeProcessed, 3000);
+                vm.sendFramesToBeProcessed();
 
             }
+            canvas.remove();
 
         }
 
@@ -86,7 +83,6 @@
 
         $(document).ready(function() {
                 var video = $('video')[0];
-
                 var constraints = {
                         audio: false,
                         video: true
