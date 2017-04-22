@@ -31,12 +31,14 @@
     <div class="col s6">
         <video autoplay></video>
     </div>
-    <div class="col s6">
+    <div class="col s6" data-bind="visible: vm.mode() == 'joints'">
         <canvas></canvas>
     </div>
-</div>
-<div class="row">
-    <img id="image-to-show" data-bind="attr: {src: vm.currentFrameToDisplay()}"/>
+    <div class="col s6" data-bind="visible: vm.mode() == 'heatmap'">
+        <canvas id="original-image-canvas"></canvas>
+        <canvas id="heatmap-only-canvas"></canvas>
+        <canvas id="heatmap-with-image-canvas"></canvas>
+    </div>
 </div>
 <br />
 

@@ -16,14 +16,9 @@
 
         self.batchSize = ko.observable(16);
         self.framesToSend = ko.observableArray([]);
+        self.framesThatWereSent = ko.observableArray([]);
         self.framesToDisplay = ko.observableArray([]);
         self.currentFrameToDisplay = ko.observable('/images/placeholders/blurred.jpg');
-
-
-        self.isDisplayBufferFull = ko.computed(function () {
-            if (self.framesToDisplay().length == 0) return false;
-            else return true;
-        });
 
 
         self.addFrameToQueue = function (base64Image) {
@@ -36,6 +31,10 @@
 
 
         self.sendFramesToBeProcessed = function () {
+            self.framesToSend().forEach(function (frame) {
+                self.framesThatWereSent.push('data:image/jpeg;base64,' + frame);
+            });
+
             $.post(self.serverURL(),
                 ko.toJSON(self.framesToSend()),
                 function (response) {
@@ -47,7 +46,7 @@
                     }
                     else if (self.mode() == 'heatmap') {
                         response.forEach(function (heatmap) {
-                            self.framesToDisplay.push('data:image/png;base64,' + heatmap);
+                            self.framesToDisplay.push('data:image/jpeg;base64,' + heatmap);
                         });
 
                     }
@@ -147,11 +146,75 @@
 
         //showing the image preview if mode is heatmap
         if (vm.mode() == 'heatmap') {
-            if (vm.framesToDisplay().length > 1) {
-                vm.currentFrameToDisplay(vm.framesToDisplay()[0]);
-                vm.framesToDisplay.shift();
+            //var originalImageCanvas = document.createElement('canvas');
+            var originalImageCanvas = elemByID('original-image-canvas');
+            var heatmapCanvas = elemByID('heatmap-only-canvas');
+            var heatmapWithImageCanvas = elemByID('heatmap-with-image-canvas');
+
+
+            originalImageCanvas.width = video.clientWidth;
+            originalImageCanvas.height = video.clientHeight;
+            heatmapCanvas.width = video.clientWidth;
+            heatmapCanvas.height = video.clientHeight;
+            heatmapWithImageCanvas.width = video.clientWidth;
+            heatmapWithImageCanvas.height = video.clientHeight;
+          
+
+
+            var originalImageContext = originalImageCanvas.getContext('2d');
+            var heatmapContext = heatmapCanvas.getContext('2d');
+            var heatmapWithImageContext = heatmapWithImageCanvas.getContext('2d');
+            
+
+
+            var destinationOffsetX = (video.clientWidth - expectedDim) / 2;
+            var destinationOffsetY = (video.clientHeight - expectedDim) / 2;
+            var originalImage = new Image();
+            var heatmapImage = new Image();
+
+            originalImage.onload = function () {
+                originalImageContext.drawImage(this, 0, 0, video.clientWidth, video.clientHeight,
+                    destinationOffsetX, destinationOffsetY, video.clientWidth, video.clientHeight
+                );
             }
-            else vm.currentFrameToDisplay('/images/placeholders/blurred.jpg');
+            heatmapImage.onload = function () {
+                heatmapContext.drawImage(this, 0, 0, video.clientWidth, video.clientHeight,
+                    destinationOffsetX, destinationOffsetY, video.clientWidth, video.clientHeight
+                );
+
+
+                var heatmapImageData = heatmapContext.getImageData(0, 0, video.clientWidth, video.clientHeight);
+
+                var data = heatmapImageData.data;
+                //remove all pixels that are entirely black
+                for (var y = 0; y < video.clientHeight; y++) {
+                    for (var x = 0; x < video.clientWidth; x++) {
+                        var n = ((video.clientWidth * y) + x) * 4;
+                        if (data[n] + data[n + 1] + data[n + 2] == 0) {
+                            data[n + 3] = 0;
+                        }
+                    }
+                }
+
+
+                heatmapContext.putImageData(heatmapImageData, 0, 0);
+                originalImageContext.drawImage(heatmapCanvas, 0, 0);
+                //heatmapToDisplayContext.drawImage(heatmapImageCanvas, 0, 0);
+
+
+            }
+
+            if (vm.framesToDisplay().length > 1 && vm.framesThatWereSent().length > 1) {
+                originalImage.src = vm.framesThatWereSent()[0];
+                heatmapImage.src = vm.framesToDisplay()[0];
+                
+                vm.framesToDisplay.shift();
+                vm.framesThatWereSent.shift();
+            }
+            else {
+                originalImage.src = '/images/placeholders/blurred.jpg';
+                heatmapImage.src = '/images/placeholders/blurred.jpg';
+            }
         }
         
 
@@ -188,6 +251,6 @@
             .catch(handleError);
 
 
-        setInterval(eventLoop, 333);
+        setInterval(eventLoop, 1000);
     });
 </script>
