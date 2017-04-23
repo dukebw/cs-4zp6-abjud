@@ -16,7 +16,6 @@ namespace TextToMotionWeb.Models
       public string UserId {get; set;}
       public ApplicationUser User {get; set;}
 
-      public string Name {get; set;}
       public string Caption {get; set;}
       public string Category {get; set;}
       public string Type {get; set;}

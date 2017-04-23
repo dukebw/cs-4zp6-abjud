@@ -54,7 +54,7 @@
                                 <div class="row no-margins">
                                     <div class="grey lighten-4 col s12">
                                         <div class="row no-margins padded-from-bot padded-from-top">
-                                            <div class="col l5 s12 offset-l1 image-container">
+                                            <div class="col l5 s12 image-container">
                                                 <img class="uploaded-image-preview z-depth-2 hoverable" src="~/images/placeholders/image.png" data-bind="fadeVisible: vm.showEmptyBaseImage()" />
                                                 <img id="image-preview" class="uploaded-image-preview z-depth-2 hoverable" src='' data-bind="fadeVisible: vm.showBaseImage()" />
                                                 <div class="thecube pushed-down-extra amber" data-bind="fadeVisible: vm.showSpinnerForBaseImage()">
@@ -64,7 +64,7 @@
                                                     <div class="cube c3"></div>
                                                 </div>
                                             </div>
-                                            <div class="col l5 s12 image-container">
+                                            <div class="col l5 offset-l1 s12 image-container">
                                                 <img class="uploaded-image-preview z-depth-2 hoverable" src="~/images/placeholders/blurred.jpg" data-bind="fadeVisible: vm.showEmptyProcessedImage()" />
                                                 <canvas id="processed-image" class="uploaded-image-preview z-depth-2 hoverable" data-bind="visible: vm.showProcessedImage()"></canvas>
                                                 <div class="loader pushed-down-extra pushed-left-extra" data-bind="fadeVisible: vm.showSpinnerWhileProcessingImage()">
