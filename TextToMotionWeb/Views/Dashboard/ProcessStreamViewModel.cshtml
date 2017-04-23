@@ -16,8 +16,7 @@
             else return '';
         });
         self.batchSize = ko.observable(16);
-
-        self.imageToSend = ko.observable('');
+        
         self.framesQueue = ko.observableArray([]);
         self.framesToCombine = ko.observableArray([]);
         self.framesSent = ko.observableArray([]);
@@ -47,29 +46,18 @@
         }
 
 
-        self.addFrameToQueue = function (base64Image) {
-            if (self.framesQueue().length == self.batchSize()) {
-                self.framesQueue([]);
-                self.framesQueue.push(base64Image);
+        self.addFrameToQueue = function (queue, base64Image) {
+            if (queue.length == self.batchSize()) {
+                queue.splice(0, queue.length);
+                queue.push(base64Image);
             }
             else {
-                self.framesQueue.push(base64Image);
+                queue.push(base64Image);
             }
         }
-
-
-        self.addRGBFrameToCombine = function (imageData) {
-            if (self.framesToCombine().length == self.batchSize()) {
-                self.framesToCombine([]);
-                self.framesToCombine.push(imageData);
-            }
-            else {
-                self.framesToCombine.push(imageData);
-            }
-        }
-
 
         self.sendFramesToBeProcessed = function () {
+            self.framesSent([]);
             self.framesQueue().forEach(function (frame) {
                 self.framesSent.push('data:image/jpeg;base64,' + frame);
             });
@@ -160,10 +148,10 @@
 
         //convert canvas to base64 image, add the frame to the 'framesToSend' array
         var imageJpeg = canvas.canvas.toDataURL('image/jpeg').split(',')[1];
-        vm.addFrameToQueue(imageJpeg);
-        vm.addRGBFrameToCombine(
+        vm.addFrameToQueue(vm.framesQueue(), imageJpeg);
+        vm.addFrameToQueue(vm.framesToCombine(),
             canvas.canvasCtx.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height)
-        )
+        );
 
         if (vm.sendFrames() && (vm.framesQueue().length == vm.batchSize())) {
             vm.sendFramesToBeProcessed();
