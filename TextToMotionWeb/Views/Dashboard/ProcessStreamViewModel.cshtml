@@ -93,9 +93,19 @@
                 function (response) {
                     console.log(response);
 
-                    //...
-
-
+                    if (self.mode() == 'joints') {
+                        response.forEach(function (joint_pos) {
+                            self.jointsToRender.push(joint_pos);
+                        });
+                    }
+                    else if (self.mode() == 'heatmap') {
+                        response.forEach(function (heatmap) {
+                            self.framesToDisplay.push('data:image/jpeg;base64,' + heatmap);
+                        });
+                    }
+                    else if (self.mode() == 'activation_map') {
+                        //todo
+                    }
 
                 },
                 "json")
