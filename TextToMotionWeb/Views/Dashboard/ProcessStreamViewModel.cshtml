@@ -1,5 +1,4 @@
 ﻿<script>
-    //func defs and main event loop...
     var video = $('video')[0];
     var EXPECTED_DIM = 384;
 
@@ -8,10 +7,7 @@
     var ProcessStreamVM = function () {
         var self = this;
 
-        self.disableSendingOfFrames = ko.observable(false);
-        self.renderCombinedHeatmap = ko.observable(false);
-
-
+        self.sendFrames = ko.observable(true);
         self.mode = ko.observable('joints');
         self.serverURL = ko.computed(function () {
             if (self.mode() == 'joints') return 'https://brendanduke.ca:8765/';
@@ -19,25 +15,25 @@
             else if (self.mode() == 'activation_map') return 'https://brendanduke.ca:8765/activation_map'
             else return '';
         });
-
         self.batchSize = ko.observable(16);
 
-        self.framesToSend = ko.observableArray([]);
-        self.rgbFramesToCombine = ko.observableArray([]);
-        self.framesThatWereSent = ko.observableArray([]);
+        self.imageToSend = ko.observable('');
+        self.framesQueue = ko.observableArray([]);
+        self.framesToCombine = ko.observableArray([]);
+        self.framesSent = ko.observableArray([]);
 
         self.jointsToRender = ko.observableArray([]);
         self.framesToDisplay = ko.observableArray([]);
 
-        //adds a frame to the framesToSend array given the base64 string, maintains the array size to be consistent
-        self.addFrameToQueue = function (framesQueue, base64Image) {
-            if (framesQueue.length == self.batchSize()) {
-                framesQueue.shift();
-                framesQueue.push(base64Image);
-            }
-            else {
-                framesQueue.push(base64Image);
-            }
+
+        self.initCanvasByID = function (ID, width, height) {
+            var canvas = elemByID(ID);
+            canvas.fillStyle = 'red';
+            canvas.width = width;
+            canvas.height = height;
+            var canvasCtx = canvas.getContext('2d');
+
+            return { 'canvas': canvas, 'canvasCtx': canvasCtx };
         }
 
         self.createCanvas = function (width, height) {
@@ -47,233 +43,145 @@
             canvas.height = height;
             var canvasCtx = canvas.getContext('2d');
 
-            return {'canvas': canvas, 'canvasCtx': canvasCtx};
+            return { 'canvas': canvas, 'canvasCtx': canvasCtx };
         }
 
-        //(before calling this function, a lock was set so that this function would not be called again)
+
+        self.addFrameToQueue = function (base64Image) {
+            if (self.framesQueue().length == self.batchSize()) {
+                self.framesQueue([]);
+                self.framesQueue.push(base64Image);
+            }
+            else {
+                self.framesQueue.push(base64Image);
+            }
+        }
+
+
+        self.addRGBFrameToCombine = function (imageData) {
+            if (self.framesToCombine().length == self.batchSize()) {
+                self.framesToCombine([]);
+                self.framesToCombine.push(imageData);
+            }
+            else {
+                self.framesToCombine.push(imageData);
+            }
+        }
+
+
         self.sendFramesToBeProcessed = function () {
-            self.framesToSend().forEach(function (frame) {
-                self.framesThatWereSent.push('data:image/jpeg;base64,' + frame);
+            self.framesQueue().forEach(function (frame) {
+                self.framesSent.push('data:image/jpeg;base64,' + frame);
             });
 
-            var bigCanvas = vm.createCanvas(vm.batchSize()*EXPECTED_DIM, EXPECTED_DIM);
-
-            //add base64 data prefix to each frame to send and save the original images
-            for (var frameIndex = 0;
-                 frameIndex < vm.batchSize();
-                 ++frameIndex) {
-                 var frame = self.rgbFramesToCombine()[frameIndex];
-                 bigCanvas.canvasCtx.putImageData(frame, frameIndex*EXPECTED_DIM, 0);
+            //combine all frames to combine into bigCanvas
+            var bigCanvas = vm.createCanvas(vm.batchSize() * EXPECTED_DIM, EXPECTED_DIM);
+            for (var i = 0; i < vm.batchSize(); ++i) {
+                var frame = self.framesToCombine()[i];
+                bigCanvas.canvasCtx.putImageData(frame, i * EXPECTED_DIM, 0);
             }
             bigCanvas.canvasCtx.drawImage(bigCanvas.canvas, 0, 0);
+
             var bigImageJpeg = bigCanvas.canvas.toDataURL('image/jpeg').split(',')[1];
 
             bigCanvas.canvas.remove();
 
-            //send the framesToSend
+
+            //send image data url to server
             $.post(self.serverURL(),
                 JSON.stringify(bigImageJpeg),
                 function (response) {
-                    // debug
                     console.log(response);
 
-                    //on getting a response -> unset lock so that this func can be called again
-                    self.disableSendingOfFrames(false);
+                    //...
 
-                    // response type is json array -> push joint positions to the jointsToRender array
-                    if (self.mode() == 'joints') {
-                        response.forEach(function (joint_positions) {
-                            self.jointsToRender.push(joint_positions);
-                        });
-                    }
 
-                    //response type is base64 images -> push the images to display onto the framesToDisplay array
-                    else if (self.mode() == 'heatmap') {
-                        response.forEach(function (heatmap) {
-                            //add data prefix to image
-                            self.framesToDisplay.push('data:image/jpeg;base64,' + heatmap);
-                        });
 
-                    }
-
-                    //draw activation maps
-                    else if (self.mode() == 'activation_map') {
-
-                        //todo -> will be pretty similar as the heatmap mode
-
-                    }
                 },
                 "json")
                 .fail(function (response) {
+                    self.sendFrames(false);
                     setTimeout(function () {
-                        self.disableSendingOfFrames(false);
+                        self.sendFrames(true);
                     }, 3000);
                 });
-        }
-    }
 
+        }
+
+
+    }
     //custom bindings and helper funcs (ignore)
     ko.bindingHandlers.fadeVisible = {
         init: function (element, valueAccessor) {
-            // Initially set the element to be instantly visible/hidden depending on the value
             var value = valueAccessor();
-            $(element).toggle(ko.utils.unwrapObservable(value)); // Use "unwrapObservable" so we can handle values that may or may not be observable
+            $(element).toggle(ko.utils.unwrapObservable(value));
         },
         update: function (element, valueAccessor) {
-            // Whenever the value subsequently changes, slowly fade the element in or out
             var value = valueAccessor();
             ko.utils.unwrapObservable(value) ? $(element).fadeIn() : $(element).hide();
         }
     };
-
     //init ko viewmodel
     window.vm = new ProcessStreamVM();
     ko.applyBindings(vm);
 
-    function renderJointPositionOverlay() {
-        console.log(vm.jointsToRender());
-        /*using vm.jointsToRender
-        $.each(jointCoords[0],
-                                      function(propertyName, value) {
-                                              var maxDim = Math.max(canvas.width, canvas.height);
-                                              var x = maxDim*value[0] + canvas.width/2;
-                                              var y = maxDim*value[1] + canvas.height/2;
-
-                                              canvasContext.beginPath();
-                                              var circle = canvasContext.arc(x, y, 10, 0, 2*Math.PI);
-                                              canvasContext.fill(circle);
-                                      });
-
-        */
-    }
-
-
-    function renderHeatmapOverlay(videoWidth, videoHeight) {
-        //var originalImageCanvas = document.createElement('canvas');
-        var originalImageCanvas = elemByID('original-image-canvas');
-        var heatmapCanvas = elemByID('heatmap-only-canvas');
-        var heatmapWithImageCanvas = elemByID('heatmap-with-image-canvas');
-
-
-        originalImageCanvas.width = videoWidth;
-        originalImageCanvas.height = videoHeight;
-        heatmapCanvas.width = videoWidth;
-        heatmapCanvas.height = videoHeight;
-        heatmapWithImageCanvas.width = videoWidth;
-        heatmapWithImageCanvas.height = videoHeight;
 
 
 
-        var originalImageContext = originalImageCanvas.getContext('2d');
-        var heatmapContext = heatmapCanvas.getContext('2d');
-        var heatmapWithImageContext = heatmapWithImageCanvas.getContext('2d');
 
 
 
-        var destinationOffsetX = (videoWidth - EXPECTED_DIM) / 2;
-        var destinationOffsetY = (videoHeight - EXPECTED_DIM) / 2;
-        var originalImage = new Image();
-        var heatmapImage = new Image();
-
-        originalImage.onload = function () {
-            originalImageContext.drawImage(this, 0, 0, videoWidth, videoHeight,
-                destinationOffsetX, destinationOffsetY, videoWidth, videoHeight
-            );
-        }
-        heatmapImage.onload = function () {
-            heatmapContext.drawImage(this, 0, 0, videoWidth, videoHeight,
-                destinationOffsetX, destinationOffsetY, videoWidth, videoHeight
-            );
-
-
-            var heatmapImageData = heatmapContext.getImageData(0, 0, videoWidth, videoHeight);
-            var originalImageData = originalImageContext.getImageData(0, 0, videoWidth, videoHeight);
-            //will update this func so that the originalImageData is made transparent at the spots at which the heatmap blobs exist
-
-            var data = heatmapImageData.data;
-            //remove all pixels that are entirely black
-            for (var y = 0; y < videoHeight; y++) {
-                for (var x = 0; x < videoWidth; x++) {
-                    var n = ((videoWidth * y) + x) * 4;
-                    if (data[n] + data[n + 1] + data[n + 2] == 0) {
-                        data[n + 3] = 0;
-                    }
-                    else {
-                        data[n + 3] = 125;
-
-                    }
-                }
-            }
-
-
-            heatmapContext.putImageData(heatmapImageData, 0, 0);
-            originalImageContext.drawImage(heatmapCanvas, 0, 0);
-        }
-
-        if (vm.framesToDisplay().length > 0 && vm.framesThatWereSent().length > 0) {
-            originalImage.src = vm.framesThatWereSent()[0];
-            heatmapImage.src = vm.framesToDisplay()[0];
-
-            vm.framesToDisplay.shift();
-            vm.framesThatWereSent.shift();
-        }
-        else {
-            originalImage.src = '/images/placeholders/blurred.jpg';
-            heatmapImage.src = '/images/placeholders/blurred.jpg';
-        }
-    }
-
-    function renderActivationMaps() {
-        //todo -> will prob involve using a 2d ko array to display all maps for each frame
-    }
 
     function eventLoop() {
         if (video.clientHeight == 320) return;
 
-        //control vars
         var videoWidth = video.clientWidth;
         var videoHeight = video.clientHeight;
-        //only looking to crop the horizontal sides of the video
         var offsetX = (videoWidth - videoHeight) / 2;
-        
+
         //temporary canvas used to take a screenshot of the video and crop the sides off
         var canvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
 
         //take the screenshot and draw it onto the canvas (positioned to crop the sides)
         canvas.canvasCtx.drawImage(
-            video, offsetX, 0, videoWidth - 2*offsetX, videoHeight,
+            video, offsetX, 0, videoWidth - 2 * offsetX, videoHeight,
             0, 0, EXPECTED_DIM, EXPECTED_DIM
         );
 
         //convert canvas to base64 image, add the frame to the 'framesToSend' array
         var imageJpeg = canvas.canvas.toDataURL('image/jpeg').split(',')[1];
-        vm.addFrameToQueue(vm.framesToSend(), imageJpeg);
-        vm.addFrameToQueue(
-            vm.rgbFramesToCombine(),
-            canvas.canvasCtx.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height));
+        vm.addFrameToQueue(imageJpeg);
+        vm.addRGBFrameToCombine(
+            canvas.canvasCtx.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height)
+        )
 
-
-        //(lock condition is here to avoid sending too many requests to the tf http server in parallel)
-        //if the lock is not set & the array is 'full' -> make func call to send the framesToSend
-        if (!vm.disableSendingOfFrames() && (vm.framesToSend().length == vm.batchSize())) {
-            vm.disableSendingOfFrames(true);
+        if (vm.sendFrames() && (vm.framesQueue().length == vm.batchSize())) {
             vm.sendFramesToBeProcessed();
         }
-        canvas.canvas.remove();//remove temp canvas
+
+        canvas.canvas.remove();
 
 
-        //if there are any frames to draw, handle the case based on mode
-        if (vm.framesToDisplay().length > 0 || vm.jointsToRender().length > 0) {
-            if (vm.mode() == 'joints') renderJointPositionOverlay();
-            else if (vm.mode() == 'heatmap') renderHeatmapOverlay(videoWidth, videoHeight);
-            else if (vm.mode() == 'activation_point') renderActivationMaps();
-        }      
+        //render if frames to display or joints are available...
 
     }
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+    //webcam capture + eventloop init
     function handleSuccessFact(video) {
         return function (stream) {
             window.stream = stream;
@@ -284,8 +192,6 @@
     function handleError(error, video) {
         console.log('navigator.getUserMedia error: ', error);
     }
-
-
 
 
     $(document).ready(function () {
