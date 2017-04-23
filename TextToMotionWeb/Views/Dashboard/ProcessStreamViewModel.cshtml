@@ -43,10 +43,9 @@
             return self.fillCanvasParams(canvas, width, height);
         }
 
-
         self.addFrameToQueue = function (queue, base64Image) {
             if (queue.length == self.batchSize()) {
-                queue.splice(0, queue.length);
+                queue.shift();
                 queue.push(base64Image);
             }
             else {
@@ -55,10 +54,10 @@
         }
 
         self.sendFramesToBeProcessed = function () {
-            self.framesSent([]);
             self.framesQueue().forEach(function (frame) {
                 self.framesSent.push('data:image/jpeg;base64,' + frame);
             });
+            self.framesQueue([]);
 
             //combine all frames to combine into bigCanvas
             var bigCanvas = vm.createCanvas(EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
@@ -141,29 +140,30 @@
         var origCanvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
         originalImage.onload = function () {
             origCanvas.canvasCtx.drawImage(this, 0, 0);
+
+            var origImgData = origCanvas.canvasCtx.getImageData(
+                0, 0, EXPECTED_DIM, EXPECTED_DIM);
+
+            var heatmap = vm.framesToDisplay()[0];
+            var heatmapData = heatmap.data;
+            //remove all pixels that are entirely black
+            var data = origImgData.data;
+            for (var n = 0; n < (4*EXPECTED_DIM*EXPECTED_DIM); n += 4) {
+                data[n + 0] = 0.5*data[n + 0] + 0.5*heatmapData[n + 0];
+                data[n + 1] = 0.5*data[n + 1] + 0.5*heatmapData[n + 1];
+                data[n + 2] = 0.5*data[n + 2] + 0.5*heatmapData[n + 2];
+            }
+
+            origCanvas.canvasCtx.putImageData(origImgData, 0, 0);
+            canvasToDisplayCtx.drawImage(origCanvas.canvas, 0, 0);
+
+            origCanvas.canvas.remove()
+
+            vm.framesToDisplay.shift();
+            vm.framesSent.shift();
         }
 
         originalImage.src = vm.framesSent()[0];
-        var origImgData = canvasToDisplayCtx.getImageData(
-            0, 0, EXPECTED_DIM, EXPECTED_DIM);
-
-        var heatmap = vm.framesToDisplay()[0];
-        var heatmapData = heatmap.data;
-        //remove all pixels that are entirely black
-        var data = origImgData.data;
-        for (var n = 0; n < (4*EXPECTED_DIM*EXPECTED_DIM); n += 4) {
-            data[n + 0] = 0.5*data[n + 0] + 0.5*heatmapData[n + 0];
-            data[n + 1] = 0.5*data[n + 1] + 0.5*heatmapData[n + 1];
-            data[n + 2] = 0.5*data[n + 2] + 0.5*heatmapData[n + 2];
-        }
-
-        origCanvas.canvasCtx.putImageData(origImgData, 0, 0);
-        canvasToDisplayCtx.drawImage(origCanvas.canvas, 0, 0);
-
-        origCanvas.canvas.remove()
-
-        vm.framesToDisplay.shift();
-        vm.framesSent.shift();
     }
 
     function eventLoop() {
@@ -196,9 +196,8 @@
         canvas.canvas.remove();
 
         if (vm.mode() == 'heatmap') {
-            if ((vm.framesToDisplay().length > 0) && (vm.framesSent().length > 0)) {
+            if ((vm.framesToDisplay().length > 0) && (vm.framesSent().length > 0))
                 renderHeatmapOverlay();
-            }
         }
     }
 
