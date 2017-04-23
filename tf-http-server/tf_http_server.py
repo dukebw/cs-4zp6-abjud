@@ -1,6 +1,8 @@
 """This module implements the TensorFlow HTTP server, which is a standalone
 server that is able to handle HTTP requests to do TensorFlow operations.
 """
+import sys
+import os
 import re
 import json
 import base64
@@ -14,6 +16,9 @@ import cv2
 import imageio
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
+sys.path.append(os.path.abspath('..'))
+sys.path.append(os.path.abspath('../human_pose_model'))
 from human_pose_model.networks import resnet_bulat
 from human_pose_model.pose_utils.timethis import timethis
 
@@ -118,38 +123,27 @@ def _get_heatmaps_for_batch(frames,
         fetches=[logits_tensor, resized_image_tensor, endpoints],
         feed_dict={image_bytes_feed: frames})
 
-    batch_heatmaps = []
-    for image_index in range(batch_size):
-        _, threshold = cv2.threshold(logits[image_index, ...],
-                                     -0.5,
-                                     255,
-                                     cv2.THRESH_BINARY)
+    logits = np.reshape(
+        logits, [BATCH_SIZE*logits.shape[1], logits.shape[2], logits.shape[3]])
+    _, threshold = cv2.threshold(logits, -0.5, 255, cv2.THRESH_BINARY)
 
-        heatmap_on_image = np.zeros(batch_images[image_index].shape, dtype=np.uint8)
-        for joint_index in range(logits.shape[-1]):
-            if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
-                dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
-                                                       cv2.DIST_L1,
-                                                       3)
-                dist_transform = cv2.convertScaleAbs(dist_transform,
-                                                     dist_transform,
-                                                     255.0/np.max(dist_transform))
-                heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
-                heatmap[..., 0] = 0
+    heatmap_on_image = np.zeros(batch_images.shape, dtype=np.uint8)
+    for joint_index in range(logits.shape[-1]):
+        if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
+            dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
+                                                   cv2.DIST_L1,
+                                                   3)
+            dist_transform = cv2.convertScaleAbs(dist_transform,
+                                                 dist_transform,
+                                                 255.0/np.max(dist_transform))
+            heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
+            heatmap[..., 0] = 0
 
-                heatmap_on_image += heatmap
+            heatmap_on_image += heatmap
 
-        heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
-        # alpha = 0.5
-        # heatmap_on_image = cv2.addWeighted(batch_images[image_index],
-        #                                    alpha,
-        #                                    heatmap_on_image,
-        #                                    1.0 - alpha,
-        #                                    0.0)
+    heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
 
-        batch_heatmaps.append(heatmap_on_image)
-
-    return batch_heatmaps, batch_endpoints
+    return heatmap_on_image, batch_endpoints
 
 
 def TFHttpRequestHandlerFactory(session,
@@ -207,22 +201,10 @@ def TFHttpRequestHandlerFactory(session,
                 endpoints,
                 BATCH_SIZE)
 
-            # heatmap_jpegs = tf.map_fn(
-            #     fn=lambda image: tf.image.encode_jpeg(image=image),
-            #     elems=batch_heatmaps,
-            #     parallel_iterations=len(batch_heatmaps))
-
-            # heatmap_jpegs = session.run(heatmap_jpegs)
-            heatmap_jpegs = batch_heatmaps
-
-            b64_heatmap_jpegs = []
-            for heatmap in heatmap_jpegs:
-                # b64_heatmap_jpegs.append(base64.b64encode(heatmap_jpegs))
-                with tf.Graph().as_default():
-                    with tf.Session() as encode_sess:
-                        heatmap_jpeg = encode_sess.run(tf.image.encode_jpeg(image=heatmap))
-                b64_heatmap_jpeg = base64.b64encode(heatmap_jpeg).decode('utf-8')
-                b64_heatmap_jpegs.append(b64_heatmap_jpeg)
+            with tf.Graph().as_default():
+                with tf.Session() as encode_sess:
+                    heatmap_jpegs = encode_sess.run(tf.image.encode_jpeg(image=batch_heatmaps))
+            b64_heatmap_jpegs = base64.b64encode(heatmap_jpegs).decode('utf-8')
 
             self._send_response_headers(json.dumps(b64_heatmap_jpegs))
 
@@ -264,17 +246,16 @@ def TFHttpRequestHandlerFactory(session,
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode('utf-8')
 
+            print('POST data length: {}'.format(len(post_data)))
+
             jpeg_images = json.loads(post_data)
-            frames = []
-            for image in jpeg_images:
-                decoded_img = base64.b64decode(image)
-                frames.append(decoded_img)
+            decoded_img = base64.b64decode(jpeg_images)
 
             post_url = self.requestline.split()[1]
             if re.match('/heatmap', post_url) is not None:
-                self._respond_with_heatmaps(frames)
+                self._respond_with_heatmaps(decoded_img)
             else:
-                self._respond_with_joints(frames)
+                self._respond_with_joints(decoded_img)
 
     return TFHttpRequestHandler
 
@@ -285,11 +266,7 @@ def _get_joint_position_inference_graph(image_bytes_feed):
     [IMAGE_DIM, IMAGE_DIM], then run human pose inference on the image using
     the "Two VGG-16s cascade" model.
     """
-    decoded_image = tf.map_fn(
-        fn=lambda image: tf.image.decode_jpeg(contents=image),
-        elems=image_bytes_feed,
-        dtype=tf.uint8,
-        parallel_iterations=BATCH_SIZE)
+    decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
 
     decoded_image = tf.image.convert_image_dtype(image=decoded_image,
                                                  dtype=tf.float32)
