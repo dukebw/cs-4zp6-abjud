@@ -1,104 +1,125 @@
 ﻿<script>
+    var video = $('video')[0];
+    var EXPECTED_DIM = 384;
+
     function elemByID(id) { return document.getElementById(id); }
 
     var ProcessStreamVM = function () {
         var self = this;
 
-        self.disableSendingOfFrames = ko.observable(false);
-
+        self.sendFrames = ko.observable(true);
         self.mode = ko.observable('joints');
         self.serverURL = ko.computed(function () {
             if (self.mode() == 'joints') return 'https://brendanduke.ca:8765/';
             else if (self.mode() == 'heatmap') return 'https://brendanduke.ca:8765/heatmap';
-            else return 'https://brendanduke.ca:8765/activation_map'
-
+            else if (self.mode() == 'activation_map') return 'https://brendanduke.ca:8765/activation_map'
+            else return '';
         });
-
         self.batchSize = ko.observable(16);
-        self.framesToSend = ko.observableArray([]);
+        
+        self.framesQueue = ko.observableArray([]);
+        self.framesToCombine = ko.observableArray([]);
+        self.framesSent = ko.observableArray([]);
+
+        self.jointsToRender = ko.observableArray([]);
         self.framesToDisplay = ko.observableArray([]);
-        self.currentFrameToDisplay = ko.observable('/images/placeholders/blurred.jpg');
 
 
-        self.isDisplayBufferFull = ko.computed(function () {
-            if (self.framesToDisplay().length == 0) return false;
-            else return true;
-        });
+        self.initCanvasByID = function (ID, width, height) {
+            var canvas = elemByID(ID);
+            canvas.fillStyle = 'red';
+            canvas.width = width;
+            canvas.height = height;
+            var canvasCtx = canvas.getContext('2d');
 
+            return { 'canvas': canvas, 'canvasCtx': canvasCtx };
+        }
 
-        self.addFrameToQueue = function (base64Image) {
-            if (self.framesToSend().length == self.batchSize()) {
-                self.framesToSend.shift();
-                self.framesToSend.push(base64Image);
-            }
-            else self.framesToSend.push(base64Image);
+        self.createCanvas = function (width, height) {
+            var canvas = document.createElement('canvas');
+            canvas.fillStyle = 'red';
+            canvas.width = width;
+            canvas.height = height;
+            var canvasCtx = canvas.getContext('2d');
+
+            return { 'canvas': canvas, 'canvasCtx': canvasCtx };
         }
 
 
+        self.addFrameToQueue = function (queue, base64Image) {
+            if (queue.length == self.batchSize()) {
+                queue.splice(0, queue.length);
+                queue.push(base64Image);
+            }
+            else {
+                queue.push(base64Image);
+            }
+        }
+
         self.sendFramesToBeProcessed = function () {
+            self.framesSent([]);
+            self.framesQueue().forEach(function (frame) {
+                self.framesSent.push('data:image/jpeg;base64,' + frame);
+            });
+
+            //combine all frames to combine into bigCanvas
+            var bigCanvas = vm.createCanvas(vm.batchSize() * EXPECTED_DIM, EXPECTED_DIM);
+            for (var i = 0; i < vm.batchSize(); ++i) {
+                var frame = self.framesToCombine()[i];
+                bigCanvas.canvasCtx.putImageData(frame, i * EXPECTED_DIM, 0);
+            }
+            bigCanvas.canvasCtx.drawImage(bigCanvas.canvas, 0, 0);
+
+            var bigImageJpeg = bigCanvas.canvas.toDataURL('image/jpeg').split(',')[1];
+
+            bigCanvas.canvas.remove();
+
+
+            //send image data url to server
             $.post(self.serverURL(),
-                ko.toJSON(self.framesToSend()),
+                JSON.stringify(bigImageJpeg),
                 function (response) {
-                    self.disableSendingOfFrames(false);
+                    console.log(response);
 
                     if (self.mode() == 'joints') {
-
-
+                        response.forEach(function (joint_pos) {
+                            self.jointsToRender.push(joint_pos);
+                        });
                     }
                     else if (self.mode() == 'heatmap') {
                         response.forEach(function (heatmap) {
-                            self.framesToDisplay.push('data:image/png;base64,' + heatmap);
+                            self.framesToDisplay.push('data:image/jpeg;base64,' + heatmap);
                         });
-
                     }
-                    //based on mode, draw joints onto a canvas OR just display an image
+                    else if (self.mode() == 'activation_map') {
+                        //todo
+                    }
 
-                    /*$.each(jointCoords[0],
-                        function (propertyName, value) {
-                            var maxDim = Math.max(canvas.width, canvas.height);
-                            var x = maxDim * value[0] + canvas.width / 2;
-                            var y = maxDim * value[1] + canvas.height / 2;
-
-                            canvasContext.beginPath();
-                            var circle = canvasContext.arc(x, y, 10, 0, 2 * Math.PI);
-                            canvasContext.fill(circle);
-                        });*/
                 },
-                "json");
+                "json")
+                .fail(function (response) {
+                    self.sendFrames(false);
+                    setTimeout(function () {
+                        self.sendFrames(true);
+                    }, 3000);
+                });
+
         }
+
+
     }
-
-
-    //custom bindings and helper funcs 
+    //custom bindings and helper funcs (ignore)
     ko.bindingHandlers.fadeVisible = {
         init: function (element, valueAccessor) {
-            // Initially set the element to be instantly visible/hidden depending on the value
             var value = valueAccessor();
-            $(element).toggle(ko.utils.unwrapObservable(value)); // Use "unwrapObservable" so we can handle values that may or may not be observable
+            $(element).toggle(ko.utils.unwrapObservable(value));
         },
         update: function (element, valueAccessor) {
-            // Whenever the value subsequently changes, slowly fade the element in or out
             var value = valueAccessor();
             ko.utils.unwrapObservable(value) ? $(element).fadeIn() : $(element).hide();
         }
     };
-
-    ko.bindingHandlers.fadeVisibleAlt = {
-        init: function (element, valueAccessor) {
-            // Initially set the element to be instantly visible/hidden depending on the value
-            var value = valueAccessor();
-            $(element).toggle(ko.utils.unwrapObservable(value)); // Use "unwrapObservable" so we can handle values that may or may not be observable
-        },
-        update: function (element, valueAccessor) {
-            // Whenever the value subsequently changes, slowly fade the element in or out
-            var value = valueAccessor();
-            ko.utils.unwrapObservable(value) ? $(element).show() : $(element).hide();
-        }
-    }
-
-
-
-    //init
+    //init ko viewmodel
     window.vm = new ProcessStreamVM();
     ko.applyBindings(vm);
 
@@ -109,57 +130,56 @@
 
 
 
-    //func defs and main event loop...
-
     function eventLoop() {
-        var video = $('video')[0];
         if (video.clientHeight == 320) return;
-        //var canvas = $('canvas')[0];
-        var canvas = document.createElement('canvas');
-        var canvasContext = canvas.getContext('2d');
 
-        canvas.width = video.clientWidth;
-        canvas.height = video.clientHeight;
-        canvas.fillStyle = 'red';
+        var videoWidth = video.clientWidth;
+        var videoHeight = video.clientHeight;
+        var offsetX = (videoWidth - videoHeight) / 2;
 
-        var expectedDim = 384;
-        var offsetX = (video.clientWidth - video.clientHeight) / 2;
+        //temporary canvas used to take a screenshot of the video and crop the sides off
+        var canvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
 
-        canvas.width = expectedDim;
-        canvas.height = expectedDim;
-        canvasContext.drawImage(
-            video, offsetX, 0, video.clientHeight, video.clientHeight,
-            0, 0, expectedDim, expectedDim
+        //take the screenshot and draw it onto the canvas (positioned to crop the sides)
+        canvas.canvasCtx.drawImage(
+            video, offsetX, 0, videoWidth - 2 * offsetX, videoHeight,
+            0, 0, EXPECTED_DIM, EXPECTED_DIM
         );
 
+        //convert canvas to base64 image, add the frame to the 'framesToSend' array
+        var imageJpeg = canvas.canvas.toDataURL('image/jpeg').split(',')[1];
+        vm.addFrameToQueue(vm.framesQueue(), imageJpeg);
+        vm.addFrameToQueue(vm.framesToCombine(),
+            canvas.canvasCtx.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height)
+        );
 
-        var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
-        vm.addFrameToQueue(imageJpeg);
-
-        //this if can be updated to have another condition for : !vm.disableSendingOfFrames() -> might come into play when actually rendering the images
-        if (!vm.disableSendingOfFrames() && (vm.framesToSend().length == vm.batchSize())) {
-            vm.disableSendingOfFrames(true);
+        if (vm.sendFrames() && (vm.framesQueue().length == vm.batchSize())) {
             vm.sendFramesToBeProcessed();
         }
-        canvas.remove();
+
+        canvas.canvas.remove();
 
 
-
-        //showing the image preview if mode is heatmap
-        if (vm.mode() == 'heatmap') {
-            if (vm.framesToDisplay().length > 1) {
-                vm.currentFrameToDisplay(vm.framesToDisplay()[0]);
-                vm.framesToDisplay.shift();
-            }
-            else vm.currentFrameToDisplay('/images/placeholders/blurred.jpg');
-        }
-        
+        //render if frames to display or joints are available...
 
     }
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+    //webcam capture + eventloop init
     function handleSuccessFact(video) {
         return function (stream) {
             window.stream = stream;
@@ -170,10 +190,6 @@
     function handleError(error, video) {
         console.log('navigator.getUserMedia error: ', error);
     }
-
-
-
-
 
 
     $(document).ready(function () {
@@ -187,7 +203,6 @@
             .then(handleSuccessFact(video))
             .catch(handleError);
 
-
-        setInterval(eventLoop, 333);
+        setInterval(eventLoop, 500);
     });
 </script>

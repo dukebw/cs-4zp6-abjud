@@ -17,8 +17,8 @@ namespace TextToMotionWeb.Controllers
     {
         public IActionResult Index()
         {
-            //var dbcontext = new ApplicationDbContext();
-            //dbcontext.Database.EnsureCreated();
+            var dbcontext = new ApplicationDbContext();
+            dbcontext.Database.EnsureCreated();
             return View();
         }
 

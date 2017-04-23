@@ -18,6 +18,10 @@
         self.showSpinnerWhileProcessingImage = ko.observable(false);
         self.showProcessedImage = ko.observable(false);
 
+        self.imageToSend = ko.observableArray([]);//needs to be an array right now b/c the tf http server only accepts a batch size of 16 images
+        self.expectedBatchSize = ko.observable(16);
+
+
         self.showSaveBtn = ko.observable(false);
 
 
@@ -79,6 +83,16 @@
             self.showProcessBtn(false);
             self.showSaveBtn(true);
         }
+        self.showInvalidResultForProcessedState = function () {
+            self.showEmptyProcessedImage(true);
+            self.showSpinnerWhileProcessingImage(false);
+            self.showProcessedImage(false);
+            self.showProcessBtn(true);
+            self.showSaveBtn(false);
+
+            Materialize.toast('<i class="fa fa-exclamation-triangle"></i>  Error! Cannot establish a connection with the computing server', 5000);
+
+        }
         
     }
 
@@ -117,6 +131,18 @@
     //init
     window.vm = new ProcessImageVM();
     ko.applyBindings(vm);
+
+
+    //global vars
+    var joint_position_url = 'https://brendanduke.ca:8765/';
+    var heatmap_url = 'https://brendanduke.ca:8765/heatmap';
+
+    var expectedDim = 384;
+
+
+
+
+
 
     function showPage() {
         vm.pageLoaded(true);
@@ -169,13 +195,67 @@
 
 
 
-    //NEED TO PORT IN the code from democontroller
-    function sendRequestToTFHttpServer() {
-        vm.showSpinnerForProcessingState();
-        setTimeout(vm.showValidResultForProcessedState, 1500);
-        setTimeout(drawProcessedImage, 1501);
+
+    //IMAGE URL NOT WORKING AS OF NOW...
+    function preProcessGivenImage() {
+        var originalImageCanvas = document.createElement('canvas');
+        var originalImageContext = originalImageCanvas.getContext('2d');
+
+        var originalImage = new Image();
+        if (vm.optionForUpload() == "Image URL") {
+            originalImage.crossOrigin = "anonymous";
+        }
+
+        originalImage.onload = function () {
+            if (vm.optionForUpload() == "File Upload") {
+                originalImageContext.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height,
+                    0, 0, expectedDim, expectedDim
+                );
+
+                var imageToSend = originalImageCanvas.toDataURL().split(',')[1];
+            }
+            else {
+                console.log('e');
+                var imageToSend = originalImageCanvas.toDataURL();
+
+            }
+            console.log(imageToSend);
+            var imagesToSend = [];
+            //as of now, the tf http server expects 16 images so load them into an array
+            for (var i = 0; i < vm.expectedBatchSize(); i++) {
+                imagesToSend.push(imageToSend);
+            }
+            sendRequestToTFHttpServer(imagesToSend);
+        }
+         originalImage.src = $('#image-preview').attr('src');
 
     }
+
+
+    //NEED TO PORT IN the code from democontroller
+    function sendRequestToTFHttpServer(imagesToSend) {
+        vm.showSpinnerForProcessingState();
+
+        var processedImageCanvas = elemByID('processed-image');
+        var processedImageContext = processedImageCanvas.getContext('2d');
+
+
+        $.post(joint_position_url,
+            JSON.stringify(imagesToSend),
+            function (response) {
+                console.log(response);
+
+            },
+            "json")
+            .fail(function (response) {
+                vm.showInvalidResultForProcessedState();
+            });
+
+
+        vm.showValidResultForProcessedState();
+
+    }
+
 
 
     function drawProcessedImage() {
@@ -183,9 +263,14 @@
         
 
         var ctx = canvas.getContext('2d');
-        var img = elemByID('image-preview');
-                
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var originalImage = new Image();
+        originalImage.onload = function () {
+            ctx.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height,
+                            0, 0, canvas.width, canvas.height
+            );
+        }
+
+        originalImage.src = $('#image-preview').attr('src');
     }
 
 
@@ -193,7 +278,7 @@
     //define all event handlers
     $('#update-base-image-btn').on('click', loadBaseImageViaURL);
     $('#image-upload').change(loadBaseImageViaUpload);
-    $('#process-image-btn').on('click', sendRequestToTFHttpServer);
+    $('#process-image-btn').on('click', preProcessGivenImage);
 
 
     $(document).ready(function () {
