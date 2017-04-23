@@ -63,10 +63,10 @@
             });
 
             //combine all frames to combine into bigCanvas
-            var bigCanvas = vm.createCanvas(vm.batchSize() * EXPECTED_DIM, EXPECTED_DIM);
+            var bigCanvas = vm.createCanvas(EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
             for (var i = 0; i < vm.batchSize(); ++i) {
                 var frame = self.framesToCombine()[i];
-                bigCanvas.canvasCtx.putImageData(frame, i * EXPECTED_DIM, 0);
+                bigCanvas.canvasCtx.putImageData(frame, 0, i * EXPECTED_DIM);
             }
             bigCanvas.canvasCtx.drawImage(bigCanvas.canvas, 0, 0);
 
@@ -79,17 +79,12 @@
             $.post(self.serverURL(),
                 JSON.stringify(bigImageJpeg),
                 function (response) {
-                    console.log(response);
 
                     if (self.mode() == 'joints') {
-                        response.forEach(function (joint_pos) {
-                            self.jointsToRender.push(joint_pos);
-                        });
+                        
                     }
                     else if (self.mode() == 'heatmap') {
-                        response.forEach(function (heatmap) {
-                            self.framesToDisplay.push('data:image/jpeg;base64,' + heatmap);
-                        });
+                        self.addFramesToDisplay(response, 'heatmap');                        
                     }
                     else if (self.mode() == 'activation_map') {
                         //todo
@@ -103,9 +98,25 @@
                         self.sendFrames(true);
                     }, 3000);
                 });
-
         }
 
+
+
+
+        self.addFramesToDisplay = function (imageBatch, mode) {
+            var batchCanvas = vm.createCanvas(EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
+            var largeImage = new Image();
+            largeImage.onload = function () {
+                batchCanvas.canvasCtx.drawImage(this, 0, 0, EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
+
+                for (var i = 0; i < vm.batchSize(); i++) {
+                    var segmentedImage = batchCanvas.canvasCtx.getImageData(0, i * EXPECTED_DIM, EXPECTED_DIM, EXPECTED_DIM);
+                    vm.framesToDisplay.push(segmentedImage);
+                }
+            }
+
+            largeImage.src = 'data:image/jpeg;base64,' + imageBatch;
+        }
 
     }
     //custom bindings and helper funcs (ignore)
@@ -124,7 +135,58 @@
     ko.applyBindings(vm);
 
 
+    function renderHeatmapOverlay() {
+        var canvasToDisplay = vm.initCanvasByID('heatmap-canvas');
 
+        var originalImage = new Image();
+
+        originalImage.onload = function () {
+            canvasToDisplay.canvasCtx.drawImage(this, 0, 0);
+        }
+        
+
+        /*
+        heatmapImage.onload = function () {
+            heatmapContext.drawImage(this, 0, 0, videoWidth, videoHeight,
+                destinationOffsetX, destinationOffsetY, videoWidth, videoHeight
+            );
+
+
+            var heatmapImageData = heatmapContext.getImageData(0, 0, videoWidth, videoHeight);
+            var originalImageData = originalImageContext.getImageData(0, 0, videoWidth, videoHeight);
+            //will update this func so that the originalImageData is made transparent at the spots at which the heatmap blobs exist
+
+            var data = heatmapImageData.data;
+            //remove all pixels that are entirely black
+            for (var y = 0; y < videoHeight; y++) {
+                for (var x = 0; x < videoWidth; x++) {
+                    var n = ((videoWidth * y) + x) * 4;
+                    if (data[n] + data[n + 1] + data[n + 2] == 0) {
+                        data[n + 3] = 0;
+                    }
+                    else {
+                        data[n + 3] = 125;
+
+                    }
+                }
+            }
+
+
+            .putImageData(heatmapImageData, 0, 0);
+            originalImageContext.drawImage(heatmapCanvas, 0, 0);
+        }*/
+
+        if (vm.framesToDisplay().length > 0 && vm.framesSent().length > 0) {
+            console.log(vm.framesToDisplay());
+            originalImage.src = vm.framesSent()[0];
+            //vm.framesToDisplay.shift();
+            vm.framesSent.shift();
+        }
+    }
+
+
+
+    
 
 
 
@@ -161,7 +223,8 @@
 
 
         //render if frames to display or joints are available...
-
+        if (vm.mode() == 'heatmap') renderHeatmapOverlay();
+        
     }
 
 
