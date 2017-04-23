@@ -24,9 +24,7 @@
         self.jointsToRender = ko.observableArray([]);
         self.framesToDisplay = ko.observableArray([]);
 
-
-        self.initCanvasByID = function (ID, width, height) {
-            var canvas = elemByID(ID);
+        self.fillCanvasParams = function (canvas, width, height) {
             canvas.fillStyle = 'red';
             canvas.width = width;
             canvas.height = height;
@@ -35,14 +33,14 @@
             return { 'canvas': canvas, 'canvasCtx': canvasCtx };
         }
 
+        self.initCanvasByID = function (ID, width, height) {
+            var canvas = elemByID(ID);
+            return self.fillCanvasParams(canvas, width, height);
+        }
+
         self.createCanvas = function (width, height) {
             var canvas = document.createElement('canvas');
-            canvas.fillStyle = 'red';
-            canvas.width = width;
-            canvas.height = height;
-            var canvasCtx = canvas.getContext('2d');
-
-            return { 'canvas': canvas, 'canvasCtx': canvasCtx };
+            return self.fillCanvasParams(canvas, width, height);
         }
 
 
@@ -100,9 +98,6 @@
                 });
         }
 
-
-
-
         self.addFramesToDisplay = function (imageBatch, mode) {
             var batchCanvas = vm.createCanvas(EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
             var largeImage = new Image();
@@ -110,7 +105,8 @@
                 batchCanvas.canvasCtx.drawImage(this, 0, 0, EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
 
                 for (var i = 0; i < vm.batchSize(); i++) {
-                    var segmentedImage = batchCanvas.canvasCtx.getImageData(0, i * EXPECTED_DIM, EXPECTED_DIM, EXPECTED_DIM);
+                    var segmentedImage = batchCanvas.canvasCtx.getImageData(
+                        0, i * EXPECTED_DIM, EXPECTED_DIM, EXPECTED_DIM);
                     vm.framesToDisplay.push(segmentedImage);
                 }
             }
@@ -136,61 +132,35 @@
 
 
     function renderHeatmapOverlay() {
-        var canvasToDisplay = vm.initCanvasByID('heatmap-canvas');
+        var canvasToDisplay = vm.initCanvasByID('heatmap-canvas',
+                                                EXPECTED_DIM,
+                                                EXPECTED_DIM);
 
         var originalImage = new Image();
-
         originalImage.onload = function () {
             canvasToDisplay.canvasCtx.drawImage(this, 0, 0);
         }
-        
 
-        /*
-        heatmapImage.onload = function () {
-            heatmapContext.drawImage(this, 0, 0, videoWidth, videoHeight,
-                destinationOffsetX, destinationOffsetY, videoWidth, videoHeight
-            );
+        originalImage.src = vm.framesSent()[0];
+        var origImgData = canvasToDisplay.canvasCtx.getImageData(
+            0, 0, EXPECTED_DIM, EXPECTED_DIM);
 
-
-            var heatmapImageData = heatmapContext.getImageData(0, 0, videoWidth, videoHeight);
-            var originalImageData = originalImageContext.getImageData(0, 0, videoWidth, videoHeight);
-            //will update this func so that the originalImageData is made transparent at the spots at which the heatmap blobs exist
-
-            var data = heatmapImageData.data;
-            //remove all pixels that are entirely black
-            for (var y = 0; y < videoHeight; y++) {
-                for (var x = 0; x < videoWidth; x++) {
-                    var n = ((videoWidth * y) + x) * 4;
-                    if (data[n] + data[n + 1] + data[n + 2] == 0) {
-                        data[n + 3] = 0;
-                    }
-                    else {
-                        data[n + 3] = 125;
-
-                    }
-                }
-            }
-
-
-            .putImageData(heatmapImageData, 0, 0);
-            originalImageContext.drawImage(heatmapCanvas, 0, 0);
-        }*/
-
-        if (vm.framesToDisplay().length > 0 && vm.framesSent().length > 0) {
-            console.log(vm.framesToDisplay());
-            originalImage.src = vm.framesSent()[0];
-            //vm.framesToDisplay.shift();
-            vm.framesSent.shift();
+        var heatmap = vm.framesToDisplay()[0];
+        var heatmapData = heatmap.data;
+        //remove all pixels that are entirely black
+        var data = origImgData.data;
+        for (var n = 0; n < (4*EXPECTED_DIM*EXPECTED_DIM); n += 4) {
+            data[n + 0] = 0.5*data[n + 0] + 0.5*heatmapData[n + 0];
+            data[n + 1] = 0.5*data[n + 1] + 0.5*heatmapData[n + 1];
+            data[n + 2] = 0.5*data[n + 2] + 0.5*heatmapData[n + 2];
         }
+
+        canvasToDisplay.canvasCtx.putImageData(heatmap, 0, 0);
+        canvasToDisplay.canvasCtx.drawImage(canvasToDisplay.canvas, 0, 0);
+
+        vm.framesToDisplay.shift();
+        vm.framesSent.shift();
     }
-
-
-
-    
-
-
-
-
 
     function eventLoop() {
         if (video.clientHeight == 320) return;
@@ -221,26 +191,12 @@
 
         canvas.canvas.remove();
 
-
-        //render if frames to display or joints are available...
-        if (vm.mode() == 'heatmap') renderHeatmapOverlay();
-        
+        if (vm.mode() == 'heatmap') {
+            if ((vm.framesToDisplay().length > 0) && (vm.framesSent().length > 0)) {
+                renderHeatmapOverlay();
+            }
+        }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     //webcam capture + eventloop init
     function handleSuccessFact(video) {
@@ -253,7 +209,6 @@
     function handleError(error, video) {
         console.log('navigator.getUserMedia error: ', error);
     }
-
 
     $(document).ready(function () {
         var video = $('video')[0];
