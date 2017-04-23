@@ -1,4 +1,8 @@
 ﻿<script>
+    //func defs and main event loop...
+    var video = $('video')[0];
+    var EXPECTED_DIM = 384;
+
     function elemByID(id) { return document.getElementById(id); }
 
     var ProcessStreamVM = function () {
@@ -19,35 +23,60 @@
         self.batchSize = ko.observable(16);
 
         self.framesToSend = ko.observableArray([]);
+        self.rgbFramesToCombine = ko.observableArray([]);
         self.framesThatWereSent = ko.observableArray([]);
 
         self.jointsToRender = ko.observableArray([]);
         self.framesToDisplay = ko.observableArray([]);
 
-
-
-
         //adds a frame to the framesToSend array given the base64 string, maintains the array size to be consistent
-        self.addFrameToQueue = function (base64Image) {
-            if (self.framesToSend().length == self.batchSize()) {
-                self.framesToSend.shift();
-                self.framesToSend.push(base64Image);
+        self.addFrameToQueue = function (framesQueue, base64Image) {
+            if (framesQueue.length == self.batchSize()) {
+                framesQueue.shift();
+                framesQueue.push(base64Image);
             }
-            else self.framesToSend.push(base64Image);
+            else {
+                framesQueue.push(base64Image);
+            }
         }
 
+        self.createCanvas = function (width, height) {
+            var canvas = document.createElement('canvas');
+            canvas.fillStyle = 'red';
+            canvas.width = width;
+            canvas.height = height;
+            var canvasCtx = canvas.getContext('2d');
+
+            return {'canvas': canvas, 'canvasCtx': canvasCtx};
+        }
 
         //(before calling this function, a lock was set so that this function would not be called again)
         self.sendFramesToBeProcessed = function () {
-            //add base64 data prefix to each frame to send and save the original images
             self.framesToSend().forEach(function (frame) {
                 self.framesThatWereSent.push('data:image/jpeg;base64,' + frame);
             });
 
+            var bigCanvas = vm.createCanvas(vm.batchSize()*EXPECTED_DIM, EXPECTED_DIM);
+
+            //add base64 data prefix to each frame to send and save the original images
+            for (var frameIndex = 0;
+                 frameIndex < vm.batchSize();
+                 ++frameIndex) {
+                 var frame = self.rgbFramesToCombine()[frameIndex];
+                 bigCanvas.canvasCtx.putImageData(frame, frameIndex*EXPECTED_DIM, 0);
+            }
+            bigCanvas.canvasCtx.drawImage(bigCanvas.canvas, 0, 0);
+            var bigImageJpeg = bigCanvas.canvas.toDataURL('image/jpeg').split(',')[1];
+
+            bigCanvas.canvas.remove();
+
             //send the framesToSend
             $.post(self.serverURL(),
-                ko.toJSON(self.framesToSend()),
+                JSON.stringify(bigImageJpeg),
                 function (response) {
+                    // debug
+                    console.log(response);
+
                     //on getting a response -> unset lock so that this func can be called again
                     self.disableSendingOfFrames(false);
 
@@ -78,11 +107,10 @@
                 .fail(function (response) {
                     setTimeout(function () {
                         self.disableSendingOfFrames(false);
-                    }, 10000);
+                    }, 3000);
                 });
         }
     }
-
 
     //custom bindings and helper funcs (ignore)
     ko.bindingHandlers.fadeVisible = {
@@ -101,22 +129,6 @@
     //init ko viewmodel
     window.vm = new ProcessStreamVM();
     ko.applyBindings(vm);
-
-
-
-
-
-
-
-
-    //func defs and main event loop...
-    var video = $('video')[0];
-    var expectedDim = 384;
-
-
-
-
-
 
     function renderJointPositionOverlay() {
         console.log(vm.jointsToRender());
@@ -158,8 +170,8 @@
 
 
 
-        var destinationOffsetX = (videoWidth - expectedDim) / 2;
-        var destinationOffsetY = (videoHeight - expectedDim) / 2;
+        var destinationOffsetX = (videoWidth - EXPECTED_DIM) / 2;
+        var destinationOffsetY = (videoHeight - EXPECTED_DIM) / 2;
         var originalImage = new Image();
         var heatmapImage = new Image();
 
@@ -196,8 +208,6 @@
 
             heatmapContext.putImageData(heatmapImageData, 0, 0);
             originalImageContext.drawImage(heatmapCanvas, 0, 0);
-
-
         }
 
         if (vm.framesToDisplay().length > 0 && vm.framesThatWereSent().length > 0) {
@@ -213,19 +223,9 @@
         }
     }
 
-
-
-
-
-
     function renderActivationMaps() {
         //todo -> will prob involve using a 2d ko array to display all maps for each frame
     }
-
-
-
-
-
 
     function eventLoop() {
         if (video.clientHeight == 320) return;
@@ -237,21 +237,20 @@
         var offsetX = (videoWidth - videoHeight) / 2;
         
         //temporary canvas used to take a screenshot of the video and crop the sides off
-        var canvas = document.createElement('canvas');
-        var canvasContext = canvas.getContext('2d');
-        canvas.fillStyle = 'red';        
-        canvas.width = expectedDim;
-        canvas.height = expectedDim;
+        var canvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
 
         //take the screenshot and draw it onto the canvas (positioned to crop the sides)
-        canvasContext.drawImage(
+        canvas.canvasCtx.drawImage(
             video, offsetX, 0, videoWidth - 2*offsetX, videoHeight,
-            0, 0, expectedDim, expectedDim
+            0, 0, EXPECTED_DIM, EXPECTED_DIM
         );
 
         //convert canvas to base64 image, add the frame to the 'framesToSend' array
-        var imageJpeg = canvas.toDataURL('image/jpeg').split(',')[1];
-        vm.addFrameToQueue(imageJpeg);
+        var imageJpeg = canvas.canvas.toDataURL('image/jpeg').split(',')[1];
+        vm.addFrameToQueue(vm.framesToSend(), imageJpeg);
+        vm.addFrameToQueue(
+            vm.rgbFramesToCombine(),
+            canvas.canvasCtx.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height));
 
 
         //(lock condition is here to avoid sending too many requests to the tf http server in parallel)
@@ -260,7 +259,7 @@
             vm.disableSendingOfFrames(true);
             vm.sendFramesToBeProcessed();
         }
-        canvas.remove();//remove temp canvas
+        canvas.canvas.remove();//remove temp canvas
 
 
         //if there are any frames to draw, handle the case based on mode
