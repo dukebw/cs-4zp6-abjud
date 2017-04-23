@@ -35,7 +35,7 @@
 
         self.initCanvasByID = function (ID, width, height) {
             var canvas = elemByID(ID);
-            return self.fillCanvasParams(canvas, width, height);
+            self.fillCanvasParams(canvas, width, height);
         }
 
         self.createCanvas = function (width, height) {
@@ -115,6 +115,7 @@
         }
 
     }
+
     //custom bindings and helper funcs (ignore)
     ko.bindingHandlers.fadeVisible = {
         init: function (element, valueAccessor) {
@@ -130,19 +131,20 @@
     window.vm = new ProcessStreamVM();
     ko.applyBindings(vm);
 
+    vm.initCanvasByID('heatmap-canvas', EXPECTED_DIM, EXPECTED_DIM);
 
     function renderHeatmapOverlay() {
-        var canvasToDisplay = vm.initCanvasByID('heatmap-canvas',
-                                                EXPECTED_DIM,
-                                                EXPECTED_DIM);
+        var canvasToDisplay = elemByID('heatmap-canvas');
+        var canvasToDisplayCtx = canvasToDisplay.getContext('2d');
 
         var originalImage = new Image();
+        var origCanvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
         originalImage.onload = function () {
-            canvasToDisplay.canvasCtx.drawImage(this, 0, 0);
+            origCanvas.canvasCtx.drawImage(this, 0, 0);
         }
 
         originalImage.src = vm.framesSent()[0];
-        var origImgData = canvasToDisplay.canvasCtx.getImageData(
+        var origImgData = canvasToDisplayCtx.getImageData(
             0, 0, EXPECTED_DIM, EXPECTED_DIM);
 
         var heatmap = vm.framesToDisplay()[0];
@@ -155,8 +157,10 @@
             data[n + 2] = 0.5*data[n + 2] + 0.5*heatmapData[n + 2];
         }
 
-        canvasToDisplay.canvasCtx.putImageData(heatmap, 0, 0);
-        canvasToDisplay.canvasCtx.drawImage(canvasToDisplay.canvas, 0, 0);
+        origCanvas.canvasCtx.putImageData(origImgData, 0, 0);
+        canvasToDisplayCtx.drawImage(origCanvas.canvas, 0, 0);
+
+        origCanvas.canvas.remove()
 
         vm.framesToDisplay.shift();
         vm.framesSent.shift();
