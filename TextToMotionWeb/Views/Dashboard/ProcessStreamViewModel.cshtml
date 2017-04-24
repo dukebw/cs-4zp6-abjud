@@ -1,6 +1,7 @@
 ﻿<script>
     var video = $('video')[0];
     var EXPECTED_DIM = 384;
+    var ORIGINAL_DIM = 480;
     var JOINT_IMAGES = {
         'head_top': {
             'imageName': '/images/hat.png',
@@ -57,6 +58,14 @@
 
         self.sendFrames = ko.observable(true);
         self.mode = ko.observable('joints');
+        self.frameTime = ko.computed(function () {
+            if (self.mode() == 'joints')
+                return 150;
+            else if (self.mode() == 'heatmap')
+                return 200;
+            else if (self.mode() == 'activation_map')
+                return 300;
+        });
         self.serverURL = ko.computed(function () {
             if (self.mode() == 'joints') return 'https://brendanduke.ca:8765/';
             else if (self.mode() == 'heatmap') return 'https://brendanduke.ca:8765/heatmap';
@@ -168,6 +177,7 @@
             }
 
             largeImage.src = 'data:image/jpeg;base64,' + imageBatch;
+            batchCanvas.canvas.remove();
         }
 
     }
@@ -187,9 +197,9 @@
     window.vm = new ProcessStreamVM();
     ko.applyBindings(vm);
 
-    vm.initCanvasByID('heatmap-canvas', EXPECTED_DIM, EXPECTED_DIM);
-    vm.initCanvasByID('joint-location-canvas', EXPECTED_DIM, EXPECTED_DIM);
-    vm.initCanvasByID('activation-map-canvas', EXPECTED_DIM, EXPECTED_DIM);
+    vm.initCanvasByID('heatmap-canvas', ORIGINAL_DIM, ORIGINAL_DIM);
+    vm.initCanvasByID('joint-location-canvas', ORIGINAL_DIM, ORIGINAL_DIM);
+    vm.initCanvasByID('activation-map-canvas', ORIGINAL_DIM, ORIGINAL_DIM);
 
     function getImage(imageUrl) {
         var image = new Image();
@@ -201,23 +211,32 @@
     function renderHeatmapOverlay() {
         var canvasToDisplay = elemByID('heatmap-canvas');
         var canvasToDisplayCtx = canvasToDisplay.getContext('2d');
+        var scaleCanvas = vm.createCanvas(ORIGINAL_DIM, ORIGINAL_DIM);
+
+        var heatmap = vm.heatmapsToRender()[0];
+        scaleCanvas.canvasCtx.putImageData(heatmap, 0, 0);
+        scaleCanvas.canvasCtx.scale(ORIGINAL_DIM/EXPECTED_DIM,
+                                    ORIGINAL_DIM/EXPECTED_DIM);
+        scaleCanvas.canvasCtx.drawImage(scaleCanvas.canvas, 0, 0);
+        heatmap = scaleCanvas.canvasCtx.getImageData(
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM);
 
         var origImgData = vm.framesSent()[0];
 
-        var heatmap = vm.heatmapsToRender()[0];
-
         var heatmapData = heatmap.data;
+
         //remove all pixels that are entirely black
         var data = origImgData.data;
-        for (var n = 0; n < (4*EXPECTED_DIM*EXPECTED_DIM); n += 4) {
-            data[n + 0] = 0.5*data[n + 0] + 0.5*heatmapData[n + 0];
-            data[n + 1] = 0.5*data[n + 1] + 0.5*heatmapData[n + 1];
-            data[n + 2] = 0.5*data[n + 2] + 0.5*heatmapData[n + 2];
+        for (var n = 0; n < (4*ORIGINAL_DIM*ORIGINAL_DIM); n += 4) {
+            data[n + 0] = 0.75*data[n + 0] + 0.25*heatmapData[n + 0];
+            data[n + 1] = 0.75*data[n + 1] + 0.25*heatmapData[n + 1];
+            data[n + 2] = 0.75*data[n + 2] + 0.25*heatmapData[n + 2];
         }
 
         canvasToDisplayCtx.putImageData(origImgData, 0, 0);
         canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
 
+        scaleCanvas.canvas.remove();
         vm.framesSent.shift();
         vm.heatmapsToRender.shift();
     }
@@ -228,10 +247,18 @@
 
         var heatmap = vm.heatmapsToRender()[0];
 
-        console.log(heatmap);
+        var scaleCanvas = vm.createCanvas(ORIGINAL_DIM, ORIGINAL_DIM);
+        scaleCanvas.canvasCtx.putImageData(heatmap, 0, 0);
+        scaleCanvas.canvasCtx.scale(ORIGINAL_DIM/EXPECTED_DIM,
+                                    ORIGINAL_DIM/EXPECTED_DIM);
+        scaleCanvas.canvasCtx.drawImage(scaleCanvas.canvas, 0, 0);
+        heatmap = scaleCanvas.canvasCtx.getImageData(
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM);
 
         canvasToDisplayCtx.putImageData(heatmap, 0, 0);
         canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
+
+        scaleCanvas.canvas.remove();
 
         vm.framesSent.shift();
         vm.heatmapsToRender.shift();
@@ -266,7 +293,7 @@
     }
 
     function scaleJoint(jointFromTfServer) {
-        return EXPECTED_DIM*jointFromTfServer + EXPECTED_DIM/2
+        return ORIGINAL_DIM*jointFromTfServer + ORIGINAL_DIM/2
     }
 
     // For debug!
@@ -289,26 +316,33 @@
         var videoHeight = video.clientHeight;
         var offsetX = (videoWidth - videoHeight) / 2;
 
-        var canvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
+        var expectedCanvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
+        var origCanvas = vm.createCanvas(ORIGINAL_DIM, ORIGINAL_DIM);
 
-        canvas.canvasCtx.drawImage(
+        origCanvas.canvasCtx.drawImage(
             video,
             offsetX, 0, videoWidth - 2 * offsetX, videoHeight,
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM
+        );
+        expectedCanvas.canvasCtx.drawImage(
+            origCanvas.canvas,
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM,
             0, 0, EXPECTED_DIM, EXPECTED_DIM
         );
 
-        var imageData = canvas.canvasCtx.getImageData(
-            0, 0, EXPECTED_DIM, EXPECTED_DIM);
+        var imageData = origCanvas.canvasCtx.getImageData(
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM);
         vm.addFrameToQueue(vm.framesQueue(), imageData);
         vm.addFrameToQueue(
             vm.framesToCombine(),
-            canvas.canvasCtx.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height));
+            expectedCanvas.canvasCtx.getImageData(0, 0, expectedCanvas.canvas.width, expectedCanvas.canvas.height));
 
         if (vm.sendFrames() && (vm.framesQueue().length >= vm.batchSize())) {
             vm.sendFramesToBeProcessed();
         }
 
-        canvas.canvas.remove();
+        origCanvas.canvas.remove();
+        expectedCanvas.canvas.remove();
 
         if ((vm.mode() == 'heatmap') && (vm.heatmapsToRender().length > 0)) {
             renderHeatmapOverlay();
@@ -342,6 +376,6 @@
             .then(handleSuccessFact(video))
             .catch(handleError);
 
-        setInterval(eventLoop, 200);
+        setInterval(eventLoop, vm.frameTime());
     });
 </script>

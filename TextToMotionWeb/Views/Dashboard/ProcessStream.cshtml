@@ -38,24 +38,17 @@
     <div class="col l6 s12">
         <video autoplay></video>
     </div>
-    <div data-bind="fadeVisible: vm.heatmapsToRender().length < 1 || vm.jointsToRender().length < 1">
-        <div class="col l6 s12">
-            <div class="valign-wrapper">
-                <p>Waiting on response from server...</p>
-            </div>
-        </div>
-    </div>
-    <div data-bind="fadeVisible: vm.jointsToRender().length > 0 && vm.mode() == 'joints'">
+    <div data-bind="fadeVisible: vm.mode() == 'joints'">
         <div class="col l6 s12">
             <canvas id="joint-location-canvas"></canvas>
         </div>
     </div>
-    <div data-bind="fadeVisible: vm.heatmapsToRender().length > 0 && vm.mode() == 'heatmap'">
+    <div data-bind="fadeVisible: vm.mode() == 'heatmap'">
         <div class="col l6 s12">
             <canvas id="heatmap-canvas"></canvas>
         </div>
     </div>
-    <div data-bind="fadeVisible: vm.heatmapsToRender().length > 0 && vm.mode() == 'activation_map'">
+    <div data-bind="fadeVisible: vm.mode() == 'activation_map'">
         <div class="col l6 s12">
             <canvas id="activation-map-canvas"></canvas>
         </div>
