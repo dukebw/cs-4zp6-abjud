@@ -60,7 +60,7 @@
         self.serverURL = ko.computed(function () {
             if (self.mode() == 'joints') return 'https://brendanduke.ca:8765/';
             else if (self.mode() == 'heatmap') return 'https://brendanduke.ca:8765/heatmap';
-            else if (self.mode() == 'activation_map') return 'https://brendanduke.ca:8765/activation_map'
+            else if (self.mode() == 'activation_map') return 'https://brendanduke.ca:8765/activation'
             else return '';
         });
         self.batchSize = ko.observable(16);
@@ -129,21 +129,21 @@
             bigCanvas.canvas.remove();
 
             //send image data url to server
+            var prevMode = self.mode();
             $.post(self.serverURL(),
                 JSON.stringify(bigImageJpeg),
                 function (response) {
-                    if (self.mode() == 'joints') {
-                        response.forEach(function(jointsForImage) {
-                            self.jointsToRender.push(jointsForImage);
-                        });
+                    if (prevMode === self.mode()) {
+                        if (self.mode() === 'joints') {
+                            response.forEach(function(jointsForImage) {
+                                self.jointsToRender.push(jointsForImage);
+                            });
+                        } else if (self.mode() === 'heatmap') {
+                            self.addFramesToDisplay(response, 'heatmap');
+                        } else if (self.mode() === 'activation_map') {
+                            self.addFramesToDisplay(response, 'activation_map');
+                        }
                     }
-                    else if (self.mode() == 'heatmap') {
-                        self.addFramesToDisplay(response, 'heatmap');                        
-                    }
-                    else if (self.mode() == 'activation_map') {
-                        //todo
-                    }
-
                 },
                 "json")
                 .fail(function (response) {
@@ -189,6 +189,7 @@
 
     vm.initCanvasByID('heatmap-canvas', EXPECTED_DIM, EXPECTED_DIM);
     vm.initCanvasByID('joint-location-canvas', EXPECTED_DIM, EXPECTED_DIM);
+    vm.initCanvasByID('activation-map-canvas', EXPECTED_DIM, EXPECTED_DIM);
 
     function getImage(imageUrl) {
         var image = new Image();
@@ -215,6 +216,21 @@
         }
 
         canvasToDisplayCtx.putImageData(origImgData, 0, 0);
+        canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
+
+        vm.framesSent.shift();
+        vm.heatmapsToRender.shift();
+    }
+
+    function renderActivationMap() {
+        var canvasToDisplay = elemByID('activation-map-canvas');
+        var canvasToDisplayCtx = canvasToDisplay.getContext('2d');
+
+        var heatmap = vm.heatmapsToRender()[0];
+
+        console.log(heatmap);
+
+        canvasToDisplayCtx.putImageData(heatmap, 0, 0);
         canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
 
         vm.framesSent.shift();
@@ -298,6 +314,8 @@
             renderHeatmapOverlay();
         } else if ((vm.mode() == 'joints') && (vm.jointsToRender().length > 0)) {
             renderJoints();
+        } else if ((vm.mode() == 'activation_map') && (vm.heatmapsToRender().length > 0)) {
+            renderActivationMap();
         }
     }
 

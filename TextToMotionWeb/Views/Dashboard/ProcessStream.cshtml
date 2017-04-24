@@ -55,6 +55,11 @@
             <canvas id="heatmap-canvas"></canvas>
         </div>
     </div>
+    <div data-bind="fadeVisible: vm.heatmapsToRender().length > 0 && vm.mode() == 'activation_map'">
+        <div class="col l6 s12">
+            <canvas id="activation-map-canvas"></canvas>
+        </div>
+    </div>
 </div>
 <br />
 
