@@ -1,18 +1,21 @@
+import collections
 import os
 import time
+import smtplib
+from email.mime.text import MIMEText
 import numpy as np
 from tqdm import trange
+import pandas as pd
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.framework import ops
 from pose_utils import pose_util
 from pose_utils.pose_flags import FLAGS
+from dataset.mpii_datatypes import JOINT_NAMES
 from input_pipeline import setup_train_input_pipeline
 from networks.inference import inference
 from evaluate import setup_evaluation, evaluate_single_epoch
-import pdb
-import pandas as pd
 
 RMSPROP_DECAY = 0.9
 RMSPROP_MOMENTUM = 0.9
@@ -73,7 +76,7 @@ def _setup_optimizer(batches_per_epoch,
 
     tf.summary.scalar(name='learning_rate', tensor=learning_rate)
 
-    return global_step, optimizer
+    return global_step, optimizer, learning_rate
 
 
 def _get_variables_to_train():
@@ -243,7 +246,9 @@ def _train_single_epoch(session,
                         num_batches_per_epoch,
                         log_handle,
                         log_dir,
-                        runtime_df):
+                        learning_rate_tensor,
+                        initial_lr_holder,
+                        initial_learning_rate):
     """Runs the training loop, executing the graph stored in `session`,
     and for every epoch executes the graph in `val_session`, which will
     evaluate the latest model checkpoint on a validation set.
@@ -254,14 +259,17 @@ def _train_single_epoch(session,
         epoch: The epoch number that was just trained, calculated from the
                `global_step` variable.
     """
-    runtime_df['Epoch'].add(0)
     train_epoch_mean_loss = 0
     Epoch = trange(num_batches_per_epoch, desc='Loss', leave=True)
+    feed_dict = {initial_lr_holder: initial_learning_rate}
     for batch_step in Epoch:
         start_time = time.time()
-        _, batch_loss, total_steps = session.run(fetches=[train_op,
-                                                          loss,
-                                                          global_step])
+        _, batch_loss, total_steps, learning_rate = session.run(
+            fetches=[train_op,
+                     loss,
+                     global_step,
+                     learning_rate_tensor],
+            feed_dict=feed_dict)
 
         duration = time.time() - start_time
 
@@ -274,7 +282,7 @@ def _train_single_epoch(session,
         assert not np.isnan(batch_loss)
 
         if (total_steps % 100) == 0:
-            summary_str = session.run(summary_op)
+            summary_str = session.run(summary_op, feed_dict=feed_dict)
             train_writer.add_summary(summary=summary_str,
                                      global_step=total_steps)
 
@@ -288,11 +296,11 @@ def _train_single_epoch(session,
     log_handle.write('Epoch {} done.\n'.format(epoch))
     log_handle.write('Mean training loss is {}.\n'.format(train_epoch_mean_loss))
     log_handle.flush()
-    runtime_df['Mean_Training_Loss'].add(train_epoch_mean_loss)
-    return runtime_df
+
+    return epoch, train_epoch_mean_loss, learning_rate
 
 
-def _setup_training(FLAGS):
+def _setup_training(FLAGS, initial_learning_rate):
     """Sets up the entire training graph, including input pipeline, inference
     back-propagation and summaries.
 
@@ -315,10 +323,11 @@ def _setup_training(FLAGS):
     if FLAGS.optimizer == 'adam':
         global_step, optimizer = _setup_adam_optimizer()
     else:
-        global_step, optimizer = _setup_optimizer(num_batches_per_epoch,
-                                                  FLAGS.num_epochs_per_decay,
-                                                  FLAGS.initial_learning_rate,
-                                                  FLAGS.learning_rate_decay_factor)
+        global_step, optimizer, learning_rate = _setup_optimizer(
+            num_batches_per_epoch,
+            FLAGS.num_epochs_per_decay,
+            initial_learning_rate,
+            FLAGS.learning_rate_decay_factor)
 
     train_op, train_loss = _setup_training_op(images,
                                               binary_maps,
@@ -329,7 +338,7 @@ def _setup_training(FLAGS):
                                               optimizer,
                                               FLAGS.num_gpus)
 
-    return num_batches_per_epoch, train_op, train_loss, global_step
+    return num_batches_per_epoch, train_op, train_loss, global_step, learning_rate
 
 
 def _init_regression_subnetwork_first_layer(session, second_checkpoint_path):
@@ -362,43 +371,47 @@ def merge_two_dicts(x, y):
     return z
 
 
-JOINT_NAMES = ['0 - r ankle',
-               '1 - r knee',
-               '2 - r hip',
-               '3 - l hip',
-               '4 - l knee',
-               '5 - l ankle',
-               '6 - pelvis',
-               '7 - thorax',
-               '8 - upper neck',
-               '9 - head top',
-               '10 - r wrist',
-               '11 - r elbow',
-               '12 - r shoulder',
-               '13 - l shoulder',
-               '14 - l elbow',
-               '15 - l wrist']
+def _get_runtime_row_dict(checkpoint_name):
+    """
+    """
+    runtime_row_dict = collections.OrderedDict([
+        # ('Checkpoint_Name', checkpoint_name),
+        ('Learning_Rate', []),
+        ('Epoch', []),
+        ('Mean_Training_Loss', []),
+        ('Mean_Validation_Loss', []),
+        ('Total_PCKh', [])
+    ])
+
+    # for joint_name in JOINT_NAMES:
+    #     runtime_row_dict.update({joint_name: []})
+
+    return runtime_row_dict
 
 
-def _init_df():
-    if FLAGS.restore_global_step == False:
+
+def _init_df(restore_global_step, checkpoint_name):
+    """For Pandas overviewer we fill this dict with data at every epoch and
+    update.
+
+    The _init_df function checks for existence and merges if
+    FLAGS.restore_global_step is True
+    """
+    # @debug
+    restore_global_step = False
+    if restore_global_step == False:
         config = tf.flags.FLAGS.__flags
-        checkpoint_name = 'model'
-        runtime_dict = {'Checkpoint_Name':checkpoint_name,
-                        'Learning_Rate':[],
-                        'Epoch':[],
-                        'Mean_Training_Loss':[],
-                        'Mean_Validation_Loss':[],
-                        'Total PCKh':[]
-                        }
+
+        runtime_dict = _get_runtime_row_dict(checkpoint_name)
         runtime_df = pd.DataFrame(runtime_dict)
+
         log_dict = merge_two_dicts(config, runtime_dict)
         log_df = pd.DataFrame(log_dict)
     else:
         config = tf.flags.FLAGS.__flags
         print(config)
         log_df = pd.read_hdf(FLAGS.log_dir + '/' +
-                             FLAGS.checkpoint_name + '.h5')
+                             checkpoint_name + '.h5')
         # Get sub-dataframe for runtime
         runtime_cols = [log_df[joint] for joint in JOINT_NAMES]
         runtime_cols.append(log_df.Learning_Rate,
@@ -416,10 +429,27 @@ def _save_df(log_df):
     log_df.to_hdf(FLAGS.checkpoint_name + '.h5')
 
 
-def _update_(log_df, runtime_df):
+def _update_df(log_df, runtime_df):
     log_df = pd.merge(log_df, runtime_df)
     stop_early = False
     return log_df, stop_early
+
+
+def _send_progress_update_email(email_address, ckpt_name, runtime_df, epoch):
+    """Sends a progress update to `email_address` using gmail's SMTP server.
+    """
+    message = MIMEText(runtime_df.to_string())
+    message['Subject'] = ckpt_name + ' Epoch: ' + str(epoch)
+    message['From'] = 'brendanw.duke@gmail.com'
+    message['To'] = email_address
+
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.ehlo()
+    server.starttls()
+    server.login('brendanw.duke@gmail.com', 'apps1234')
+    server.send_message(message)
+    server.quit()
+
 
 def train():
     """Trains a human pose estimation network to detect and/or regress binary
@@ -433,8 +463,9 @@ def train():
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            #pdb.set_trace()
-            num_batches_per_epoch, train_op, train_loss, global_step = _setup_training(FLAGS)
+            initial_lr_holder = tf.placeholder(dtype=tf.float32)
+            num_batches_per_epoch, train_op, train_loss, global_step, learning_rate_tensor = _setup_training(
+                FLAGS, initial_lr_holder)
 
             eval_graph = tf.Graph()
             with eval_graph.as_default():
@@ -471,11 +502,8 @@ def train():
 
             # Human Edible Report
             log_handle = open(os.path.join(FLAGS.log_dir, FLAGS.log_filename), 'a')
-            # For Pandas overviewer we fill this dict with data at every epoch
-            # and update.
-            # The _init_df function checks for existence and merges if
-            # FLAGS.restore_global_step is True
-            log_df, runtime_df = _init_df()
+            log_df, runtime_df = _init_df(FLAGS.restore_global_step,
+                                          FLAGS.checkpoint_name)
             saver = tf.train.Saver(var_list=tf.global_variables())
 
             with eval_graph.as_default():
@@ -484,38 +512,63 @@ def train():
             summary_op = tf.summary.merge_all()
 
             epoch = 0
+            initial_learning_rate = FLAGS.initial_learning_rate
+            recent_val_losses = []
             while epoch < FLAGS.max_epochs:
-                runtime_df = _train_single_epoch(session,
-                                                 saver,
-                                                 train_writer,
-                                                 train_op,
-                                                 train_loss,
-                                                 global_step,
-                                                 summary_op,
-                                                 num_batches_per_epoch,
-                                                 log_handle,
-                                                 FLAGS.log_dir,
-                                                 runtime_df)
+                next_row = _get_runtime_row_dict(FLAGS.checkpoint_name)
+                epoch, train_epoch_mean_loss, learning_rate = _train_single_epoch(
+                    session,
+                    saver,
+                    train_writer,
+                    train_op,
+                    train_loss,
+                    global_step,
+                    summary_op,
+                    num_batches_per_epoch,
+                    log_handle,
+                    FLAGS.log_dir,
+                    learning_rate_tensor,
+                    initial_lr_holder,
+                    initial_learning_rate)
 
-                runtime_df['Epoch'].append(epoch)
-                runtime_df['Mean_Training_Loss'].append(train_epoch_mean_loss)
+                next_row['Epoch'].append(epoch)
+                next_row['Mean_Training_Loss'].append(train_epoch_mean_loss)
+                next_row['Learning_Rate'].append(learning_rate)
                 with eval_graph.as_default():
-                    runtime_df = evaluate_single_epoch(restorer,
-                                                       FLAGS.log_dir,
-                                                       val_loss,
-                                                       val_logits,
-                                                       gt_data,
-                                                       num_val_examples,
-                                                       FLAGS.batch_size,
-                                                       FLAGS.image_dim,
-                                                       epoch,
-                                                       log_handle,
-                                                       runtime_df)
+                    valid_epoch_mean_loss = evaluate_single_epoch(
+                        restorer,
+                        FLAGS.log_dir,
+                        val_loss,
+                        val_logits,
+                        gt_data,
+                        num_val_examples,
+                        FLAGS.batch_size,
+                        FLAGS.image_dim,
+                        epoch,
+                        log_handle,
+                        next_row)
 
-                    log_df, stop_early = _update_df(log_df, runtime_df)
-                    if stop_early:
-                        _save_df(log_df)
-                        break
+                    next_row['Mean_Validation_Loss'].append(valid_epoch_mean_loss)
+                    recent_val_losses.append(valid_epoch_mean_loss)
+                    if len(recent_val_losses) >= 8:
+                        avg_recent_val_loss = sum(recent_val_losses)/len(recent_val_losses)
+                        if valid_epoch_mean_loss >= avg_recent_val_loss:
+                            initial_learning_rate /= 2
+                            recent_val_losses = []
+                        else:
+                            recent_val_losses = recent_val_losses[1:]
+
+                    runtime_df = runtime_df.append(pd.DataFrame(next_row))
+                    # log_df, stop_early = _update_df(log_df, runtime_df)
+                    # if stop_early:
+                    #     _save_df(log_df)
+                    #     break
+
+                    if FLAGS.email_address is not None:
+                        _send_progress_update_email(FLAGS.email_address,
+                                                    FLAGS.checkpoint_name,
+                                                    runtime_df,
+                                                    epoch)
 
             log_handle.close()
             train_writer.close()

@@ -23,7 +23,7 @@ namespace TextToMotionWeb
             if (env.IsDevelopment())
             {
                 // For more details on using the user secret store see https://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets();
+                //builder.AddUserSecrets();
             }
 
             builder.AddEnvironmentVariables();
@@ -37,9 +37,9 @@ namespace TextToMotionWeb
         {
             // Add framework services.
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
+                options.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+            services.AddIdentity<ApplicationUser, Role>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 

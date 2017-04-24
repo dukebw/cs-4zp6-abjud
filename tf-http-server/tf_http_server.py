@@ -1,20 +1,26 @@
 """This module implements the TensorFlow HTTP server, which is a standalone
 server that is able to handle HTTP requests to do TensorFlow operations.
 """
+import sys
+import os
 import re
+import json
 import base64
+import threading
 import urllib
 import http.server
+import ssl
 import requests
 import numpy as np
 import cv2
 import imageio
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from human_pose_model.networks import vgg_bulat
 
-# @debug
-from matplotlib import pylab
+sys.path.append(os.path.abspath('..'))
+sys.path.append(os.path.abspath('../human_pose_model'))
+from human_pose_model.networks import resnet_bulat
+from human_pose_model.pose_utils.timethis import timethis
 
 JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'r_knee',
@@ -33,10 +39,11 @@ JOINT_NAMES_NO_SPACE = ['r_ankle',
                         'l_elbow',
                         'l_wrist']
 
-RESTORE_PATH = '/home/mlrg/mcmaster-text-to-motion-database/tensorflow_models/human_pose_model/deployment_files/vgg_16_cascade'
-IMAGE_DIM = 380
-BATCH_SIZE = 32
+RESTORE_PATH = '/mnt/data/datasets/MPII_HumanPose/logs/resnet_brendan/regressor/8'
+IMAGE_DIM = 384
+BATCH_SIZE = 16
 
+@timethis
 def _get_image_joint_predictions(image,
                                  session,
                                  image_bytes_feed,
@@ -67,10 +74,8 @@ def _get_image_joint_predictions(image,
     Returns:
         JSON string of joint positions, as described above.
     """
-    feed_dict = {
-        image_bytes_feed: image
-    }
-    logits = session.run(fetches=logits_tensor, feed_dict=feed_dict)
+    logits = session.run(fetches=logits_tensor,
+                         feed_dict={image_bytes_feed: image})
 
     batch_size = logits.shape[0]
     num_joints = logits.shape[-1]
@@ -104,6 +109,7 @@ def _get_image_joint_predictions(image,
     return joint_predictions_json
 
 
+@timethis
 def _get_heatmaps_for_batch(frames,
                             logits_tensor,
                             resized_image_tensor,
@@ -117,41 +123,34 @@ def _get_heatmaps_for_batch(frames,
         fetches=[logits_tensor, resized_image_tensor, endpoints],
         feed_dict={image_bytes_feed: frames})
 
-    batch_heatmaps = []
-    for image_index in range(batch_size):
-        _, threshold = cv2.threshold(logits[image_index, ...],
-                                     40,
-                                     255,
-                                     cv2.THRESH_BINARY)
+    logits = np.reshape(
+        logits, [BATCH_SIZE*logits.shape[1], logits.shape[2], logits.shape[3]])
+    _, threshold = cv2.threshold(logits, -0.5, 255, cv2.THRESH_BINARY)
 
-        heatmap_on_image = np.zeros(batch_images[image_index].shape, dtype=np.uint8)
-        for joint_index in range(logits.shape[-1]):
-            if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
-                dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
-                                                       cv2.DIST_L1,
-                                                       3)
-                dist_transform = cv2.convertScaleAbs(dist_transform,
-                                                     dist_transform,
-                                                     255.0/np.max(dist_transform))
-                heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
-                heatmap[..., 0] = 0
+    heatmap_on_image = np.zeros(batch_images.shape, dtype=np.uint8)
+    for joint_index in range(logits.shape[-1]):
+        if joint_index in [0, 1, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
+            dist_transform = cv2.distanceTransform(threshold[..., joint_index].astype(np.uint8),
+                                                   cv2.DIST_L1,
+                                                   3)
+            dist_transform = cv2.convertScaleAbs(dist_transform,
+                                                 dist_transform,
+                                                 255.0/np.max(dist_transform))
+            heatmap = cv2.applyColorMap(dist_transform, cv2.COLORMAP_JET)
+            heatmap[..., 0] = 0
 
-                heatmap_on_image += heatmap
+            heatmap_on_image += heatmap
 
-        heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
-        # alpha = 0.5
-        # heatmap_on_image = cv2.addWeighted(batch_images[image_index],
-        #                                    alpha,
-        #                                    heatmap_on_image,
-        #                                    1.0 - alpha,
-        #                                    0.0)
+    heatmap_on_image = np.clip(heatmap_on_image, 0, 255)
 
-        batch_heatmaps.append(heatmap_on_image)
-
-    return batch_heatmaps, batch_endpoints
+    return heatmap_on_image, batch_endpoints
 
 
-def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resized_image_tensor):
+def TFHttpRequestHandlerFactory(session,
+                                image_bytes_feed,
+                                logits_tensor,
+                                resized_image_tensor,
+                                endpoints):
     """This function returns subclasses of
     `http.server.BaseHTTPRequestHandler`, using the closure of the function
     call to allow extra parameters (namely the session to run a computation
@@ -166,23 +165,48 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
         def __init__(self, *args, **kwargs):
             super(TFHttpRequestHandler, self).__init__(*args, **kwargs)
 
-        def _respond_with_joints(self, image):
-            """Takes `image` and does joint inference on it, returning a 200 OK
+        def _send_response_headers(self, json_string):
+            """
+            """
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            # self.send_header('Access-Control-Allow-Origin', 'https://brendanduke.ca')
+            self.send_header('Access-Control-Allow-Origin', 'http://localhost:5000')
+            self.end_headers()
+
+            self.wfile.write(json_string.encode('utf8'))
+
+        def _respond_with_joints(self, frames):
+            """Takes `frames` and does joint inference on it, returning a 200 OK
             HTTP response with the response data set being a JSON string
             containing inferred joint positions.
             """
             joint_predictions_json = _get_image_joint_predictions(
-                image,
+                frames,
                 session,
                 image_bytes_feed,
                 logits_tensor)
+            self._send_response_headers(joint_predictions_json)
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.send_header('Access-Control-Allow-Origin', 'https://brendanduke.ca')
-            self.end_headers()
+        @timethis
+        def _respond_with_heatmaps(self, frames):
+            """
+            """
+            batch_heatmaps, batch_endpoints = _get_heatmaps_for_batch(
+                frames,
+                logits_tensor,
+                resized_image_tensor,
+                session,
+                image_bytes_feed,
+                endpoints,
+                BATCH_SIZE)
 
-            self.wfile.write(joint_predictions_json.encode('utf8'))
+            with tf.Graph().as_default():
+                with tf.Session() as encode_sess:
+                    heatmap_jpegs = encode_sess.run(tf.image.encode_jpeg(image=batch_heatmaps))
+            b64_heatmap_jpegs = base64.b64encode(heatmap_jpegs).decode('utf-8')
+
+            self._send_response_headers(json.dumps(b64_heatmap_jpegs))
 
         def do_GET(self):
             """This implementation of an HTTP GET request handler will take an
@@ -196,51 +220,21 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
             curl -X GET https://brendanduke.ca:8765/?image_url=http://st2.depositphotos.com/1912333/10089/i/950/depositphotos_100892946-stock-photo-sporty-woman-waving-hands.jpg --insecure
             """
             image_url = self.requestline.split()[1]
-            if re.match('/Video', image_url) is not None:
-                cap = cv2.VideoCapture('output.avi')
-                fourcc = cv2.VideoWriter_fourcc(*'X264')
-                out = cv2.VideoWriter('out_response.avi', fourcc, 20.0, (640,480))
-                frames = []
+            image_url = urllib.parse.unquote(image_url)
+            image_url = re.match('/\?image_url=(.*)', image_url)
+            if image_url is None:
+                self.send_response(400)
+                self.send_header('Access-Control-Allow-Origin', 'https://brendanduke.ca')
+                self.end_headers()
+                return
 
-                # @debug
-                batch_count = 0
-                while cap.isOpened():
-                    ret, frame = cap.read()
-                    if ret != True:
-                        print('end of video')
-                        break
+            image_url = image_url.groups()[0]
 
-                    cv2.imshow('frame', frame)
-                    frames.append(frame)
+            image_request = requests.get(image_url)
 
-                    if len(frames) >= BATCH_SIZE:
-                        batch_count += 1
-                        print('running inference on batch: {}'.format(batch_count))
+            self._respond_with_joints(image_request.content)
 
-                        batch_heatmaps = _get_heatmaps_for_batch(frames,
-                                                                 logits_tensor,
-                                                                 resized_image_tensor,
-                                                                 session,
-                                                                 image_bytes_feed,
-                                                                 BATCH_SIZE)
-                        for heatmap in batch_heatmaps:
-                            out.write(heatmap)
-
-                        frames = []
-
-
-                out.release()
-            else:
-                image_url = urllib.parse.unquote(image_url)
-                image_url = re.match('/\?image_url=(.*)', image_url)
-                assert image_url is not None
-
-                image_url = image_url.groups()[0]
-
-                image_request = requests.get(image_url)
-
-                self._respond_with_joints(image_request.content)
-
+        @timethis
         def do_POST(self):
             """HTTP POST requests should contain a JPEG image encoded in base
             64 as the request data.
@@ -250,91 +244,50 @@ def TFHttpRequestHandlerFactory(session, image_bytes_feed, logits_tensor, resize
             inferred joint positions.
             """
             content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
+            post_data = self.rfile.read(content_length).decode('utf-8')
+
+            print('POST data length: {}'.format(len(post_data)))
+
+            jpeg_images = json.loads(post_data)
+            decoded_img = base64.b64decode(jpeg_images)
 
             post_url = self.requestline.split()[1]
-            if re.match('/Video', post_url) is not None:
-                video = imageio.get_reader(base64.b64decode(post_data),
-                                           'ffmpeg')
-
-                fps = video.get_meta_data()['fps']
-                # writer = imageio.get_writer(imageio.RETURN_BYTES,
-                #                             'ffmpeg',
-                #                             codec='vp9',
-                #                             fps=fps)
-                writer = imageio.get_writer('./out_response.mp4',
-                                            'ffmpeg',
-                                            codec='mpeg4',
-                                            fps=fps)
-
-                # @debug
-                frames = []
-                for frame in video:
-                    frames.append(frame)
-
-                    if len(frames) >= BATCH_SIZE:
-                        batch_heatmaps = _get_heatmaps_for_batch(frames,
-                                                                 logits_tensor,
-                                                                 resized_image_tensor,
-                                                                 session,
-                                                                 image_bytes_feed,
-                                                                 BATCH_SIZE)
-                        for heatmap in batch_heatmaps:
-                            writer.append_data(heatmap)
-
-                        frames = []
-
-                writer.close()
-
-                print('Video processing complete!')
+            if re.match('/heatmap', post_url) is not None:
+                self._respond_with_heatmaps(decoded_img)
             else:
-                self._respond_with_joints(base64.b64decode(post_data))
+                self._respond_with_joints(decoded_img)
 
     return TFHttpRequestHandler
 
 
-def _get_joint_position_inference_graph(image_bytes_feed, batch_size):
+def _get_joint_position_inference_graph(image_bytes_feed):
     """This function sets up a computation graph that will decode from JPEG the
     input placeholder image `image_bytes_feed`, pad and resize it to shape
     [IMAGE_DIM, IMAGE_DIM], then run human pose inference on the image using
     the "Two VGG-16s cascade" model.
     """
-    decoded_image = tf.image.convert_image_dtype(image=image_bytes_feed,
+    decoded_image = tf.image.decode_jpeg(contents=image_bytes_feed)
+
+    decoded_image = tf.image.convert_image_dtype(image=decoded_image,
                                                  dtype=tf.float32)
 
-    image_shape = tf.shape(input=decoded_image)
-    height = image_shape[1]
-    width = image_shape[2]
-    pad_dim = tf.cast(tf.maximum(height, width), tf.int32)
-    offset_height = tf.cast(tf.cast((pad_dim - height), tf.float32)/2.0, tf.int32)
-    offset_width = tf.cast(tf.cast((pad_dim - width), tf.float32)/2.0, tf.int32)
-    padded_image = tf.map_fn(
-        fn=lambda image: tf.image.pad_to_bounding_box(image=image,
-                                                      offset_height=offset_height,
-                                                      offset_width=offset_width,
-                                                      target_height=pad_dim,
-                                                      target_width=pad_dim),
-        elems = decoded_image,
-        parallel_iterations=BATCH_SIZE)
-
-    resized_image = tf.image.resize_images(images=padded_image,
-                                           size=[IMAGE_DIM, IMAGE_DIM])
-
-    normalized_image = tf.subtract(x=resized_image, y=0.5)
+    normalized_image = tf.subtract(x=decoded_image, y=0.5)
     normalized_image = tf.multiply(x=normalized_image, y=2.0)
 
     normalized_image = tf.reshape(tensor=normalized_image,
-                                  shape=[batch_size, IMAGE_DIM, IMAGE_DIM, 3])
+                                  shape=[BATCH_SIZE, IMAGE_DIM, IMAGE_DIM, 3])
 
     with tf.device(device_name_or_function='/gpu:0'):
         with slim.arg_scope([slim.model_variable], device='/cpu:0'):
-            with slim.arg_scope(vgg_bulat.vgg_arg_scope()):
-                logits, endpoints = vgg_bulat.two_vgg_16s_cascade(normalized_image,
-                                                                  16,
-                                                                  False,
-                                                                  False)
+            with slim.arg_scope(resnet_bulat.resnet_arg_scope()):
+                logits, endpoints = resnet_bulat.resnet_50_detector(normalized_image,
+                                                                    16,
+                                                                    False,
+                                                                    False)
 
-    return logits, tf.image.convert_image_dtype(image=resized_image, dtype=tf.uint8), endpoints
+    return (logits,
+            tf.image.convert_image_dtype(image=decoded_image, dtype=tf.uint8),
+            endpoints)
 
 
 def run():
@@ -349,25 +302,35 @@ def run():
     """
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
-            image_bytes_feed = tf.placeholder(dtype=tf.uint8)
+            image_bytes_feed = tf.placeholder(dtype=tf.string)
 
-            logits, resized_image = _get_joint_position_inference_graph(
-                image_bytes_feed, BATCH_SIZE)
+            logits, resized_image, endpoints = _get_joint_position_inference_graph(
+                image_bytes_feed)
 
             session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
             latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=RESTORE_PATH)
             assert latest_checkpoint is not None
 
-            restorer = tf.train.Saver(var_list=tf.global_variables())
+            variables_to_restore = {
+                    var.op.name.replace('resnet_v1_50_pyramid', 'pyramid'): var for var in tf.global_variables()
+            }
+            restorer = tf.train.Saver(var_list=variables_to_restore)
             restorer.restore(sess=session, save_path=latest_checkpoint)
 
             request_handler = TFHttpRequestHandlerFactory(session,
                                                           image_bytes_feed,
                                                           logits,
-                                                          resized_image)
-            server_address = ('localhost', 8246)
+                                                          resized_image,
+                                                          endpoints)
+            server_address = ('localhost', 8765)
             httpd = http.server.HTTPServer(server_address, request_handler)
+            httpd.socket = ssl.wrap_socket(httpd.socket,
+                                           keyfile='./domain.key',
+                                           certfile='./signed.crt',
+                                           server_side=True)
+
+            print('Serving!')
             httpd.serve_forever()
 
 

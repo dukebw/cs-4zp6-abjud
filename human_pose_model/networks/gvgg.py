@@ -4,7 +4,27 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python.framework import ops
+import pdb
 slim = tf.contrib.slim
+
+
+LATENT_DIM = 4
+
+def gvgg_vae_arg_scope(weight_decay=0.0005):
+    """Defines the GVGG arg scope.
+
+    Args:
+      weight_decay: The l2 regularization coefficient.
+
+    Returns:
+      An arg_scope.
+    """
+    with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                         activation_fn=tf.nn.relu,
+                         weights_regularizer=slim.l2_regularizer(weight_decay),
+                         biases_initializer=tf.zeros_initializer()):
+        with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
+            return arg_sc
 
 
 def gvgg_arg_scope(weight_decay=0.0005):
@@ -16,7 +36,6 @@ def gvgg_arg_scope(weight_decay=0.0005):
     Returns:
       An arg_scope.
     """
-
     with slim.arg_scope([slim.conv2d],
                          activation_fn=tf.nn.relu,
                          weights_regularizer=slim.l2_regularizer(weight_decay),
@@ -39,26 +58,25 @@ def _encoder(inputs, num_classes, dropout_keep_prob, is_training):
     a3 = slim.max_pool2d(a3, [2, 2], scope='pool3')
     a4 = slim.repeat(a3, 3, slim.conv2d, 256, [3, 3], scope='conv4')
     a4 = slim.max_pool2d(a4, [2, 2], scope='pool4')
-    a5 = slim.repeat(a4, 3, slim.conv2d, 266, [3, 3], scope='conv5')
+    a5 = slim.repeat(a4, 3, slim.conv2d, 256, [3, 3], scope='conv5')
     a5 = slim.max_pool2d(a5, [2, 2], scope='pool5')
 
     a6 = slim.dropout(a5, dropout_keep_prob, is_training=is_training, scope='dropout7')
 
-    a7  = slim.conv2d(a6, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='global_bottleneck')
+    a6  = slim.conv2d(a6, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='global_bottleneck')
+    return a3, a4, a6
 
-    return a3, a4, a7
 
-
-def _decoder(a3, a4, a7, output_resolution, num_classes, dropout_keep_prob, is_training):
-    a8 = tf.image.resize_bilinear(images=a7, size=a4.get_shape()[1:3])
+def _decoder(a3, a4, a6, output_resolution, num_classes, dropout_keep_prob, is_training):
+    a7 = tf.image.resize_bilinear(images=a6, size=a4.get_shape()[1:3])
     skip_a4 = slim.conv2d(a4, num_classes, [1, 1], scope='skip_a4')
-    a8 = a8 + skip_a4
+    a7 = a7 + skip_a4
 
-    a9 = tf.image.resize_bilinear(images=a8, size=a3.get_shape()[1:3])
+    a8 = tf.image.resize_bilinear(images=a7, size=a3.get_shape()[1:3])
     skip_a3 = slim.conv2d(a3, num_classes, [1, 1], scope='skip_a3')
-    a9 = a9 + skip_a3
+    a8 = a8 + skip_a3
 
-    a9 = tf.image.resize_bilinear(images=a9, size=output_resolution)
+    a9 = tf.image.resize_bilinear(images=a8, size=output_resolution)
     return skip_a4, skip_a3, a9
 
 
@@ -110,7 +128,7 @@ def _gvgg(inputs,
                                     normalizer_fn=slim.batch_norm,
                                     normalizer_params=batch_norm_params):
                     # 3-tuple (a3, a4, global_bottleneck)
-                    a3, a4, a7 = _encoder(inputs,
+                    a3, a4, a6 = _encoder(inputs,
                                           num_classes,
                                           dropout_keep_prob,
                                           is_training)
@@ -118,7 +136,7 @@ def _gvgg(inputs,
                     output_resolution = inputs.get_shape()[1:3]
                     _, _, logits = _decoder(a3,
                                             a4,
-                                            a7,
+                                            a6,
                                             output_resolution,
                                             num_classes,
                                             dropout_keep_prob,
@@ -158,34 +176,31 @@ def sampleGaussian(mu, log_sigma):
 def _get_reparameterization(hidden_enc):
     # latent distribution parameterized by hidden encoding
     # z ~ N(z_mean, np.exp(z_log_sigma)**2)
-    z_mu = slim.fully_connected(hidden_enc,
-                                LATENT_DIM,
-                                activation_fn=None,
-                                normalizer_fn=None,
-                                scope='z_mu')
-
-    z_log_sigma = slim.fully_connected(hidden_enc,
-                                       LATENT_DIM,
-                                       activation_fn=None,
-                                       normalizer_fn=None,
-                                       scope='z_log_sigma')
+    params = slim.fully_connected(hidden_enc,
+                                  LATENT_DIM*2,
+                                  activation_fn=None,
+                                  normalizer_fn=None,
+                                  scope='z_mu')
+    z_mu = params[:,:LATENT_DIM]
+    z_log_sigma = params[:,LATENT_DIM:]
 
     return sampleGaussian(z_mu, z_log_sigma), z_mu, z_log_sigma
 
 
-def _get_img_reconstruction(a8,z,batch_norm_params):
-    shape = z.get_shape().as_list()
-    size = shape[1]*shape[1]
-    d1 = slim.fully_connected(z,
-                              size,
-                              activation_fn=tf.nn.relu,
-                              normalizer_fn=slim.batch_norm,
-                              normalizer_params=batch_norm_params)
+def _get_img_reconstruction(a3, a4, a6_shape, z_latent):
+    batch_size = a3.get_shape().as_list()[0]
 
-    d1 = tf.reshape(d1, [9, LATENT_DIM, LATENT_DIM,1])
-    d2 = slim.conv2d_transpose(d1,1,2,2)
-    d3 = slim.conv2d_transpose(d2,1,2,2)
-    img = slim.conv2d_transpose(d3,3,2,2)
+    d1 = tf.reshape(z_latent, [batch_size, 1, 1, LATENT_DIM])
+    d2 = slim.conv2d_transpose(d1,6,[3,3]) # 64x64x6
+    skip_a4 = slim.conv2d(a4, 6, [1, 1], scope='skip_a4') # 64x64x6
+    d3 = tf.concat(skip_a4, d2, axis=3) # 64x64x12
+    d4 = slim.conv2d_transpose(d3,3,[3,3]) #128x128x3
+    skip_a3 = slim.conv2d(a4, 3,[3,3]) #128x128x3
+    d2 += tf.concat(skip_a3, d3, axis=3) #128x128x6
+    d3 = slim.conv2d_transpose(d2,3,[3,3]) #256x256x3
+
+    print(d3.get_shape())
+    img = slim.conv2d_transpose(d3,3,[3,3])
     return img
 
 
@@ -232,7 +247,7 @@ def _gvgg_vae(inputs,
             # Collect outputs for conv2d, fully_connected and max_pool2d.
             with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.conv2d_transpose, slim.fully_connected, slim.flatten], outputs_collections=end_points_collection):
                 # nested argscope because we don't apply activations and normalization to maxpool
-                with slim.arg_scope([slim.conv2d, slim.conv2d_transpose],
+                with slim.arg_scope([slim.conv2d, slim.conv2d_transpose, slim.fully_connected],
                                     activation_fn=tf.nn.relu,
                                     normalizer_fn=slim.batch_norm,
                                     normalizer_params=batch_norm_params):
@@ -242,9 +257,12 @@ def _gvgg_vae(inputs,
                                           dropout_keep_prob,
                                           is_training)
 
-                    z = slim.flatten(a8)
+                    z = slim.flatten(a7)
+                    # We need the shape in int format to pass to nn ops
+                    a7_shape = a7.get_shape().as_list()[1]
                     z_latent, z_mu, z_log_sigma = _get_reparameterization(z)
-                    
+
+                    recon = _get_img_reconstruction(a3, a4, a7_shape, z_latent)
                     output_resolution = inputs.get_shape()[1:3]
                     _, _, logits = _decoder(a3,
                                             a4,
@@ -253,12 +271,11 @@ def _gvgg_vae(inputs,
                                             num_classes,
                                             dropout_keep_prob,
                                             is_training)
-
-
                     # Convert end_points_collection into a end_point dict.
                     end_points = slim.utils.convert_collection_to_dict(end_points_collection)
 
                     # For calculating the KL loss
+                    end_points['recon'] = recon
                     end_points['z_mu'] = z_mu
                     end_points['z_log_sigma'] = z_log_sigma
                     end_points['pose_logits'] = pose_logits
