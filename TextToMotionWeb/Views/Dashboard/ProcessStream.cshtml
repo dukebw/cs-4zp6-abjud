@@ -1,0 +1,61 @@
+﻿@{
+    ViewData["Title"] = "ScreencapDemo";
+}
+
+@section PreLoaded{
+    <link href="~/css/spinner.css" rel="stylesheet" />
+    <script type="text/javascript" src="~/lib/knockout/dist/knockout.js"></script>
+}
+<div class="row">
+    <div class="col s12 l10 offset-l1">
+        <div class="card">
+            <div class="cyan card-content no-pad-bot">
+                <h5 class="center-align no-margins white-text">
+                    <i class="fa fa-video-camera"></i> Capture Stream
+                </h5>
+            </div>
+            <div class="card-content grey lighten-4">
+                <div class="row no-margins">
+                    <div class="col s12 center-align">
+                        Please Select a Mode:
+
+                        <input type="radio" class="with-gap" name="mode" id="joints_mode" value="joints" checked data-bind="checked: vm.mode" />
+                        <label for="joints_mode">Render Joints</label>
+
+                        <input type="radio" class="with-gap" name="mode" id="heatmap_mode" value="heatmap" data-bind="checked: vm.mode" />
+                        <label for="heatmap_mode">Render Heatmaps</label>
+
+                        <input type="radio" class="with-gap" name="mode" id="activation_map_mode" value="activation_map" data-bind="checked: vm.mode" />
+                        <label for="activation_map_mode">Render Activation Maps</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col l6 s12">
+        <video autoplay></video>
+    </div>
+    <div data-bind="fadeVisible: vm.mode() == 'joints'">
+        <div class="col l6 s12">
+            <canvas id="joint-location-canvas"></canvas>
+        </div>
+    </div>
+    <div data-bind="fadeVisible: vm.mode() == 'heatmap'">
+        <div class="col l6 s12">
+            <canvas id="heatmap-canvas"></canvas>
+        </div>
+    </div>
+    <div data-bind="fadeVisible: vm.mode() == 'activation_map'">
+        <div class="col l6 s12">
+            <canvas id="activation-map-canvas"></canvas>
+        </div>
+    </div>
+</div>
+<br />
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("ProcessStreamViewModel"); }    
+}

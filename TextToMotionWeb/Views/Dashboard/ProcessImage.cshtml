@@ -1,0 +1,130 @@
+﻿@using TextToMotionWeb.Models
+@{ 
+    var user = ViewData["User"] as ApplicationUser;
+}
+
+@section PreLoaded{
+    <link href="~/css/spinner.css" rel="stylesheet" />
+    <script type="text/javascript" src="~/lib/knockout/dist/knockout.js"></script>
+}
+
+<div data-bind="visible: !vm.pageLoaded()">
+    <div class="spinner">
+        <div class="cube1"></div>
+        <div class="cube2"></div>
+    </div>
+</div>
+<div id="page-content" style="display:none">
+    <br />
+    <div class="row">
+        <div class="col s12 m12 l10 offset-l1">
+            <div class="card">
+                <div class="teal lighten-2 card-content">
+                    <h4 class="center-align no-margins white-text"><i class="fa fa-image"></i> Process Image</h4>
+                </div>
+                <div class="card-content grey lighten-4">
+                    <div class="row">
+                        <div class="col s12 m4 l2">
+                            <label class="xl-font"><b>Add Image Via</b></label><br />
+                            <input id="file-option" class="with-gap" value="File Upload" data-bind="checked: vm.optionForUpload" name="option" type="radio" checked />
+                            <label for="file-option"><i class="fa fa-upload"></i> File Upload</label>
+                            <input id="url-option" class="with-gap" value="Image URL" data-bind="checked: vm.optionForUpload" name="option" type="radio" />
+                            <label for="url-option"><i class="fa fa-link"></i> Image URL</label>
+                        </div>
+                        <div class="col s12 m8 l10">
+                            <div class="card-panel white">
+                                <div class="row">
+                                    <div id="image-upload-field" class="file-field input-field col s12" data-bind="fadeVisibleAlt: vm.optionForUpload() == 'File Upload'">
+                                        <div class="btn cyan col s12 m4 l2">
+                                            <span><i class="fa fa-cloud-upload"></i> File</span>
+                                            <input id="image-upload" type="file" name="image_upload" />
+                                        </div>
+                                        <div class="file-path-wrapper col s12 m8 l10">
+                                            <input id="upload-file-path" class="file-path" type="text" placeholder="Choose a File..." data-bind="css: vm.resultCSSForBaseImage"/>
+                                        </div>
+                                    </div>
+                                    <div id="image-url-field" class="input-field col s12" data-bind="fadeVisible: vm.optionForUpload() == 'Image URL'">
+                                        <span class="col s12 m8 l10">
+                                            <input id="image-url" type="text" data-bind="css: vm.resultCSSForBaseImage">
+                                            <label for="image-url">Please Enter a Image URL...</label>
+                                        </span>                                        
+                                        <a id="update-base-image-btn"class="btn padded-from-top cyan col s12 m4 l2 file-btn-height"><i class="fa fa-link"></i> Use Image Link</a>
+                                    </div>
+                                </div>
+                                <div class="row no-margins">
+                                    <div class="grey lighten-4 col s12">
+                                        <div class="row no-margins padded-from-bot padded-from-top">
+                                            <div class="col l5 s12 image-container">
+                                                <img class="uploaded-image-preview z-depth-2 hoverable" src="~/images/placeholders/image.png" data-bind="fadeVisible: vm.showEmptyBaseImage()" />
+                                                <img id="image-preview" class="uploaded-image-preview z-depth-2 hoverable" src='' data-bind="fadeVisible: vm.showBaseImage()" />
+                                                <div class="thecube pushed-down-extra amber" data-bind="fadeVisible: vm.showSpinnerForBaseImage()">
+                                                    <div class="cube c1"></div>
+                                                    <div class="cube c2"></div>
+                                                    <div class="cube c4"></div>
+                                                    <div class="cube c3"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col l5 offset-l1 s12 image-container">
+                                                <img class="uploaded-image-preview z-depth-2 hoverable" src="~/images/placeholders/blurred.jpg" data-bind="fadeVisible: vm.showEmptyProcessedImage()" />
+                                                <canvas id="processed-image" class="uploaded-image-preview z-depth-2 hoverable" data-bind="visible: vm.showProcessedImage()"></canvas>
+                                                <div class="loader pushed-down-extra pushed-left-extra" data-bind="fadeVisible: vm.showSpinnerWhileProcessingImage()">
+                                                    <div class="box"></div>
+                                                    <div class="box"></div>
+                                                    <div class="box"></div>
+                                                    <div class="box"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col s12">
+                                        <a id="process-image-btn" class="btn blue lighten-2 waves-effect waves-light-btn col m6 s12 offset-m3 spaced-from-bot" data-bind="fadeVisibleAlt: vm.showProcessBtn()">Process Image</a>
+                                        <a href="#save-image-modal" class="btn indigo lighten-2 waves-effect waves-light-btn col m6 s12 offset-m3" data-bind="fadeVisibleAlt: vm.showSaveBtn()">Save Image</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="save-image-modal" class="modal bottom-sheet white">
+    <form action="/Dashboard/SaveImage" method="post" enctype="multipart/form-data">
+
+        <div class="modal-content no-margins">
+            <div class="row">
+                <div class="col s12 m10 l8 offset-m1 offset-l2">
+                    <div class="row no-margins">
+                        <div class="input-field col s6">
+                            <input id="image-name" type="text">
+                            <label for="image-name">Image Name</label>
+                        </div>
+                        <div class="input-field col s6">
+                            <input id="image-description" type="text">
+                            <label for="image-description">Image Description</label>
+                        </div>
+                    </div>
+                    <div class="row no-margins">
+                        <div class="input-field col s12">
+                            <label>Please Enter tags for the image, Separate the tags by pressing enter...</label>
+                            <br />
+                            <div id="image-tags" class="chips"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer grey lighten-2">
+            <a class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</a>
+            <a class="modal-action waves-effect btn green darken-1">Save Image <i class="fa fa-arrow-circle-right"></i></a>
+        </div>
+    </form>
+</div>
+
+@section Scripts{
+    @{ await Html.RenderPartialAsync("ProcessImageViewModel"); }
+}

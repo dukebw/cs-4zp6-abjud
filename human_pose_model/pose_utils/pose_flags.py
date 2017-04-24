@@ -115,3 +115,8 @@ tf.app.flags.DEFINE_string('optimizer', None,
 
 tf.app.flags.DEFINE_string('checkpoint_name', None,
                            """Name of checkpoint""")
+
+tf.app.flags.DEFINE_string('email_address',
+                           None,
+                           """Address of e-mail to send to, if sending e-mail
+                           updates.""")

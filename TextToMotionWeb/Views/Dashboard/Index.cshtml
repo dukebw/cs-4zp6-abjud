@@ -1,0 +1,94 @@
+﻿@using TextToMotionWeb.Models
+@{ 
+    var user = ViewData["User"] as ApplicationUser;
+}
+<div class="transition-edge blue-grey lighten-3"></div>
+<div class="row no-margins">
+    <br />
+    <div class="col l3 m4 hide-on-small-and-down">
+        <br />
+        <div class="row">
+            <div class="card rounded z-depth-2 hoverable col s12">
+                <div class="card-title">
+                    <h5 class="center-align"><i class="fa fa-user-circle-o"></i> Dashboard</h5>
+                    <hr class="faded no-margins"/>
+                </div>
+                <div class="card-content no-padding-bot">
+                    <div class="row">
+                        <p class="chip fullWidth center-align lg-font indigo darken-2 white-text">@user.UserName</p>
+                    </div>
+                    <div class="row">
+                        <div class="col m5">
+                            <img class="user-avatar-img responsive-img" src="https://evatar.io/@user.UserName">
+                        </div>
+                        <div class="col m7 center-align grey lighten-3">
+                            @if (user.FirstName == null && user.LastName == null)
+                            {
+                                <p class="lg-font"><span><b>Name</b><br /><u>(Not Set)</u></span></p>
+                            }
+                            else
+                            {
+                                <p class="lg-font"><b><span>Name</span></b><br /><u><span>@user.FirstName</span> <span>@user.LastName</span></u></p>
+                            }
+                            <br />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="card-panel grey lighten-3 z-depth-1">
+                            <blockquote>
+                                <div class="chip teal lighten-1">0</div> Total Posts
+                                <br />
+                                <div class="chip red lighten-2">0</div> Rated Posts
+                                <br />
+                                <div class="chip cyan lighten-2">0</div> People rated your posts
+                            </blockquote>
+                        </div>                        
+                    </div>                
+                </div>
+                <div class="card-action">
+                    <a class="btn green fullWidth">Go To Profile <i class="fa fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col s12 l8 m7 padded-from-top">
+        <div class="row padded-from-top">
+            <div class="col s12 left-align">
+                <span class="spaced-from-bot">
+                    <a href="/Dashboard/ProcessImage" class="dashboard-btn waves-effect waves-light btn-large teal lighten-2 padded-from-bot"><i class="fa fa-file-image-o"></i> <i class="fa fa-plus"></i> Process New Image...</a>
+                </span>
+                <!--<span class="spaced-from-bot">
+                    <a href="/Dashboard/ProcessVideo" class="waves-effect waves-light btn-large indigo lighten-2"><i class="fa fa-file-video-o"></i> <i class="fa fa-plus"></i> Process New Video...</a>
+                </span>-->
+                <span class="padded-from-top">
+                    <a href="/Dashboard/ProcessStream" class="dashboard-btn waves-effect waves-light btn-large blue lighten-2"><i class="fa fa-video-camera"></i> <i class="fa fa-plus"></i> Capture Camera Stream...</a>
+                </span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="card col s12 z-depth-2 rounded">
+                <div class="card-tabs grey lighten-2">
+                    <ul class="tabs tabs-fixed-width indigo-text">
+                        <li class="tab"><a class="active" href="#user-posts">My Posts</a></li>
+                        <li class="tab"><a href="#rated-posts">My Rated Posts</a></li>
+                    </ul>
+                </div>
+                <div class="card-content grey lighten-4 z-depth-1">
+                    <div id="user-posts">
+                        My Posts...
+                    </div>
+                    <div id="rated-posts">
+                        Rated Posts...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+            $('body').removeClass('grey lighten-4').addClass('transparent-grey');
+        });
+    </script>
+}

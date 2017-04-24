@@ -1,0 +1,381 @@
+﻿<script>
+    var video = $('video')[0];
+    var EXPECTED_DIM = 384;
+    var ORIGINAL_DIM = 480;
+    var JOINT_IMAGES = {
+        'head_top': {
+            'imageName': '/images/hat.png',
+            'offsetX': 25,
+            'offsetY': 25,
+            'width': 50,
+            'height': 50,
+        },
+        'upper_neck': {
+            'imageName': '/images/bowtie.png',
+            'offsetX': 25,
+            'offsetY': 10,
+            'width': 50,
+            'height': 25,
+        },
+        'pelvis': {
+            'imageName': '/images/skirt.png',
+            'offsetX': 75,
+            'offsetY': 20,
+            'width': 150,
+            'height': 125,
+        },
+        'l_elbow': {
+            'imageName': '/images/water_wing_left.png',
+            'offsetX': 25,
+            'offsetY': 20,
+            'width': 50,
+            'height': 50,
+        },
+        'r_elbow': {
+            'imageName': '/images/water_wing_right.png',
+            'offsetX': 25,
+            'offsetY': 20,
+            'width': 50,
+            'height': 50,
+        },
+        'r_wrist': {
+            'imageName': '/images/glove.png',
+            'offsetX': 25,
+            'offsetY': 30,
+            'width': 60,
+            'height': 60,
+        }
+    };
+
+    for (key in JOINT_IMAGES) {
+        JOINT_IMAGES[key].image = getImage(JOINT_IMAGES[key].imageName);
+    }
+
+    function elemByID(id) { return document.getElementById(id); }
+
+    var ProcessStreamVM = function () {
+        var self = this;
+
+        self.sendFrames = ko.observable(true);
+        self.mode = ko.observable('joints');
+        self.frameTime = ko.computed(function () {
+            if (self.mode() == 'joints')
+                return 150;
+            else if (self.mode() == 'heatmap')
+                return 200;
+            else if (self.mode() == 'activation_map')
+                return 300;
+        });
+        self.serverURL = ko.computed(function () {
+            if (self.mode() == 'joints') return 'https://brendanduke.ca:8765/';
+            else if (self.mode() == 'heatmap') return 'https://brendanduke.ca:8765/heatmap';
+            else if (self.mode() == 'activation_map') return 'https://brendanduke.ca:8765/activation'
+            else return '';
+        });
+        self.batchSize = ko.observable(16);
+
+        self.framesQueue = ko.observableArray([]);
+        self.framesToCombine = ko.observableArray([]);
+        self.framesSent = ko.observableArray([]);
+
+        self.jointsToRender = ko.observableArray([]);
+        self.heatmapsToRender = ko.observableArray([]);
+
+        self.mode.subscribe(function () {
+            self.framesQueue([]);
+            self.framesToCombine([]);
+            self.framesSent([]);
+
+            self.jointsToRender([]);
+            self.heatmapsToRender([]);
+        });
+
+        self.fillCanvasParams = function (canvas, width, height) {
+            canvas.fillStyle = 'red';
+            canvas.width = width;
+            canvas.height = height;
+            var canvasCtx = canvas.getContext('2d');
+
+            return { 'canvas': canvas, 'canvasCtx': canvasCtx };
+        }
+
+        self.initCanvasByID = function (ID, width, height) {
+            var canvas = elemByID(ID);
+            self.fillCanvasParams(canvas, width, height);
+        }
+
+        self.createCanvas = function (width, height) {
+            var canvas = document.createElement('canvas');
+            return self.fillCanvasParams(canvas, width, height);
+        }
+
+        self.addFrameToQueue = function (queue, base64Image) {
+            if (queue.length == self.batchSize()) {
+                queue.shift();
+                queue.push(base64Image);
+            }
+            else {
+                queue.push(base64Image);
+            }
+        }
+
+        self.sendFramesToBeProcessed = function () {
+            self.framesQueue().forEach(function (imageData) {
+                self.framesSent.push(imageData);
+            });
+            self.framesQueue([]);
+
+            //combine all frames to combine into bigCanvas
+            var bigCanvas = vm.createCanvas(EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
+            for (var i = 0; i < vm.batchSize(); ++i) {
+                var frame = self.framesToCombine()[i];
+                bigCanvas.canvasCtx.putImageData(frame, 0, i * EXPECTED_DIM);
+            }
+            bigCanvas.canvasCtx.drawImage(bigCanvas.canvas, 0, 0);
+
+            var bigImageJpeg = bigCanvas.canvas.toDataURL('image/jpeg').split(',')[1];
+
+            bigCanvas.canvas.remove();
+
+            //send image data url to server
+            var prevMode = self.mode();
+            $.post(self.serverURL(),
+                JSON.stringify(bigImageJpeg),
+                function (response) {
+                    if (prevMode === self.mode()) {
+                        if (self.mode() === 'joints') {
+                            response.forEach(function(jointsForImage) {
+                                self.jointsToRender.push(jointsForImage);
+                            });
+                        } else if (self.mode() === 'heatmap') {
+                            self.addFramesToDisplay(response, 'heatmap');
+                        } else if (self.mode() === 'activation_map') {
+                            self.addFramesToDisplay(response, 'activation_map');
+                        }
+                    }
+                },
+                "json")
+                .fail(function (response) {
+                    self.sendFrames(false);
+                    setTimeout(function () {
+                        self.sendFrames(true);
+                    }, 3000);
+                });
+        }
+
+        self.addFramesToDisplay = function (imageBatch, mode) {
+            var batchCanvas = vm.createCanvas(EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
+            var largeImage = new Image();
+            largeImage.onload = function () {
+                batchCanvas.canvasCtx.drawImage(this, 0, 0, EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
+
+                for (var i = 0; i < vm.batchSize(); i++) {
+                    var segmentedImage = batchCanvas.canvasCtx.getImageData(
+                        0, i * EXPECTED_DIM, EXPECTED_DIM, EXPECTED_DIM);
+                    vm.heatmapsToRender.push(segmentedImage);
+                }
+            }
+
+            largeImage.src = 'data:image/jpeg;base64,' + imageBatch;
+            batchCanvas.canvas.remove();
+        }
+
+    }
+
+    //custom bindings and helper funcs (ignore)
+    ko.bindingHandlers.fadeVisible = {
+        init: function (element, valueAccessor) {
+            var value = valueAccessor();
+            $(element).toggle(ko.utils.unwrapObservable(value));
+        },
+        update: function (element, valueAccessor) {
+            var value = valueAccessor();
+            ko.utils.unwrapObservable(value) ? $(element).fadeIn() : $(element).hide();
+        }
+    };
+    //init ko viewmodel
+    window.vm = new ProcessStreamVM();
+    ko.applyBindings(vm);
+
+    vm.initCanvasByID('heatmap-canvas', ORIGINAL_DIM, ORIGINAL_DIM);
+    vm.initCanvasByID('joint-location-canvas', ORIGINAL_DIM, ORIGINAL_DIM);
+    vm.initCanvasByID('activation-map-canvas', ORIGINAL_DIM, ORIGINAL_DIM);
+
+    function getImage(imageUrl) {
+        var image = new Image();
+        image.src = imageUrl;
+
+        return image;
+    }
+
+    function renderHeatmapOverlay() {
+        var canvasToDisplay = elemByID('heatmap-canvas');
+        var canvasToDisplayCtx = canvasToDisplay.getContext('2d');
+        var scaleCanvas = vm.createCanvas(ORIGINAL_DIM, ORIGINAL_DIM);
+
+        var heatmap = vm.heatmapsToRender()[0];
+        scaleCanvas.canvasCtx.putImageData(heatmap, 0, 0);
+        scaleCanvas.canvasCtx.scale(ORIGINAL_DIM/EXPECTED_DIM,
+                                    ORIGINAL_DIM/EXPECTED_DIM);
+        scaleCanvas.canvasCtx.drawImage(scaleCanvas.canvas, 0, 0);
+        heatmap = scaleCanvas.canvasCtx.getImageData(
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM);
+
+        var origImgData = vm.framesSent()[0];
+
+        var heatmapData = heatmap.data;
+
+        //remove all pixels that are entirely black
+        var data = origImgData.data;
+        for (var n = 0; n < (4*ORIGINAL_DIM*ORIGINAL_DIM); n += 4) {
+            data[n + 0] = 0.75*data[n + 0] + 0.25*heatmapData[n + 0];
+            data[n + 1] = 0.75*data[n + 1] + 0.25*heatmapData[n + 1];
+            data[n + 2] = 0.75*data[n + 2] + 0.25*heatmapData[n + 2];
+        }
+
+        canvasToDisplayCtx.putImageData(origImgData, 0, 0);
+        canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
+
+        scaleCanvas.canvas.remove();
+        vm.framesSent.shift();
+        vm.heatmapsToRender.shift();
+    }
+
+    function renderActivationMap() {
+        var canvasToDisplay = elemByID('activation-map-canvas');
+        var canvasToDisplayCtx = canvasToDisplay.getContext('2d');
+
+        var heatmap = vm.heatmapsToRender()[0];
+
+        var scaleCanvas = vm.createCanvas(ORIGINAL_DIM, ORIGINAL_DIM);
+        scaleCanvas.canvasCtx.putImageData(heatmap, 0, 0);
+        scaleCanvas.canvasCtx.scale(ORIGINAL_DIM/EXPECTED_DIM,
+                                    ORIGINAL_DIM/EXPECTED_DIM);
+        scaleCanvas.canvasCtx.drawImage(scaleCanvas.canvas, 0, 0);
+        heatmap = scaleCanvas.canvasCtx.getImageData(
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM);
+
+        canvasToDisplayCtx.putImageData(heatmap, 0, 0);
+        canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
+
+        scaleCanvas.canvas.remove();
+
+        vm.framesSent.shift();
+        vm.heatmapsToRender.shift();
+    }
+
+    function drawJoint(canvasToDisplayCtx, jointsToRenderForFrame, jointName) {
+            var joint = JOINT_IMAGES[jointName];
+
+            canvasToDisplayCtx.drawImage(joint.image,
+                                         scaleJoint(jointsToRenderForFrame[jointName][0]) - joint.offsetX,
+                                         scaleJoint(jointsToRenderForFrame[jointName][1]) - joint.offsetY,
+                                         joint.width,
+                                         joint.height);
+    }
+
+    function renderJoints() {
+        var canvasToDisplay = elemByID('joint-location-canvas');
+        var canvasToDisplayCtx = canvasToDisplay.getContext('2d');
+
+        canvasToDisplayCtx.putImageData(vm.framesSent()[0], 0, 0);
+        canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
+
+        var jointsToRenderForFrame = vm.jointsToRender()[0];
+
+        for (key in JOINT_IMAGES) {
+            drawCircleOnJoint(canvasToDisplayCtx, jointsToRenderForFrame[key]);
+            drawJoint(canvasToDisplayCtx, jointsToRenderForFrame, key);
+        }
+
+        vm.framesSent.shift();
+        vm.jointsToRender.shift();
+    }
+
+    function scaleJoint(jointFromTfServer) {
+        return ORIGINAL_DIM*jointFromTfServer + ORIGINAL_DIM/2
+    }
+
+    // For debug!
+    function drawCircleOnJoint(canvasCtx, joint) {
+        var x = scaleJoint(joint[0]);
+        var y = scaleJoint(joint[1]);
+
+        canvasCtx.beginPath();
+        var circle = canvasCtx.arc(x, y, 8, 0, 2*Math.PI);
+        canvasCtx.fill(circle);
+    }
+
+    // take the screenshot and draw it onto the canvas (positioned to crop the sides)
+    // convert canvas to base64 image, add the frame to the 'framesToSend' array
+    function eventLoop() {
+        if (video.clientHeight == 320)
+            return;
+
+        var videoWidth = video.clientWidth;
+        var videoHeight = video.clientHeight;
+        var offsetX = (videoWidth - videoHeight) / 2;
+
+        var expectedCanvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
+        var origCanvas = vm.createCanvas(ORIGINAL_DIM, ORIGINAL_DIM);
+
+        origCanvas.canvasCtx.drawImage(
+            video,
+            offsetX, 0, videoWidth - 2 * offsetX, videoHeight,
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM
+        );
+        expectedCanvas.canvasCtx.drawImage(
+            origCanvas.canvas,
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM,
+            0, 0, EXPECTED_DIM, EXPECTED_DIM
+        );
+
+        var imageData = origCanvas.canvasCtx.getImageData(
+            0, 0, ORIGINAL_DIM, ORIGINAL_DIM);
+        vm.addFrameToQueue(vm.framesQueue(), imageData);
+        vm.addFrameToQueue(
+            vm.framesToCombine(),
+            expectedCanvas.canvasCtx.getImageData(0, 0, expectedCanvas.canvas.width, expectedCanvas.canvas.height));
+
+        if (vm.sendFrames() && (vm.framesQueue().length >= vm.batchSize())) {
+            vm.sendFramesToBeProcessed();
+        }
+
+        origCanvas.canvas.remove();
+        expectedCanvas.canvas.remove();
+
+        if ((vm.mode() == 'heatmap') && (vm.heatmapsToRender().length > 0)) {
+            renderHeatmapOverlay();
+        } else if ((vm.mode() == 'joints') && (vm.jointsToRender().length > 0)) {
+            renderJoints();
+        } else if ((vm.mode() == 'activation_map') && (vm.heatmapsToRender().length > 0)) {
+            renderActivationMap();
+        }
+    }
+
+    //webcam capture + eventloop init
+    function handleSuccessFact(video) {
+        return function (stream) {
+            window.stream = stream;
+            video.srcObject = stream;
+        }
+    }
+
+    function handleError(error, video) {
+        console.log('navigator.getUserMedia error: ', error);
+    }
+
+    $(document).ready(function () {
+        var video = $('video')[0];
+        var constraints = {
+            audio: false,
+            video: true
+        };
+
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(handleSuccessFact(video))
+            .catch(handleError);
+
+        setInterval(eventLoop, vm.frameTime());
+    });
+</script>

@@ -5,29 +5,11 @@ from tqdm import tqdm
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from pose_utils import pose_util
-from dataset.mpii_datatypes import Person
+from dataset.mpii_datatypes import Person, JOINT_NAMES
 from pose_utils.sparse_to_dense import sparse_joints_to_dense
 from input_pipeline import setup_eval_input_pipeline
 from networks.inference import inference
 import pandas
-
-JOINT_NAMES = ['0 - r ankle',
-               '1 - r knee',
-               '2 - r hip',
-               '3 - l hip',
-               '4 - l knee',
-               '5 - l ankle',
-               '6 - pelvis',
-               '7 - thorax',
-               '8 - upper neck',
-               '9 - head top',
-               '10 - r wrist',
-               '11 - r elbow',
-               '12 - r shoulder',
-               '13 - l shoulder',
-               '14 - l elbow',
-               '15 - l wrist']
-
 
 def _get_points_from_flattened_joints(x_joints, y_joints, batch_size):
     """Takes in a list of batches of x and y joint coordinates, and returns a
@@ -141,7 +123,7 @@ def evaluate_single_epoch(restorer,
                           image_dim,
                           epoch,
                           log_file_handle,
-                          runtime_df):
+                          next_row):
     """Evaluates the model checkpoint given by `restore_path` using the PCKh
     metric.
 
@@ -206,7 +188,7 @@ def evaluate_single_epoch(restorer,
             if (epoch > 1):
                 log_file_handle.write('\n')
             valid_epoch_mean_loss /= num_batches
-            runtime_df['Mean_Validation_Loss'].append(valid_epoch_mean_loss)
+
             log_file_handle.write('\nMean validation loss: {}\n\n'.format(valid_epoch_mean_loss))
             log_file_handle.write('************************************************\n')
             log_file_handle.write('Epoch {} PCKh metric.\n'.format(epoch))
@@ -218,15 +200,17 @@ def evaluate_single_epoch(restorer,
             log_file_handle.write('PCKh:\n')
             for joint_index in range(Person.NUM_JOINTS):
                 log_file_handle.write('{}: {}\n'.format(JOINT_NAMES[joint_index], PCKh[joint_index]))
-                runtime_df[JOINT_NAMES[joint_index]].append(PCKh[joint_index])
+                # next_row[JOINT_NAMES[joint_index]].append(PCKh[joint_index])
 
-            runtime_df['Total_PCKh'].append(np.sum(PCKh)/len(PCKh))
+            next_row['Total_PCKh'].append(np.sum(PCKh)/len(PCKh))
             log_file_handle.write('\nTotal PCKh: {}\n'.format(np.sum(PCKh)/len(PCKh)))
             log_file_handle.flush()
 
             coord.request_stop()
             coord.join(threads=threads)
-            return runtime_df
+
+            return valid_epoch_mean_loss
+
 
 def evaluate():
     """Does a loop checking for new checkpoints and evaluating them all, then
