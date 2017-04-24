@@ -1,104 +1,90 @@
 ﻿<script>
+    var EXPECTED_DIM = 384;
+    var joint_position_url = 'https://brendanduke.ca:8765/';
+    var heatmap_url = 'https://brendanduke.ca:8765/heatmap';
+
+
+
     function elemByID(id) { return document.getElementById(id); }
 
     var ProcessImageVM = function () {
         var self = this;
 
         self.pageLoaded = ko.observable(false);
-        self.optionForUpload = ko.observable('File Upload');
 
         self.showEmptyBaseImage = ko.observable(true);
         self.showSpinnerForBaseImage = ko.observable(false);
         self.showBaseImage = ko.observable(false);
-        self.resultCSSForBaseImage = ko.observable('');
+        self.originalImageData = ko.observable('');
 
         self.showProcessBtn = ko.observable(false);
+        self.batchSize = ko.observable(16);
 
         self.showEmptyProcessedImage = ko.observable(true);
         self.showSpinnerWhileProcessingImage = ko.observable(false);
         self.showProcessedImage = ko.observable(false);
-
-        self.imageToSend = ko.observableArray([]);//needs to be an array right now b/c the tf http server only accepts a batch size of 16 images
-        self.expectedBatchSize = ko.observable(16);
-
+        self.jointPositions = ko.observable('');
 
         self.showSaveBtn = ko.observable(false);
 
 
-        //whenever the user switches b/w upload & url, restore to empty base state
-        self.handlingToggleForInputFormat = self.optionForUpload.subscribe(function () {
-            self.restoreToEmptyBaseState();
-            $('#image-url').val('');
-            $('#upload-file-path').val('');
-            $('#image-upload').val('');
-        })
 
-
-
-        self.restoreToEmptyBaseState = function () {
-            self.showBaseImage(false);
-            self.showSpinnerForBaseImage(false);
-            self.showEmptyBaseImage(true);
-            self.resultCSSForBaseImage('');
-            self.showProcessBtn(false);
-            self.showProcessedImage(false);
-            self.showSpinnerWhileProcessingImage(false);
-            self.showEmptyProcessedImage(true);
-            self.showSaveBtn(false);
-        }
-
-        self.showSpinnerForBaseState = function () {
-            self.showBaseImage(false);
-            self.showEmptyBaseImage(false);
-            self.resultCSSForBaseImage('');
-            self.showSpinnerForBaseImage(true);
-            self.showProcessBtn(false);
-        }
         self.showValidResultForBaseState = function () {
-            self.showEmptyBaseImage(false);
             self.showSpinnerForBaseImage(false);
-            self.resultCSSForBaseImage('valid');
+            self.showEmptyBaseImage(false);
             self.showBaseImage(true);
             self.showProcessBtn(true);
-        }
-        self.showInvalidResultForBaseState = function () {
-            self.showBaseImage(false);
-            self.showSpinnerForBaseImage(false);
-            self.showProcessBtn(false);
-            self.resultCSSForBaseImage('invalid');
-            self.showEmptyBaseImage(true);
-        }
-
-
-        self.showSpinnerForProcessingState = function () {
-            self.showProcessedImage(false);
-            self.showEmptyProcessedImage(false);
-            self.showSpinnerWhileProcessingImage(true);
             self.showSaveBtn(false);
         }
+
+        self.showInvalidResultForBaseState = function(){
+            self.showSpinnerForBaseImage(false);
+            self.showEmptyBaseImage(true);
+            self.showBaseImage(false);
+            self.showProcessBtn(false);
+            self.showSaveBtn(false);
+        }
+
         self.showValidResultForProcessedState = function () {
-            self.showEmptyProcessedImage(false);
             self.showSpinnerWhileProcessingImage(false);
+            self.showEmptyProcessedImage(false);
             self.showProcessedImage(true);
             self.showProcessBtn(false);
             self.showSaveBtn(true);
         }
+
         self.showInvalidResultForProcessedState = function () {
-            self.showEmptyProcessedImage(true);
             self.showSpinnerWhileProcessingImage(false);
+            self.showEmptyProcessedImage(true);
             self.showProcessedImage(false);
             self.showProcessBtn(true);
-            self.showSaveBtn(false);
-
-            Materialize.toast('<i class="fa fa-exclamation-triangle"></i>  Error! Cannot establish a connection with the computing server', 5000);
+            self.showSaveBtn(true);
 
         }
-        
+
+
+
+
+        self.fillCanvasParams = function (canvas, width, height) {
+            canvas.fillStyle = 'red';
+            canvas.width = width;
+            canvas.height = height;
+            var canvasCtx = canvas.getContext('2d');
+
+            return { 'canvas': canvas, 'canvasCtx': canvasCtx };
+        }
+
+        self.createCanvas = function (width, height) {
+            var canvas = document.createElement('canvas');
+            return self.fillCanvasParams(canvas, width, height);
+        }
+
+
+
+
+
+
     }
-
-
-
-
     //custom bindings and helper funcs 
     ko.bindingHandlers.fadeVisible = {
         init: function (element, valueAccessor) {
@@ -125,21 +111,9 @@
             ko.utils.unwrapObservable(value) ? $(element).show() : $(element).hide();
         }
     }
-
-
-
-    //init
+    //init ko vm
     window.vm = new ProcessImageVM();
     ko.applyBindings(vm);
-
-
-    //global vars
-    var joint_position_url = 'https://brendanduke.ca:8765/';
-    var heatmap_url = 'https://brendanduke.ca:8765/heatmap';
-
-    var expectedDim = 384;
-
-
 
 
 
@@ -147,35 +121,12 @@
     function showPage() {
         vm.pageLoaded(true);
         $('#page-content').fadeIn();
-        $('#image-url').val('');
-        $('#upload-file-path').val('');
-    }
-
-    function loadBaseImageViaURL() {
-        vm.restoreToEmptyBaseState();
-
-        var url = $('#image-url').val();
-
-        if (url.indexOf('//') != -1 || url.indexOf('www.') != -1) {
-            vm.showSpinnerForBaseImage();
-
-            $('#image-preview').attr('src', url).load(function () {
-                vm.showValidResultForBaseState();
-            }).error(function () {
-                vm.showInvalidResultForBaseState();
-            }); 
-        }
-        else {
-            vm.showInvalidResultForBaseState();
-        }
     }
 
 
     function loadBaseImageViaUpload() {
-        vm.restoreToEmptyBaseState();
-        console.log(this);
         if (this != null && this.files && this.files[0]) {
-            vm.showSpinnerForBaseState();
+            vm.showSpinnerForBaseImage(true);
 
             var reader = new FileReader();
             reader.onload = function (e) {
@@ -196,94 +147,107 @@
 
 
 
-    //IMAGE URL NOT WORKING AS OF NOW...
-    function preProcessGivenImage() {
-        var originalImageCanvas = document.createElement('canvas');
-        var originalImageContext = originalImageCanvas.getContext('2d');
+    function renderHeatmapOverImage(base64Heatmap) {
+        var heatmapCanvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
+        
+        var heatmapImage = new Image();
+        heatmapImage.onload = function () {
+            heatmapCanvas.canvasCtx.drawImage(this, 0, 0, EXPECTED_DIM, EXPECTED_DIM, 0, 0, EXPECTED_DIM, EXPECTED_DIM);
 
-        var originalImage = new Image();
-        if (vm.optionForUpload() == "Image URL") {
-            originalImage.crossOrigin = "anonymous";
+            var heatmapImageData = heatmapCanvas.canvasCtx.getImageData(0, 0, EXPECTED_DIM, EXPECTED_DIM);
+            var originalImageData = vm.originalImageData().data;
+
+            var heatmapData = heatmapImageData.data;
+            for (var n = 0; n < (4 * EXPECTED_DIM * EXPECTED_DIM); n += 4) {
+                heatmapData[n + 0] = 0.5 * heatmapData[n + 0] + 0.5 * originalImageData[n + 0];
+                heatmapData[n + 1] = 0.5 * heatmapData[n + 1] + 0.5 * originalImageData[n + 1];
+                heatmapData[n + 2] = 0.5 * heatmapData[n + 2] + 0.5 * originalImageData[n + 2];
+            }
+
+            canvasToDisplay = elemByID('processed-image');
+            canvasToDisplay.width = EXPECTED_DIM; canvasToDisplay.height = EXPECTED_DIM;
+            canvasToDisplayCtx = canvasToDisplay.getContext('2d');
+
+            canvasToDisplayCtx.putImageData(heatmapImageData, 0, 0);
+            canvasToDisplayCtx.drawImage(canvasToDisplay, 0, 0);
+
+            vm.showValidResultForProcessedState();
         }
 
-        originalImage.onload = function () {
-            if (vm.optionForUpload() == "File Upload") {
-                originalImageContext.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height,
-                    0, 0, expectedDim, expectedDim
-                );
-
-                var imageToSend = originalImageCanvas.toDataURL().split(',')[1];
-            }
-            else {
-                console.log('e');
-                var imageToSend = originalImageCanvas.toDataURL();
-
-            }
-            console.log(imageToSend);
-            var imagesToSend = [];
-            //as of now, the tf http server expects 16 images so load them into an array
-            for (var i = 0; i < vm.expectedBatchSize(); i++) {
-                imagesToSend.push(imageToSend);
-            }
-            sendRequestToTFHttpServer(imagesToSend);
-        }
-         originalImage.src = $('#image-preview').attr('src');
+        heatmapImage.src = base64Heatmap;
 
     }
 
+    
 
-    //NEED TO PORT IN the code from democontroller
-    function sendRequestToTFHttpServer(imagesToSend) {
-        vm.showSpinnerForProcessingState();
-
-        var processedImageCanvas = elemByID('processed-image');
-        var processedImageContext = processedImageCanvas.getContext('2d');
-
-
+    function sendImageToBeProcessed(postData) {
+        //get joints -> used to save
         $.post(joint_position_url,
-            JSON.stringify(imagesToSend),
+            JSON.stringify(postData),
             function (response) {
-                console.log(response);
-
+                var jointPositions = response;
+                //console.log(response);
             },
             "json")
             .fail(function (response) {
                 vm.showInvalidResultForProcessedState();
             });
 
-
-        vm.showValidResultForProcessedState();
-
+        //get heatmap -> used for display
+        $.post(heatmap_url,
+            JSON.stringify(postData),
+            function (base64Heatmap) {
+                renderHeatmapOverImage('data:image/jpeg;base64,' + base64Heatmap);
+            })
+            .fail(function (response) {
+                console.log(response);
+                vm.showInvalidResultForProcessedState();
+            });
     }
 
 
 
-    function drawProcessedImage() {
-        var canvas = elemByID('processed-image');
-        
 
-        var ctx = canvas.getContext('2d');
-        var originalImage = new Image();
+
+    function processBaseImage() {
+        vm.showEmptyProcessedImage(false);
+        vm.showProcessedImage(false);
+        vm.showSpinnerWhileProcessingImage(true);
+
+        var originalImageCanvas = vm.createCanvas(EXPECTED_DIM, EXPECTED_DIM);
+        var bigImageCanvas = vm.createCanvas(EXPECTED_DIM, vm.batchSize() * EXPECTED_DIM);
+
+        originalImage = new Image();
         originalImage.onload = function () {
-            ctx.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height,
-                            0, 0, canvas.width, canvas.height
+            originalImageCanvas.canvasCtx.drawImage(originalImage, 0, 0, originalImage.width, originalImage.height,
+                0, 0, EXPECTED_DIM, EXPECTED_DIM
             );
+
+            vm.originalImageData(originalImageCanvas.canvasCtx.getImageData(0, 0, EXPECTED_DIM, EXPECTED_DIM));
+
+            for (var i = 0; i < vm.batchSize(); i++) {
+                bigImageCanvas.canvasCtx.putImageData(vm.originalImageData(), 0, i * EXPECTED_DIM);
+            }
+            sendImageToBeProcessed(bigImageCanvas.canvas.toDataURL('image/jpeg').split(',')[1]);
         }
 
         originalImage.src = $('#image-preview').attr('src');
+
+        originalImageCanvas.canvas.remove();
+        bigImageCanvas.canvas.remove();
+        
+
     }
 
 
 
-    //define all event handlers
-    $('#update-base-image-btn').on('click', loadBaseImageViaURL);
+
     $('#image-upload').change(loadBaseImageViaUpload);
-    $('#process-image-btn').on('click', preProcessGivenImage);
-
-
+    $('#process-image-btn').click(processBaseImage);
     $(document).ready(function () {
         $('.modal').modal();
         setTimeout(showPage, 1200);
+
         $('#upload-file-path').val('');
 
         $('.chips').material_chip({
@@ -291,4 +255,6 @@
         });
 
     });
+
+
 </script>
