@@ -38,7 +38,7 @@
     <div class="col l6 s12">
         <video autoplay></video>
     </div>
-    <div data-bind="fadeVisible: vm.framesToDisplay().length < 1 || vm.jointsToRender().length < 1">
+    <div data-bind="fadeVisible: vm.heatmapsToRender().length < 1 || vm.jointsToRender().length < 1">
         <div class="col l6 s12">
             <div class="valign-wrapper">
                 <p>Waiting on response from server...</p>
@@ -50,7 +50,7 @@
             <canvas id="joint-location-canvas"></canvas>
         </div>
     </div>
-    <div data-bind="fadeVisible: vm.framesToDisplay().length > 0 && vm.mode() == 'heatmap'">
+    <div data-bind="fadeVisible: vm.heatmapsToRender().length > 0 && vm.mode() == 'heatmap'">
         <div class="col l6 s12">
             <canvas id="heatmap-canvas"></canvas>
         </div>
